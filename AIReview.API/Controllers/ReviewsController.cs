@@ -1,0 +1,502 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using AIReview.Core.Interfaces;
+using AIReview.Shared.DTOs;
+
+namespace AIReview.API.Controllers;
+
+[ApiController]
+[Route("api/v1/[controller]")]
+[Authorize]
+public class ReviewsController : ControllerBase
+{
+    private readonly IReviewService _reviewService;
+    private readonly IAIReviewService _aiReviewService;
+    private readonly ILogger<ReviewsController> _logger;
+
+    public ReviewsController(
+        IReviewService reviewService, 
+        IAIReviewService aiReviewService,
+        ILogger<ReviewsController> logger)
+    {
+        _reviewService = reviewService;
+        _aiReviewService = aiReviewService;
+        _logger = logger;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ApiResponse<PagedResult<ReviewDto>>>> GetReviews([FromQuery] ReviewQueryParameters parameters)
+    {
+        try
+        {
+            var reviews = await _reviewService.GetReviewsAsync(parameters);
+            
+            return Ok(new ApiResponse<PagedResult<ReviewDto>>
+            {
+                Success = true,
+                Data = reviews
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting reviews");
+            return StatusCode(500, new ApiResponse<PagedResult<ReviewDto>>
+            {
+                Success = false,
+                Message = "获取评审列表失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiResponse<ReviewDto>>> CreateReview([FromBody] CreateReviewRequest request)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponse<ReviewDto>
+                {
+                    Success = false,
+                    Message = "请求数据无效",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            var userId = GetCurrentUserId();
+            var review = await _reviewService.CreateReviewAsync(request, userId);
+            
+            return CreatedAtAction(nameof(GetReview), new { id = review.Id }, new ApiResponse<ReviewDto>
+            {
+                Success = true,
+                Data = review,
+                Message = "评审请求创建成功"
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating review");
+            return StatusCode(500, new ApiResponse<ReviewDto>
+            {
+                Success = false,
+                Message = "创建评审请求失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ApiResponse<ReviewDto>>> GetReview(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            var review = await _reviewService.GetReviewAsync(id);
+            if (review == null)
+            {
+                return NotFound(new ApiResponse<ReviewDto>
+                {
+                    Success = false,
+                    Message = "评审请求不存在"
+                });
+            }
+
+            return Ok(new ApiResponse<ReviewDto>
+            {
+                Success = true,
+                Data = review
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting review {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<ReviewDto>
+            {
+                Success = false,
+                Message = "获取评审详情失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<ApiResponse<ReviewDto>>> UpdateReview(int id, [FromBody] UpdateReviewRequest request)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            var review = await _reviewService.UpdateReviewAsync(id, request);
+            
+            return Ok(new ApiResponse<ReviewDto>
+            {
+                Success = true,
+                Data = review,
+                Message = "评审更新成功"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<ReviewDto>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating review {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<ReviewDto>
+            {
+                Success = false,
+                Message = "更新评审失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteReview(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            await _reviewService.DeleteReviewAsync(id);
+            
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "评审删除成功"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<object>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting review {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<object>
+            {
+                Success = false,
+                Message = "删除评审失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpPost("{id}/ai-review")]
+    public async Task<ActionResult<ApiResponse<object>>> TriggerAIReview(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            await _aiReviewService.EnqueueReviewAsync(id);
+            
+            return Accepted(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "AI评审已启动，请稍后查看结果"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<object>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error triggering AI review for {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<object>
+            {
+                Success = false,
+                Message = "启动AI评审失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpGet("{id}/ai-result")]
+    public async Task<ActionResult<ApiResponse<AIReviewResultDto>>> GetAIReviewResult(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            var result = await _reviewService.GetAIReviewResultAsync(id);
+            if (result == null)
+            {
+                return NotFound(new ApiResponse<AIReviewResultDto>
+                {
+                    Success = false,
+                    Message = "AI评审结果不存在"
+                });
+            }
+
+            return Ok(new ApiResponse<AIReviewResultDto>
+            {
+                Success = true,
+                Data = result
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting AI review result for {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<AIReviewResultDto>
+            {
+                Success = false,
+                Message = "获取AI评审结果失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpGet("{id}/comments")]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ReviewCommentDto>>>> GetReviewComments(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            var comments = await _reviewService.GetReviewCommentsAsync(id);
+            
+            return Ok(new ApiResponse<IEnumerable<ReviewCommentDto>>
+            {
+                Success = true,
+                Data = comments
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting review comments for {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<IEnumerable<ReviewCommentDto>>
+            {
+                Success = false,
+                Message = "获取评审评论失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpPost("{id}/comments")]
+    public async Task<ActionResult<ApiResponse<ReviewCommentDto>>> AddReviewComment(int id, [FromBody] AddCommentRequest request)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponse<ReviewCommentDto>
+                {
+                    Success = false,
+                    Message = "请求数据无效",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            var userId = GetCurrentUserId();
+            var comment = await _reviewService.AddReviewCommentAsync(id, request, userId);
+            
+            return CreatedAtAction("GetReviewComment", "Comments", new { id = comment.Id }, new ApiResponse<ReviewCommentDto>
+            {
+                Success = true,
+                Data = comment,
+                Message = "评论添加成功"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<ReviewCommentDto>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding comment to review {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<ReviewCommentDto>
+            {
+                Success = false,
+                Message = "添加评论失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    private string GetCurrentUserId()
+    {
+        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? throw new UnauthorizedAccessException("用户未认证");
+    }
+}
+
+[ApiController]
+[Route("api/v1/[controller]")]
+[Authorize]
+public class CommentsController : ControllerBase
+{
+    private readonly IReviewService _reviewService;
+    private readonly ILogger<CommentsController> _logger;
+
+    public CommentsController(IReviewService reviewService, ILogger<CommentsController> logger)
+    {
+        _reviewService = reviewService;
+        _logger = logger;
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ApiResponse<ReviewCommentDto>>> GetReviewComment(int id)
+    {
+        try
+        {
+            var comment = await _reviewService.GetReviewCommentAsync(id);
+            if (comment == null)
+            {
+                return NotFound(new ApiResponse<ReviewCommentDto>
+                {
+                    Success = false,
+                    Message = "评论不存在"
+                });
+            }
+
+            return Ok(new ApiResponse<ReviewCommentDto>
+            {
+                Success = true,
+                Data = comment
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting comment {CommentId}", id);
+            return StatusCode(500, new ApiResponse<ReviewCommentDto>
+            {
+                Success = false,
+                Message = "获取评论失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<ApiResponse<ReviewCommentDto>>> UpdateComment(int id, [FromBody] UpdateCommentRequest request)
+    {
+        try
+        {
+            var comment = await _reviewService.UpdateReviewCommentAsync(id, request);
+            
+            return Ok(new ApiResponse<ReviewCommentDto>
+            {
+                Success = true,
+                Data = comment,
+                Message = "评论更新成功"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<ReviewCommentDto>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating comment {CommentId}", id);
+            return StatusCode(500, new ApiResponse<ReviewCommentDto>
+            {
+                Success = false,
+                Message = "更新评论失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteComment(int id)
+    {
+        try
+        {
+            await _reviewService.DeleteReviewCommentAsync(id);
+            
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "评论删除成功"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<object>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting comment {CommentId}", id);
+            return StatusCode(500, new ApiResponse<object>
+            {
+                Success = false,
+                Message = "删除评论失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+}

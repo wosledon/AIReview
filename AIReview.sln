@@ -1,0 +1,42 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIReview.API", "AIReview.API\AIReview.API.csproj", "{8E1F8A1A-8E1F-4A1A-8E1F-8A1A8E1F4A1A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIReview.Core", "AIReview.Core\AIReview.Core.csproj", "{8E1F8A1B-8E1F-4A1A-8E1F-8A1A8E1F4A1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIReview.Infrastructure", "AIReview.Infrastructure\AIReview.Infrastructure.csproj", "{8E1F8A1C-8E1F-4A1A-8E1F-8A1A8E1F4A1C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIReview.Shared", "AIReview.Shared\AIReview.Shared.csproj", "{8E1F8A1D-8E1F-4A1A-8E1F-8A1A8E1F4A1D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIReview.Tests", "AIReview.Tests\AIReview.Tests.csproj", "{8E1F8A1E-8E1F-4A1A-8E1F-8A1A8E1F4A1E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8E1F8A1A-8E1F-4A1A-8E1F-8A1A8E1F4A1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E1F8A1A-8E1F-4A1A-8E1F-8A1A8E1F4A1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E1F8A1A-8E1F-4A1A-8E1F-8A1A8E1F4A1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E1F8A1A-8E1F-4A1A-8E1F-8A1A8E1F4A1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E1F8A1B-8E1F-4A1A-8E1F-8A1A8E1F4A1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E1F8A1B-8E1F-4A1A-8E1F-8A1A8E1F4A1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E1F8A1B-8E1F-4A1A-8E1F-8A1A8E1F4A1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E1F8A1B-8E1F-4A1A-8E1F-8A1A8E1F4A1B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E1F8A1C-8E1F-4A1A-8E1F-8A1A8E1F4A1C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E1F8A1C-8E1F-4A1A-8E1F-8A1A8E1F4A1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E1F8A1C-8E1F-4A1A-8E1F-8A1A8E1F4A1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E1F8A1C-8E1F-4A1A-8E1F-8A1A8E1F4A1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E1F8A1D-8E1F-4A1A-8E1F-8A1A8E1F4A1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E1F8A1D-8E1F-4A1A-8E1F-8A1A8E1F4A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E1F8A1D-8E1F-4A1A-8E1F-8A1A8E1F4A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E1F8A1D-8E1F-4A1A-8E1F-8A1A8E1F4A1D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E1F8A1E-8E1F-4A1A-8E1F-8A1A8E1F4A1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E1F8A1E-8E1F-4A1A-8E1F-8A1A8E1F4A1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E1F8A1E-8E1F-4A1A-8E1F-8A1A8E1F4A1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E1F8A1E-8E1F-4A1A-8E1F-8A1A8E1F4A1E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
