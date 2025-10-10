@@ -30,6 +30,7 @@ public interface IGitService
     // 文件变更
     Task<IEnumerable<GitFileChange>> GetFileChangesAsync(int commitId);
     Task<string?> GetCommitDiffAsync(int repositoryId, string sha);
+    Task<string?> GetDiffBetweenRefsAsync(int repositoryId, string @base, string head);
     
     // 仓库状态
     Task<bool> IsRepositoryAccessibleAsync(int repositoryId);

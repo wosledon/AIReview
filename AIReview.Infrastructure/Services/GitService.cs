@@ -376,6 +376,25 @@ public class GitService : IGitService
         return diffResult.Success ? diffResult.Output : null;
     }
 
+    public async Task<string?> GetDiffBetweenRefsAsync(int repositoryId, string @base, string head)
+    {
+        var repository = await GetRepositoryAsync(repositoryId);
+        if (repository == null || string.IsNullOrEmpty(repository.LocalPath) || !Directory.Exists(repository.LocalPath))
+        {
+            return null;
+        }
+
+        // 使用三点语法 base...head（与 PR 比较一致）；失败则回退到两点 base..head
+        var diffTriple = await ExecuteGitCommandAsync($"diff {@base}...{head}", repository.LocalPath);
+        if (diffTriple.Success && !string.IsNullOrWhiteSpace(diffTriple.Output))
+        {
+            return diffTriple.Output;
+        }
+
+        var diffDouble = await ExecuteGitCommandAsync($"diff {@base}..{head}", repository.LocalPath);
+        return diffDouble.Success ? diffDouble.Output : null;
+    }
+
     #endregion
 
     #region 仓库状态
