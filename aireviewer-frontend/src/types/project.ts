@@ -4,8 +4,8 @@ export interface Project {
   description?: string;
   repositoryUrl?: string;
   language: string;
-  isActive: boolean;
-  memberCount?: number;
+  isActive?: boolean; // 改为可选，因为后端可能不返回这个字段
+  memberCount?: number; // 改为可选，因为后端可能不返回这个字段
   createdAt: string;
   updatedAt: string;
 }

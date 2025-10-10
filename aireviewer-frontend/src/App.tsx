@@ -12,6 +12,7 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { CreateProjectPage } from './pages/CreateProjectPage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { ReviewsPage } from './pages/ReviewsPage';
+import { CreateReviewPage } from './pages/CreateReviewPage';
 import { ReviewDetailPage } from './pages/ReviewDetailPage';
 import { ReviewSettingsPage } from './pages/ReviewSettingsPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -68,10 +69,26 @@ function App() {
                   } 
                 />
                 <Route 
+                  path="projects/:id/reviews/new" 
+                  element={
+                    <ProtectedRoute>
+                      <CreateReviewPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
                   path="reviews" 
                   element={
                     <ProtectedRoute>
                       <ReviewsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="reviews/new" 
+                  element={
+                    <ProtectedRoute>
+                      <CreateReviewPage />
                     </ProtectedRoute>
                   } 
                 />

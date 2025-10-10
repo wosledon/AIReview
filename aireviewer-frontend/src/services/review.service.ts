@@ -26,19 +26,24 @@ export class ReviewService {
     const query = queryParams.toString();
     const url = query ? `/reviews?${query}` : '/reviews';
     
-    return await apiClient.get<PagedResult<Review>>(url);
+    // 获取 API 响应并提取 data 字段
+    const response = await apiClient.get<{ success: boolean; data: PagedResult<Review> }>(url);
+    return response.data;
   }
 
   async getReview(id: number): Promise<Review> {
-    return await apiClient.get<Review>(`/reviews/${id}`);
+    const response = await apiClient.get<{ success: boolean; data: Review }>(`/reviews/${id}`);
+    return response.data;
   }
 
   async createReview(request: CreateReviewRequest): Promise<Review> {
-    return await apiClient.post<Review>('/reviews', request);
+    const response = await apiClient.post<{ success: boolean; data: Review }>('/reviews', request);
+    return response.data;
   }
 
   async updateReview(id: number, request: UpdateReviewRequest): Promise<Review> {
-    return await apiClient.put<Review>(`/reviews/${id}`, request);
+    const response = await apiClient.put<{ success: boolean; data: Review }>(`/reviews/${id}`, request);
+    return response.data;
   }
 
   async deleteReview(id: number): Promise<void> {
@@ -46,15 +51,18 @@ export class ReviewService {
   }
 
   async getReviewComments(reviewId: number): Promise<ReviewComment[]> {
-    return await apiClient.get<ReviewComment[]>(`/reviews/${reviewId}/comments`);
+    const response = await apiClient.get<{ success: boolean; data: ReviewComment[] }>(`/reviews/${reviewId}/comments`);
+    return response.data;
   }
 
   async addComment(reviewId: number, request: AddCommentRequest): Promise<ReviewComment> {
-    return await apiClient.post<ReviewComment>(`/reviews/${reviewId}/comments`, request);
+    const response = await apiClient.post<{ success: boolean; data: ReviewComment }>(`/reviews/${reviewId}/comments`, request);
+    return response.data;
   }
 
   async updateReviewComment(reviewId: number, commentId: number, request: UpdateCommentRequest): Promise<ReviewComment> {
-    return await apiClient.put<ReviewComment>(`/reviews/${reviewId}/comments/${commentId}`, request);
+    const response = await apiClient.put<{ success: boolean; data: ReviewComment }>(`/reviews/${reviewId}/comments/${commentId}`, request);
+    return response.data;
   }
 
   async deleteReviewComment(reviewId: number, commentId: number): Promise<void> {
@@ -66,23 +74,28 @@ export class ReviewService {
   }
 
   async getAIReviewResult(reviewId: number): Promise<AIReviewResult> {
-    return await apiClient.get<AIReviewResult>(`/reviews/${reviewId}/ai-result`);
+    const response = await apiClient.get<{ success: boolean; data: AIReviewResult }>(`/reviews/${reviewId}/ai-result`);
+    return response.data;
   }
 
   async approveReview(reviewId: number): Promise<Review> {
-    return await apiClient.post<Review>(`/reviews/${reviewId}/approve`);
+    const response = await apiClient.post<{ success: boolean; data: Review }>(`/reviews/${reviewId}/approve`);
+    return response.data;
   }
 
   async rejectReview(reviewId: number, reason?: string): Promise<Review> {
-    return await apiClient.post<Review>(`/reviews/${reviewId}/reject`, { reason });
+    const response = await apiClient.post<{ success: boolean; data: Review }>(`/reviews/${reviewId}/reject`, { reason });
+    return response.data;
   }
 
   async requestChanges(reviewId: number, reason: string): Promise<Review> {
-    return await apiClient.post<Review>(`/reviews/${reviewId}/request-changes`, { reason });
+    const response = await apiClient.post<{ success: boolean; data: Review }>(`/reviews/${reviewId}/request-changes`, { reason });
+    return response.data;
   }
 
   async getMyReviews(): Promise<Review[]> {
-    return await apiClient.get<Review[]>('/reviews/my');
+    const response = await apiClient.get<{ success: boolean; data: Review[] }>('/reviews/my');
+    return response.data;
   }
 
   async getReviewsForProject(projectId: number, params?: Omit<ReviewQueryParameters, 'projectId'>): Promise<PagedResult<Review>> {
@@ -98,7 +111,9 @@ export class ReviewService {
     const query = queryParams.toString();
     const url = query ? `/projects/${projectId}/reviews?${query}` : `/projects/${projectId}/reviews`;
     
-    return await apiClient.get<PagedResult<Review>>(url);
+    // 获取 API 响应并提取 data 字段
+    const response = await apiClient.get<{ success: boolean; data: PagedResult<Review> }>(url);
+    return response.data;
   }
 }
 

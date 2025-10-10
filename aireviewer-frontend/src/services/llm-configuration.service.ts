@@ -56,48 +56,55 @@ export interface ApiResponse<T> {
 
 export class LLMConfigurationService {
   // 获取所有配置
-  async getAll(): Promise<ApiResponse<LLMConfiguration[]>> {
-    return await apiClient.get<ApiResponse<LLMConfiguration[]>>('/llmconfiguration');
+  async getAll(): Promise<LLMConfiguration[]> {
+    const response = await apiClient.get<ApiResponse<LLMConfiguration[]>>('/llmconfiguration');
+    return response.data || [];
   }
 
   // 根据ID获取配置
-  async getById(id: number): Promise<ApiResponse<LLMConfiguration>> {
-    return await apiClient.get<ApiResponse<LLMConfiguration>>(`/llmconfiguration/${id}`);
+  async getById(id: number): Promise<LLMConfiguration> {
+    const response = await apiClient.get<ApiResponse<LLMConfiguration>>(`/llmconfiguration/${id}`);
+    return response.data!;
   }
 
   // 获取默认配置
-  async getDefault(): Promise<ApiResponse<LLMConfiguration>> {
-    return await apiClient.get<ApiResponse<LLMConfiguration>>('/llmconfiguration/default');
+  async getDefault(): Promise<LLMConfiguration> {
+    const response = await apiClient.get<ApiResponse<LLMConfiguration>>('/llmconfiguration/default');
+    return response.data!;
   }
 
   // 创建配置
-  async create(data: CreateLLMConfigurationDto): Promise<ApiResponse<LLMConfiguration>> {
-    return await apiClient.post<ApiResponse<LLMConfiguration>>('/llmconfiguration', data);
+  async create(data: CreateLLMConfigurationDto): Promise<LLMConfiguration> {
+    const response = await apiClient.post<ApiResponse<LLMConfiguration>>('/llmconfiguration', data);
+    return response.data!;
   }
 
   // 更新配置
-  async update(id: number, data: UpdateLLMConfigurationDto): Promise<ApiResponse<LLMConfiguration>> {
-    return await apiClient.put<ApiResponse<LLMConfiguration>>(`/llmconfiguration/${id}`, data);
+  async update(id: number, data: UpdateLLMConfigurationDto): Promise<LLMConfiguration> {
+    const response = await apiClient.put<ApiResponse<LLMConfiguration>>(`/llmconfiguration/${id}`, data);
+    return response.data!;
   }
 
   // 删除配置
-  async delete(id: number): Promise<ApiResponse<null>> {
-    return await apiClient.delete<ApiResponse<null>>(`/llmconfiguration/${id}`);
+  async delete(id: number): Promise<void> {
+    await apiClient.delete<ApiResponse<null>>(`/llmconfiguration/${id}`);
   }
 
   // 设置为默认配置
-  async setDefault(id: number): Promise<ApiResponse<null>> {
-    return await apiClient.post<ApiResponse<null>>(`/llmconfiguration/${id}/set-default`);
+  async setDefault(id: number): Promise<void> {
+    await apiClient.post<ApiResponse<null>>(`/llmconfiguration/${id}/set-default`);
   }
 
   // 测试连接
-  async testConnection(id: number): Promise<ApiResponse<TestConnectionResult>> {
-    return await apiClient.post<ApiResponse<TestConnectionResult>>(`/llmconfiguration/${id}/test`);
+  async testConnection(id: number): Promise<TestConnectionResult> {
+    const response = await apiClient.post<ApiResponse<TestConnectionResult>>(`/llmconfiguration/${id}/test`);
+    return response.data!;
   }
 
   // 获取支持的提供商列表
-  async getSupportedProviders(): Promise<ApiResponse<string[]>> {
-    return await apiClient.get<ApiResponse<string[]>>('/llmconfiguration/providers');
+  async getSupportedProviders(): Promise<string[]> {
+    const response = await apiClient.get<ApiResponse<string[]>>('/llmconfiguration/providers');
+    return response.data || [];
   }
 }
 

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using AIReview.Core.Entities;
 using AIReview.Core.Interfaces;
+using AIReview.Shared.DTOs;
 
 namespace AIReview.API.Controllers;
 
@@ -31,7 +32,7 @@ public class LLMConfigurationController : ControllerBase
     /// 获取所有活动的LLM配置
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<LLMConfigurationDto>>> GetConfigurations()
+    public async Task<IActionResult> GetConfigurations()
     {
         var configurations = await _configurationService.GetAllActiveAsync();
         var result = configurations.Select(c => new LLMConfigurationDto
@@ -49,7 +50,12 @@ public class LLMConfigurationController : ControllerBase
             UpdatedAt = c.UpdatedAt
         });
         
-        return Ok(result);
+        return Ok(new ApiResponse<IEnumerable<LLMConfigurationDto>>
+        {
+            Success = true,
+            Data = result,
+            Message = "获取LLM配置成功"
+        });
     }
 
     /// <summary>

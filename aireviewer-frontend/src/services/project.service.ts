@@ -27,19 +27,35 @@ export class ProjectService {
     const query = queryParams.toString();
     const url = query ? `/projects?${query}` : '/projects';
     
-    return await apiClient.get<PagedResult<Project>>(url);
+    // 获取 API 响应
+    const response = await apiClient.get<{ success: boolean; data: Project[] }>(url);
+    
+    // 将 API 响应转换为 PagedResult 格式
+    const projects = response.data || [];
+    
+    // 为了兼容现有的分页逻辑，我们创建一个简单的 PagedResult
+    return {
+      items: projects,
+      totalCount: projects.length,
+      page: params?.page || 1,
+      pageSize: params?.pageSize || 20,
+      totalPages: Math.ceil(projects.length / (params?.pageSize || 20))
+    };
   }
 
   async getProject(id: number): Promise<Project> {
-    return await apiClient.get<Project>(`/projects/${id}`);
+    const response = await apiClient.get<{ success: boolean; data: Project }>(`/projects/${id}`);
+    return response.data;
   }
 
   async createProject(request: CreateProjectRequest): Promise<Project> {
-    return await apiClient.post<Project>('/projects', request);
+    const response = await apiClient.post<{ success: boolean; data: Project }>('/projects', request);
+    return response.data;
   }
 
   async updateProject(id: number, request: UpdateProjectRequest): Promise<Project> {
-    return await apiClient.put<Project>(`/projects/${id}`, request);
+    const response = await apiClient.put<{ success: boolean; data: Project }>(`/projects/${id}`, request);
+    return response.data;
   }
 
   async deleteProject(id: number): Promise<void> {
@@ -47,11 +63,13 @@ export class ProjectService {
   }
 
   async getProjectMembers(projectId: number): Promise<ProjectMember[]> {
-    return await apiClient.get<ProjectMember[]>(`/projects/${projectId}/members`);
+    const response = await apiClient.get<{ success: boolean; data: ProjectMember[] }>(`/projects/${projectId}/members`);
+    return response.data;
   }
 
   async addProjectMember(projectId: number, request: AddMemberRequest): Promise<ProjectMember> {
-    return await apiClient.post<ProjectMember>(`/projects/${projectId}/members`, request);
+    const response = await apiClient.post<{ success: boolean; data: ProjectMember }>(`/projects/${projectId}/members`, request);
+    return response.data;
   }
 
   async removeProjectMember(projectId: number, memberId: string): Promise<void> {
@@ -59,19 +77,23 @@ export class ProjectService {
   }
 
   async updateProjectMemberRole(projectId: number, memberId: string, role: string): Promise<ProjectMember> {
-    return await apiClient.put<ProjectMember>(`/projects/${projectId}/members/${memberId}`, { role });
+    const response = await apiClient.put<{ success: boolean; data: ProjectMember }>(`/projects/${projectId}/members/${memberId}`, { role });
+    return response.data;
   }
 
   async getMyProjects(): Promise<Project[]> {
-    return await apiClient.get<Project[]>('/projects/my');
+    const response = await apiClient.get<{ success: boolean; data: Project[] }>('/projects/my');
+    return response.data;
   }
 
   async archiveProject(id: number): Promise<Project> {
-    return await apiClient.post<Project>(`/projects/${id}/archive`);
+    const response = await apiClient.post<{ success: boolean; data: Project }>(`/projects/${id}/archive`);
+    return response.data;
   }
 
   async unarchiveProject(id: number): Promise<Project> {
-    return await apiClient.post<Project>(`/projects/${id}/unarchive`);
+    const response = await apiClient.post<{ success: boolean; data: Project }>(`/projects/${id}/unarchive`);
+    return response.data;
   }
 }
 

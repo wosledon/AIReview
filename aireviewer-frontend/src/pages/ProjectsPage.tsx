@@ -125,7 +125,7 @@ export const ProjectsPage = () => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {projects.map((project: Project) => (
             <ProjectCard key={project.id} project={project} />
           ))}
@@ -151,43 +151,55 @@ interface ProjectCardProps {
 
 const ProjectCard = ({ project }: ProjectCardProps) => {
   return (
-    <div className="card hover:shadow-lg transition-shadow">
+    <div className="card hover:shadow-lg transition-shadow h-full flex flex-col">
+      {/* Header with icon, title and menu */}
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center">
-          <div className="p-2 bg-primary-100 rounded-lg">
+        <div className="flex items-start space-x-3 flex-1 min-w-0">
+          <div className="p-2 bg-primary-100 rounded-lg flex-shrink-0">
             <FolderIcon className="h-6 w-6 text-primary-600" />
           </div>
-          <div className="ml-3">
-            <h3 className="text-lg font-semibold text-gray-900">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
               <Link 
                 to={`/projects/${project.id}`}
-                className="hover:text-primary-600"
+                className="hover:text-primary-600 block truncate"
+                title={project.name}
               >
                 {project.name}
               </Link>
             </h3>
-            <p className="text-sm text-gray-500">{project.repositoryUrl}</p>
+            {project.repositoryUrl && (
+              <p className="text-sm text-gray-500 truncate" title={project.repositoryUrl}>
+                {project.repositoryUrl}
+              </p>
+            )}
           </div>
         </div>
-        <button className="p-1 text-gray-400 hover:text-gray-600">
-          <EllipsisVerticalIcon className="h-5 w-5" />
-        </button>
+        <div className="flex-shrink-0 ml-2">
+          <button className="p-1 text-gray-400 hover:text-gray-600 rounded">
+            <EllipsisVerticalIcon className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
-      {project.description && (
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-          {project.description}
-        </p>
-      )}
+      {/* Description */}
+      <div className="flex-1">
+        {project.description && (
+          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+            {project.description}
+          </p>
+        )}
+      </div>
 
-      <div className="flex items-center justify-between text-sm text-gray-500">
-        <div className="flex items-center">
-          <CalendarIcon className="h-4 w-4 mr-1" />
-          <span>
-            创建于 {new Date(project.createdAt).toLocaleDateString('zh-CN')}
+      {/* Stats */}
+      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+        <div className="flex items-center min-w-0 mr-2">
+          <CalendarIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+          <span className="truncate">
+            {new Date(project.createdAt).toLocaleDateString('zh-CN')}
           </span>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center flex-shrink-0">
           <UserGroupIcon className="h-4 w-4 mr-1" />
           <span>
             {project.memberCount || 0} 人
@@ -195,30 +207,32 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
         </div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <div className="flex items-center justify-between">
+      {/* Footer with status and actions */}
+      <div className="pt-4 border-t border-gray-200 mt-auto">
+        <div className="flex items-center justify-between mb-3">
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            project.isActive 
+            project.isActive !== false
               ? 'bg-green-100 text-green-800' 
               : 'bg-gray-100 text-gray-800'
           }`}>
-            {project.isActive ? '活跃' : '已归档'}
+            {project.isActive !== false ? '活跃' : '已归档'}
           </span>
-          
-          <div className="flex space-x-2">
-            <Link
-              to={`/projects/${project.id}/reviews`}
-              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-            >
-              查看评审
-            </Link>
-            <Link
-              to={`/projects/${project.id}`}
-              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-            >
-              项目设置
-            </Link>
-          </div>
+        </div>
+        
+        {/* Action links */}
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to={`/projects/${project.id}/reviews`}
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium px-2 py-1 rounded hover:bg-primary-50 transition-colors"
+          >
+            查看评审
+          </Link>
+          <Link
+            to={`/projects/${project.id}`}
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium px-2 py-1 rounded hover:bg-primary-50 transition-colors"
+          >
+            项目设置
+          </Link>
         </div>
       </div>
     </div>

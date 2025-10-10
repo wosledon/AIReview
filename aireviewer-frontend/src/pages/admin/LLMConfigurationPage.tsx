@@ -30,7 +30,7 @@ const LLMConfigurationPage: React.FC = () => {
     queryFn: () => llmConfigurationService.getAll(),
   });
 
-  const configurations = configurationsResponse?.data || [];
+  const configurations = configurationsResponse || [];
 
   // 创建配置
   const createMutation = useMutation({

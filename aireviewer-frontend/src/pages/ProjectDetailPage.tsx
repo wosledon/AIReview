@@ -121,7 +121,7 @@ export const ProjectDetailPage = () => {
         <div className="flex items-center space-x-3">
           <Link
             to={`/projects/${projectId}/reviews/new`}
-            className="btn btn-primary"
+            className="btn btn-primary inline-flex items-center space-x-1"
           >
             <PlayIcon className="h-5 w-5 mr-2" />
             开始评审
@@ -237,9 +237,10 @@ const OverviewTab = ({ project }: OverviewTabProps) => {
           <div className="text-center py-8">
             <ClockIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">暂无评审记录</p>
+            <br />
             <Link 
               to={`/projects/${project.id}/reviews/new`}
-              className="btn btn-primary mt-4"
+              className="btn btn-primary mt-4 "
             >
               开始第一次评审
             </Link>
@@ -278,21 +279,21 @@ const OverviewTab = ({ project }: OverviewTabProps) => {
           <div className="space-y-3">
             <Link
               to={`/projects/${project.id}/reviews/new`}
-              className="btn btn-primary w-full"
+              className="btn btn-primary w-full inline-flex items-center space-x-1"
             >
               <PlayIcon className="h-5 w-5 mr-2" />
               开始新评审
             </Link>
             <Link
               to={`/projects/${project.id}/members`}
-              className="btn btn-secondary w-full"
+              className="btn btn-secondary w-full inline-flex items-center space-x-1"
             >
               <UserPlusIcon className="h-5 w-5 mr-2" />
               管理成员
             </Link>
             <Link
               to={`/projects/${project.id}/settings`}
-              className="btn btn-secondary w-full"
+              className="btn btn-secondary w-full inline-flex items-center space-x-1"
             >
               <CogIcon className="h-5 w-5 mr-2" />
               项目设置
