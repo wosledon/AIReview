@@ -154,6 +154,9 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
+// 注册Git服务
+builder.Services.AddScoped<IGitService, GitService>();
+
 // 注册AI服务
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
