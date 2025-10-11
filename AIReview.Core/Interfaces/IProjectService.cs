@@ -8,6 +8,7 @@ public interface IProjectService
     Task<ProjectDto> CreateProjectAsync(CreateProjectRequest request, string ownerId);
     Task<ProjectDto?> GetProjectAsync(int id);
     Task<IEnumerable<ProjectDto>> GetProjectsByUserAsync(string userId);
+    Task<IEnumerable<ProjectDto>> GetProjectsByUserAsync(string userId, string? search, bool? isActive);
     Task<ProjectDto> UpdateProjectAsync(int id, UpdateProjectRequest request);
     Task DeleteProjectAsync(int id);
     Task<ProjectDto> ArchiveProjectAsync(int id);

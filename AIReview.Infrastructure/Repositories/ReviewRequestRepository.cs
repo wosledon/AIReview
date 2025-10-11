@@ -49,6 +49,17 @@ public class ReviewRequestRepository : Repository<ReviewRequest>, IReviewRequest
             query = query.Where(r => r.CreatedAt <= parameters.CreatedBefore.Value);
         }
 
+        // 搜索过滤
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            var keyword = parameters.Search.Trim();
+            query = query.Where(r =>
+                EF.Functions.Like(r.Title, $"%{keyword}%") ||
+                (r.Description != null && EF.Functions.Like(r.Description, $"%{keyword}%")) ||
+                (r.Project != null && EF.Functions.Like(r.Project.Name, $"%{keyword}%"))
+            );
+        }
+
         // 计算总数
         var totalCount = await query.CountAsync();
 

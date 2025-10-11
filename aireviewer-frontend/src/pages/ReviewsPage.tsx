@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { 
   PlusIcon, 
   MagnifyingGlassIcon,
@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { reviewService } from '../services/review.service';
 import { ReviewState } from '../types/review';
-import type { Review, ReviewQueryParameters } from '../types/review';
+import type { Review, ReviewQueryParameters, PagedResult } from '../types/review';
 
 export const ReviewsPage = () => {
   const [filters, setFilters] = useState<ReviewQueryParameters>({
@@ -21,19 +21,35 @@ export const ReviewsPage = () => {
     pageSize: 20
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+
+  // 防抖搜索
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters(prev => ({
+        ...prev,
+        search: searchTerm || undefined,
+        page: 1 // 重置到第一页
+      }));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const params = useMemo(() => ({
+    ...filters,
+  }), [filters]);
 
   const {
     data: reviewsData,
     isLoading,
+    isFetching,
     error,
     refetch
-  } = useQuery({
-    queryKey: ['reviews', { ...filters, search: searchTerm, status: statusFilter }],
-    queryFn: () => reviewService.getReviews({
-      ...filters,
-      // Add search and status filters when implemented
-    }),
+  } = useQuery<PagedResult<Review>, Error, PagedResult<Review>>({
+    queryKey: ['reviews', params] as const,
+    queryFn: (): Promise<PagedResult<Review>> => reviewService.getReviews(params),
+    placeholderData: keepPreviousData,
+    staleTime: 1000, // 1秒内数据不会重新获取
   });
 
   const reviews = reviewsData?.items || [];
@@ -94,7 +110,8 @@ export const ReviewsPage = () => {
     }
   };
 
-  if (isLoading) {
+  // 仅在首次加载且没有任何数据时展示整页加载
+  if (isLoading && !reviewsData) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -123,8 +140,8 @@ export const ReviewsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">代码评审</h1>
-          <p className="mt-1 text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 text-left">代码评审</h1>
+          <p className="mt-1 text-gray-500 mt-2">
             查看和管理所有代码评审记录
           </p>
         </div>
@@ -157,8 +174,12 @@ export const ReviewsPage = () => {
               <FunnelIcon className="h-5 w-5 text-gray-400" />
               <select
                 className="input min-w-[150px]"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                value={filters.status || ''}
+                onChange={(e) => setFilters(prev => ({
+                  ...prev,
+                  status: e.target.value || undefined,
+                  page: 1
+                }))}
               >
                 {statusOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -167,6 +188,15 @@ export const ReviewsPage = () => {
                 ))}
               </select>
             </div>
+            {isFetching && reviewsData && (
+              <div className="flex items-center text-gray-500 text-sm ml-auto">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                更新中...
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -176,15 +206,15 @@ export const ReviewsPage = () => {
         <div className="text-center py-12">
           <CpuChipIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {searchTerm || statusFilter ? '未找到匹配的评审' : '还没有评审记录'}
+            {searchTerm || filters.status ? '未找到匹配的评审' : '还没有评审记录'}
           </h3>
           <p className="text-gray-500 mb-6">
-            {searchTerm || statusFilter 
+            {searchTerm || filters.status 
               ? '尝试调整搜索条件或筛选器'
               : '创建第一个评审任务开始使用AI代码评审'
             }
           </p>
-          {!searchTerm && !statusFilter && (
+          {!searchTerm && !filters.status && (
             <Link to="/reviews/new" className="btn btn-primary inline-flex items-center space-x-1">
               <PlusIcon className="h-5 w-5 mr-2" />
               创建评审
@@ -200,13 +230,13 @@ export const ReviewsPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     评审信息
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     项目
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     状态
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     创建时间
                   </th>
                   <th className="relative px-6 py-3">
@@ -219,7 +249,7 @@ export const ReviewsPage = () => {
                   <tr key={review.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 text-left">
                           <Link 
                             to={`/reviews/${review.id}`}
                             className="hover:text-primary-600"

@@ -20,6 +20,7 @@ export class ReviewService {
     if (params?.projectId) queryParams.append('projectId', params.projectId.toString());
     if (params?.status) queryParams.append('status', params.status);
     if (params?.authorId) queryParams.append('authorId', params.authorId);
+    if (params?.search) queryParams.append('search', params.search);
     if (params?.createdAfter) queryParams.append('createdAfter', params.createdAfter);
     if (params?.createdBefore) queryParams.append('createdBefore', params.createdBefore);
     if (params?.page) queryParams.append('page', params.page.toString());
@@ -105,6 +106,7 @@ export class ReviewService {
     queryParams.append('projectId', projectId.toString());
     if (params?.status) queryParams.append('status', params.status);
     if (params?.authorId) queryParams.append('authorId', params.authorId);
+    if (params?.search) queryParams.append('search', params.search);
     if (params?.createdAfter) queryParams.append('createdAfter', params.createdAfter);
     if (params?.createdBefore) queryParams.append('createdBefore', params.createdBefore);
     if (params?.page) queryParams.append('page', params.page.toString());

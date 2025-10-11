@@ -18,6 +18,7 @@ public class ReviewQueryParameters
     public int? ProjectId { get; set; }
     public string? Status { get; set; }
     public string? AuthorId { get; set; }
+    public string? Search { get; set; }
     public DateTime? CreatedAfter { get; set; }
     public DateTime? CreatedBefore { get; set; }
 }

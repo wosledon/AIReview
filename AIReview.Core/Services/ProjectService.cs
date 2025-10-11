@@ -129,6 +129,35 @@ public class ProjectService : IProjectService
         return projectDtos;
     }
 
+    public async Task<IEnumerable<ProjectDto>> GetProjectsByUserAsync(string userId, string? search, bool? isActive)
+    {
+        var projects = await _unitOfWork.Projects.GetProjectsByMemberAsync(userId);
+        
+        // 应用搜索过滤
+        if (!string.IsNullOrEmpty(search))
+        {
+            projects = projects.Where(p => 
+                p.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrEmpty(p.Description) && p.Description.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(p.RepositoryUrl) && p.RepositoryUrl.Contains(search, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        // 应用状态过滤
+        if (isActive.HasValue)
+        {
+            projects = projects.Where(p => p.IsActive == isActive.Value);
+        }
+
+        var projectDtos = new List<ProjectDto>();
+        foreach (var project in projects)
+        {
+            projectDtos.Add(await MapToProjectDtoAsync(project));
+        }
+
+        return projectDtos;
+    }
+
     public async Task<ProjectDto> UpdateProjectAsync(int id, UpdateProjectRequest request)
     {
         var project = await _unitOfWork.Projects.GetByIdAsync(id);

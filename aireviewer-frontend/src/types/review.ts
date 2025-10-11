@@ -106,6 +106,7 @@ export interface ReviewQueryParameters {
   projectId?: number;
   status?: string;
   authorId?: string;
+  search?: string;
   createdAfter?: string;
   createdBefore?: string;
   page?: number;

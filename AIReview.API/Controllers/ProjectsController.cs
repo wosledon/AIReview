@@ -21,12 +21,16 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<IEnumerable<ProjectDto>>>> GetProjects()
+    public async Task<ActionResult<ApiResponse<IEnumerable<ProjectDto>>>> GetProjects(
+        [FromQuery] string? search = null,
+        [FromQuery] bool? isActive = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
         try
         {
             var userId = GetCurrentUserId();
-            var projects = await _projectService.GetProjectsByUserAsync(userId);
+            var projects = await _projectService.GetProjectsByUserAsync(userId, search, isActive);
             
             return Ok(new ApiResponse<IEnumerable<ProjectDto>>
             {

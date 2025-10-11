@@ -4,9 +4,13 @@ import { Menu, Transition } from '@headlessui/react';
 import { 
   Bars3Icon, 
   BellIcon, 
-  UserCircleIcon,
   CodeBracketIcon,
-  PlusIcon
+  PlusIcon,
+  ChevronDownIcon,
+  UserIcon,
+  Cog6ToothIcon,
+  CpuChipIcon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,6 +22,15 @@ export const Navbar: React.FC = () => {
     logout();
     navigate('/login');
   };
+
+  const displayName = user?.displayName || user?.email || '';
+  const initials = (() => {
+    const src = displayName || '';
+    if (!src) return '?';
+    const parts = src.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return src[0]?.toUpperCase() || '?';
+  })();
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -67,9 +80,26 @@ export const Navbar: React.FC = () => {
 
                 {/* User menu */}
                 <Menu as="div" className="relative">
-                  <Menu.Button className="flex items-center space-x-2 text-gray-700 hover:text-gray-900">
-                    <UserCircleIcon className="h-8 w-8" />
-                    <span className="hidden md:block text-sm font-medium">{user?.displayName || user?.email}</span>
+                  <Menu.Button className="flex items-center gap-2 text-gray-700 hover:text-gray-900 px-2 py-1 rounded-full border border-gray-200 hover:shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+                    <span className="relative inline-flex">
+                      {user?.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={displayName}
+                          className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200"
+                        />
+                      ) : (
+                        <span className="h-8 w-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center ring-1 ring-gray-200 text-xs font-semibold">
+                          {initials}
+                        </span>
+                      )}
+                      <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white bg-emerald-500" />
+                    </span>
+                    <span className="hidden md:flex md:flex-col md:items-start">
+                      <span className="text-sm font-medium leading-4">{displayName}</span>
+                      <span className="text-[11px] text-gray-500 leading-3">账号</span>
+                    </span>
+                    <ChevronDownIcon className="h-4 w-4 text-gray-400 hidden md:block" />
                   </Menu.Button>
 
                   <Transition
@@ -81,17 +111,33 @@ export const Navbar: React.FC = () => {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                   >
-                    <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                    <Menu.Items className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          {user?.avatar ? (
+                            <img src={user.avatar} alt={displayName} className="h-10 w-10 rounded-full object-cover ring-1 ring-gray-200" />
+                          ) : (
+                            <span className="h-10 w-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center ring-1 ring-gray-200 text-sm font-semibold">
+                              {initials}
+                            </span>
+                          )}
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{displayName}</div>
+                            {user?.email && (
+                              <div className="text-xs text-gray-500">{user.email}</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                       <div className="py-1">
                         <Menu.Item>
                           {({ active }) => (
                             <Link
                               to="/profile"
-                              className={`${
-                                active ? 'bg-gray-100' : ''
-                              } block px-4 py-2 text-sm text-gray-700`}
+                              className={`${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'} flex items-center gap-2 px-4 py-2 text-sm`}
                             >
-                              个人资料
+                              <UserIcon className="h-4 w-4 text-gray-400" />
+                              <span>个人资料</span>
                             </Link>
                           )}
                         </Menu.Item>
@@ -99,11 +145,10 @@ export const Navbar: React.FC = () => {
                           {({ active }) => (
                             <Link
                               to="/settings/reviews"
-                              className={`${
-                                active ? 'bg-gray-100' : ''
-                              } block px-4 py-2 text-sm text-gray-700`}
+                              className={`${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'} flex items-center gap-2 px-4 py-2 text-sm`}
                             >
-                              评审设置
+                              <Cog6ToothIcon className="h-4 w-4 text-gray-400" />
+                              <span>评审设置</span>
                             </Link>
                           )}
                         </Menu.Item>
@@ -111,23 +156,22 @@ export const Navbar: React.FC = () => {
                           {({ active }) => (
                             <Link
                               to="/admin/llm-config"
-                              className={`${
-                                active ? 'bg-gray-100' : ''
-                              } block px-4 py-2 text-sm text-gray-700`}
+                              className={`${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'} flex items-center gap-2 px-4 py-2 text-sm`}
                             >
-                              LLM配置
+                              <CpuChipIcon className="h-4 w-4 text-gray-400" />
+                              <span>LLM配置</span>
                             </Link>
                           )}
                         </Menu.Item>
+                        <div className="my-1 border-t border-gray-100" />
                         <Menu.Item>
                           {({ active }) => (
                             <button
                               onClick={handleLogout}
-                              className={`${
-                                active ? 'bg-gray-100' : ''
-                              } block w-full text-left px-4 py-2 text-sm text-gray-700`}
+                              className={`${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'} w-full text-left px-4 py-2 text-sm flex items-center gap-2`}
                             >
-                              退出登录
+                              <ArrowRightOnRectangleIcon className="h-4 w-4 text-gray-400" />
+                              <span>退出登录</span>
                             </button>
                           )}
                         </Menu.Item>

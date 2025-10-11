@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { 
   PlusIcon, 
   MagnifyingGlassIcon,
@@ -12,28 +12,45 @@ import {
 } from '@heroicons/react/24/outline';
 import { projectService } from '../services/project.service';
 import type { Project } from '../types/project';
+import type { PagedResult } from '../types/review';
 
 export const ProjectsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+
+  // 防抖搜索
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const params = useMemo(() => ({
+    search: debouncedSearchTerm || undefined,
+    isActive: !showArchived,
+    pageSize: 20
+  }), [debouncedSearchTerm, showArchived]);
 
   const {
     data: projectsData,
     isLoading,
+    isFetching,
     error,
     refetch
-  } = useQuery({
-    queryKey: ['projects', { search: searchTerm, isActive: !showArchived }],
-    queryFn: () => projectService.getProjects({
-      search: searchTerm || undefined,
-      isActive: !showArchived,
-      pageSize: 20
-    }),
+  } = useQuery<PagedResult<Project>, Error, PagedResult<Project>>({
+    queryKey: ['projects', params] as const,
+    queryFn: (): Promise<PagedResult<Project>> => projectService.getProjects(params),
+    placeholderData: keepPreviousData,
+    staleTime: 1000, // 1秒内数据不会重新获取
   });
 
   const projects = projectsData?.items || [];
 
-  if (isLoading) {
+  // 仅在首次加载且没有任何数据时展示整页加载
+  if (isLoading && !projectsData) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -62,8 +79,8 @@ export const ProjectsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">项目管理</h1>
-          <p className="mt-1 text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 text-left">项目管理</h1>
+          <p className="mt-1 text-gray-500 mt-2">
             管理您的代码项目，配置AI评审规则
           </p>
         </div>
@@ -102,6 +119,15 @@ export const ProjectsPage = () => {
               显示已归档项目
             </label>
           </div>
+          {isFetching && projectsData && (
+            <div className="flex items-center text-gray-500 text-sm ml-auto">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+              更新中...
+            </div>
+          )}
         </div>
       </div>
 
