@@ -7,7 +7,7 @@ import {
   EyeIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
-import { useNotifications } from '../contexts/NotificationContext';
+import { useNotifications } from '../hooks/useNotifications';
 import type { NotificationData } from '../services/signalr.service';
 
 interface NotificationDropdownProps {

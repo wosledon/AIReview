@@ -484,7 +484,6 @@ $RECYCLE.BIN/
 *.swp
 
 
-**/*.db
-**/*.db-sch
-**/*.db-wal
-**/*.db
+AIReview.API/*.db
+AIReview.API/*.db-wal
+AIReview.API/*.db-shm
