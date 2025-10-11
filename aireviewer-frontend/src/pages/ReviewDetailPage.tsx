@@ -148,7 +148,7 @@ export const ReviewDetailPage = () => {
   if (reviewError || !review) {
     return (
       <div className="text-center py-12">
-        <div className="text-red-600 mb-4">
+        <div className="text-red-600 dark:text-red-400 mb-4">
           <p>加载评审详情时出错</p>
         </div>
         <button 

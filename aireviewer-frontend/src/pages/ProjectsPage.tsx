@@ -93,7 +93,7 @@ export const ProjectsPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+  <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -178,7 +178,7 @@ interface ProjectCardProps {
 
 const ProjectCard = ({ project }: ProjectCardProps) => {
   return (
-    <div className="card hover:shadow-lg transition-shadow h-full flex flex-col">
+  <div className="card hover:shadow-lg transition-shadow h-full flex flex-col dark:bg-gray-900 dark:border-gray-800">
       {/* Header with icon, title and menu */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start space-x-3 flex-1 min-w-0">
@@ -186,7 +186,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
             <FolderIcon className="h-6 w-6 text-primary-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
               <Link 
                 to={`/projects/${project.id}`}
                 className="hover:text-primary-600 block truncate"
@@ -196,7 +196,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
               </Link>
             </h3>
             {project.repositoryUrl && (
-              <p className="text-sm text-gray-500 truncate" title={project.repositoryUrl}>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate" title={project.repositoryUrl}>
                 {project.repositoryUrl}
               </p>
             )}
@@ -212,7 +212,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
       {/* Description */}
       <div className="flex-1">
         {project.description && (
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+          <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
             {project.description}
           </p>
         )}

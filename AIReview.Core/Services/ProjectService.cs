@@ -248,7 +248,7 @@ public class ProjectService : IProjectService
             Id = 0, // 所有者没有ProjectMember记录
             ProjectId = projectId,
             UserId = project.OwnerId,
-            UserName = project.Owner.UserName ?? "",
+            UserName = project.Owner.DisplayName ?? project.Owner.UserName ?? "",
             UserEmail = project.Owner.Email ?? "",
             Role = ProjectMemberRole.Owner.ToString(),
             JoinedAt = project.CreatedAt
@@ -262,7 +262,7 @@ public class ProjectService : IProjectService
                 Id = member.Id,
                 ProjectId = projectId,
                 UserId = member.UserId,
-                UserName = member.User.UserName ?? "",
+                UserName = member.User.DisplayName ?? member.User.UserName ?? "",
                 UserEmail = member.User.Email ?? "",
                 Role = member.Role.ToString(),
                 JoinedAt = member.JoinedAt

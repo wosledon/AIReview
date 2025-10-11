@@ -16,6 +16,7 @@ import { reviewService } from '../services/review.service';
 import { ReviewState } from '../types/review';
 import type { PagedResult, Review } from '../types/review';
 import type { Project } from '../types/project';
+import { CountUp } from '../components/CountUp';
 
 export const HomePage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -159,7 +160,7 @@ export const HomePage: React.FC = () => {
     return (
       <div className="space-y-8">
         {/* Welcome Section */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200/70 shadow-sm transition hover:shadow-md">
+  <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200/70 dark:border-gray-800 shadow-sm transition hover:shadow-md">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             欢迎回来，{user?.displayName || user?.userName}！
           </h1>
@@ -182,43 +183,43 @@ export const HomePage: React.FC = () => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="card transition hover:shadow-md">
+          <div className="card transition hover:shadow-md bg-gradient-to-br from-primary-50 to-white dark:from-primary-950/20 dark:to-gray-900">
             <div className="flex items-center">
               <div className="p-3 bg-primary-100 rounded-lg">
                 <CodeBracketIcon className="h-6 w-6 text-primary-600" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">我的项目</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {fetchingProjects ? '…' : projectsCount}
+                <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                  {fetchingProjects ? '…' : <CountUp to={projectsCount} />}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="card transition hover:shadow-md">
+          <div className="card transition hover:shadow-md bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-gray-900">
             <div className="flex items-center">
               <div className="p-3 bg-green-100 rounded-lg">
                 <ShieldCheckIcon className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">已完成评审</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {fetchingApproved ? '…' : approvedCount}
+                <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                  {fetchingApproved ? '…' : <CountUp to={approvedCount} />}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="card transition hover:shadow-md">
+          <div className="card transition hover:shadow-md bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/20 dark:to-gray-900">
             <div className="flex items-center">
               <div className="p-3 bg-orange-100 rounded-lg">
                 <ClockIcon className="h-6 w-6 text-orange-600" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">待处理评审</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {fetchingPending ? '…' : pendingCount}
+                <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                  {fetchingPending ? '…' : <CountUp to={pendingCount} />}
                 </p>
               </div>
             </div>
@@ -226,7 +227,7 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* Recent Activity */}
-  <div className="card transition hover:shadow-md">
+  <div className="card dark:bg-gray-900 dark:border-gray-800 transition hover:shadow-md">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">最近活动</h2>
             <div className="flex items-center gap-2">
@@ -292,20 +293,20 @@ export const HomePage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-16">
+  <div className="space-y-16">
       {/* Hero Section */}
-      <div className="text-center">
+  <div className="text-center">
         <div className="flex justify-center mb-8">
           <div className="p-4 bg-primary-100 rounded-2xl">
             <CpuChipIcon className="h-16 w-16 text-primary-600" />
           </div>
         </div>
         
-        <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+  <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 mb-6">
           AI 代码评审平台
         </h1>
         
-        <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+  <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
           利用先进的人工智能技术，为您的代码提供智能、全面、快速的评审服务，
           帮助团队提升代码质量，减少bug，提高开发效率。
         </p>
@@ -322,22 +323,22 @@ export const HomePage: React.FC = () => {
 
       {/* Features Section */}
       <div>
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+  <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-12">
           平台特色
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <div key={index} className="card hover:shadow-lg transition-shadow">
+            <div key={index} className="card hover:shadow-lg transition-shadow dark:bg-gray-900 dark:border-gray-800">
               <div className="flex items-center mb-4">
                 <div className="p-3 bg-primary-100 rounded-lg">
                   <feature.icon className="h-6 w-6 text-primary-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 ml-3">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 ml-3">
                   {feature.title}
                 </h3>
               </div>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 {feature.description}
               </p>
             </div>
@@ -346,11 +347,11 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-primary-50 rounded-2xl p-8 text-center">
+      <div className="bg-primary-50 dark:bg-primary-900/20 rounded-2xl p-8 text-center">
         <h2 className="text-3xl font-bold text-gray-900 mb-4">
           准备开始了吗？
         </h2>
-        <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+        <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
           立即注册，体验AI驱动的代码评审服务，让您的代码质量更上一层楼。
         </p>
         <Link to="/register" className="btn btn-primary text-lg px-8 py-3">

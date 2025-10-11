@@ -13,9 +13,11 @@ import {
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
+import { useUISettings } from '../hooks/useUISettings';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { theme, setTheme, density, setDensity } = useUISettings();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -33,14 +35,14 @@ export const Navbar: React.FC = () => {
   })();
 
   return (
-    <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200">
+    <nav className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-900/60 border-b border-gray-200 dark:border-gray-800">
       <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo and brand */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <CodeBracketIcon className="h-8 w-8 text-primary-600" />
-              <span className="text-xl font-bold text-gray-900">AI Reviewer</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">AI Reviewer</span>
             </Link>
           </div>
 
@@ -49,13 +51,13 @@ export const Navbar: React.FC = () => {
             <div className="hidden md:flex items-center space-x-8">
               <Link 
                 to="/projects" 
-                className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
+                className="text-gray-700 dark:text-gray-200 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
               >
                 项目
               </Link>
               <Link 
                 to="/reviews" 
-                className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
+                className="text-gray-700 dark:text-gray-200 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
               >
                 代码评审
               </Link>
@@ -74,13 +76,13 @@ export const Navbar: React.FC = () => {
             {isAuthenticated ? (
               <>
                 {/* Notifications */}
-                <button className="text-gray-400 hover:text-gray-500 p-2">
+                <button className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-100 p-2">
                   <BellIcon className="h-6 w-6" />
                 </button>
 
                 {/* User menu */}
                 <Menu as="div" className="relative">
-                  <Menu.Button className="flex items-center gap-2 text-gray-700 hover:text-gray-900 px-2 py-1 rounded-full border border-gray-200 hover:shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+                  <Menu.Button className="flex items-center gap-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white px-2 py-1 rounded-full border border-gray-200 dark:border-gray-700 hover:shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900">
                     <span className="relative inline-flex">
                       {user?.avatar ? (
                         <img
@@ -111,7 +113,7 @@ export const Navbar: React.FC = () => {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                   >
-                    <Menu.Items className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                    <Menu.Items className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-900 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-gray-100 dark:border-gray-800">
                       <div className="px-4 py-3 border-b border-gray-100">
                         <div className="flex items-center gap-3">
                           {user?.avatar ? (
@@ -122,9 +124,9 @@ export const Navbar: React.FC = () => {
                             </span>
                           )}
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{displayName}</div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{displayName}</div>
                             {user?.email && (
-                              <div className="text-xs text-gray-500">{user.email}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
                             )}
                           </div>
                         </div>
@@ -163,6 +165,22 @@ export const Navbar: React.FC = () => {
                             </Link>
                           )}
                         </Menu.Item>
+                        <div className="px-4 py-2">
+                          <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">主题</div>
+                          <div className="flex items-center gap-2">
+                            {(['system','light','dark'] as const).map(m => (
+                              <button key={m} onClick={() => setTheme(m)} className={`px-2 py-1 rounded text-xs border ${theme===m ? 'bg-primary-50 text-primary-700 border-primary-200' : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{m==='system'?'跟随系统':m==='light'?'浅色':'深色'}</button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="px-4 py-2">
+                          <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">布局密度</div>
+                          <div className="flex items-center gap-2">
+                            {(['compact','comfortable','full'] as const).map(d => (
+                              <button key={d} onClick={() => setDensity(d)} className={`px-2 py-1 rounded text-xs border ${density===d ? 'bg-primary-50 text-primary-700 border-primary-200' : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{d==='compact'?'紧凑':d==='comfortable'?'舒展':'全宽'}</button>
+                            ))}
+                          </div>
+                        </div>
                         <div className="my-1 border-t border-gray-100" />
                         <Menu.Item>
                           {({ active }) => (

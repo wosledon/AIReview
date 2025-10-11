@@ -5,6 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>aireviewer-frontend</title>
+    <script>
+      (function(){
+        try{
+          var saved=localStorage.getItem('ui.theme');
+          var isDark = saved==='dark' || (saved===null||saved==='system') && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if(isDark){ document.documentElement.classList.add('dark'); }
+          var density=localStorage.getItem('ui.density')||'comfortable';
+          document.documentElement.classList.add('density-'+density);
+        }catch(e){}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

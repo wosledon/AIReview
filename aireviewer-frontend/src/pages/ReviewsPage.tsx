@@ -154,7 +154,7 @@ export const ReviewsPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+  <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -222,21 +222,21 @@ export const ReviewsPage = () => {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+              <thead className="bg-gray-50 dark:bg-gray-800/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     评审信息
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     项目
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     状态
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     创建时间
                   </th>
                   <th className="relative px-6 py-3">
@@ -244,12 +244,12 @@ export const ReviewsPage = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
                 {reviews.map((review: Review) => (
-                  <tr key={review.id} className="hover:bg-gray-50">
+                  <tr key={review.id} className="row-hover-transition">
                     <td className="px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-gray-900 text-left">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 text-left">
                           <Link 
                             to={`/reviews/${review.id}`}
                             className="hover:text-primary-600"
@@ -258,11 +258,11 @@ export const ReviewsPage = () => {
                           </Link>
                         </div>
                         {review.description && (
-                          <div className="text-sm text-gray-500 line-clamp-2 mt-1">
+                          <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
                             {review.description}
                           </div>
                         )}
-                        <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                        <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
                           <span>分支: {review.branch}</span>
                           {review.pullRequestNumber && (
                             <span>PR #{review.pullRequestNumber}</span>
@@ -271,8 +271,8 @@ export const ReviewsPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{review.projectName}</div>
-                      <div className="text-sm text-gray-500">by {review.authorName}</div>
+                      <div className="text-sm text-gray-900 dark:text-gray-100">{review.projectName}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">by {review.authorName}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -282,7 +282,7 @@ export const ReviewsPage = () => {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {new Date(review.createdAt).toLocaleDateString('zh-CN')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
