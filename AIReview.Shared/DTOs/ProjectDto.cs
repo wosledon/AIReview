@@ -9,6 +9,8 @@ public class ProjectDto
     public string? Description { get; set; }
     public string? RepositoryUrl { get; set; }
     public string Language { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public int MemberCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

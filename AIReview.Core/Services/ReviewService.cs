@@ -169,7 +169,9 @@ public class ReviewService : IReviewService
 
         _logger.LogInformation("Comment added to review: {CommentId} on {ReviewId}", comment.Id, reviewId);
 
-        return MapToCommentDto(comment);
+        // 重新获取评论以包含作者信息
+        var savedComment = await _unitOfWork.ReviewComments.GetByIdAsync(comment.Id);
+        return MapToCommentDto(savedComment!);
     }
 
     public async Task<ReviewCommentDto?> GetReviewCommentAsync(int commentId)
@@ -217,6 +219,70 @@ public class ReviewService : IReviewService
         await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation("Comment deleted: {CommentId}", commentId);
+    }
+
+    public async Task<ReviewDto> ApproveReviewAsync(int reviewId, string userId)
+    {
+        var review = await _unitOfWork.ReviewRequests.GetByIdAsync(reviewId);
+        if (review == null)
+            throw new ArgumentException("Review not found");
+
+        // 检查访问权限
+        var hasAccess = await HasReviewAccessAsync(reviewId, userId);
+        if (!hasAccess)
+            throw new UnauthorizedAccessException("User does not have access to this review");
+
+        // 更新状态为已通过
+        review.Status = ReviewState.Approved;
+        review.UpdatedAt = DateTime.UtcNow;
+
+        _unitOfWork.ReviewRequests.Update(review);
+        await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Review approved: {ReviewId} by {UserId}", reviewId, userId);
+
+        return await MapToReviewDtoAsync(review);
+    }
+
+    public async Task<ReviewDto> RejectReviewAsync(int reviewId, string userId, string? reason)
+    {
+        var review = await _unitOfWork.ReviewRequests.GetByIdAsync(reviewId);
+        if (review == null)
+            throw new ArgumentException("Review not found");
+
+        // 检查访问权限
+        var hasAccess = await HasReviewAccessAsync(reviewId, userId);
+        if (!hasAccess)
+            throw new UnauthorizedAccessException("User does not have access to this review");
+
+        // 更新状态为已拒绝
+        review.Status = ReviewState.Rejected;
+        review.UpdatedAt = DateTime.UtcNow;
+
+        _unitOfWork.ReviewRequests.Update(review);
+
+        // 如果提供了拒绝原因，添加为评论
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            var comment = new ReviewComment
+            {
+                ReviewRequestId = reviewId,
+                AuthorId = userId,
+                Content = $"拒绝原因: {reason}",
+                Severity = ReviewCommentSeverity.Error,
+                Category = ReviewCommentCategory.Quality,
+                IsAIGenerated = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _unitOfWork.ReviewComments.AddAsync(comment);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Review rejected: {ReviewId} by {UserId}, reason: {Reason}", reviewId, userId, reason);
+
+        return await MapToReviewDtoAsync(review);
     }
 
     public async Task<AIReviewResultDto?> GetAIReviewResultAsync(int reviewId)
@@ -411,7 +477,7 @@ public class ReviewService : IReviewService
             Id = comment.Id,
             ReviewRequestId = comment.ReviewRequestId,
             AuthorId = comment.AuthorId,
-            AuthorName = comment.Author?.UserName ?? "",
+            AuthorName = comment.Author?.DisplayName ?? comment.Author?.UserName ?? "",
             FilePath = comment.FilePath,
             LineNumber = comment.LineNumber,
             Content = comment.Content,

@@ -19,6 +19,9 @@ public interface IReviewService
     Task<ReviewCommentDto> UpdateReviewCommentAsync(int commentId, UpdateCommentRequest request);
     Task DeleteReviewCommentAsync(int commentId);
     
+    Task<ReviewDto> ApproveReviewAsync(int reviewId, string userId);
+    Task<ReviewDto> RejectReviewAsync(int reviewId, string userId, string? reason);
+    
     Task<AIReviewResultDto?> GetAIReviewResultAsync(int reviewId);
     Task SaveAIReviewResultAsync(int reviewId, AIReviewResult result);
     Task<bool> HasReviewAccessAsync(int reviewId, string userId);

@@ -34,4 +34,11 @@ public class ProjectMemberRepository : Repository<ProjectMember>, IProjectMember
         return await _dbSet
             .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == userId);
     }
+
+    public async Task<int> CountMembersByProjectIdAsync(int projectId)
+    {
+        return await _dbSet
+            .Where(pm => pm.ProjectId == projectId)
+            .CountAsync();
+    }
 }

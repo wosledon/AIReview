@@ -14,6 +14,7 @@ public class ReviewCommentRepository : Repository<ReviewComment>, IReviewComment
     public async Task<IEnumerable<ReviewComment>> GetCommentsByReviewAsync(int reviewId)
     {
         return await _dbSet
+                .Include(c => c.Author)
             .Where(c => c.ReviewRequestId == reviewId)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync();
@@ -46,6 +47,8 @@ public class ReviewCommentRepository : Repository<ReviewComment>, IReviewComment
 
     public override async Task<ReviewComment?> GetByIdAsync(int id)
     {
-        return await _dbSet.FindAsync(id);
+           return await _dbSet
+              .Include(c => c.Author)
+              .FirstOrDefaultAsync(c => c.Id == id);
     }
 }

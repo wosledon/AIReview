@@ -302,8 +302,41 @@ public class ProjectService : IProjectService
         return await _unitOfWork.Projects.IsUserProjectOwnerAsync(projectId, userId);
     }
 
+    public async Task<ProjectDto> ArchiveProjectAsync(int id)
+    {
+        var project = await _unitOfWork.Projects.GetByIdAsync(id);
+        if (project == null)
+            throw new ArgumentException("项目不存在");
+
+        project.IsActive = false;
+        project.UpdatedAt = DateTime.UtcNow;
+
+        _unitOfWork.Projects.Update(project);
+        await _unitOfWork.SaveChangesAsync();
+
+        return await MapToProjectDtoAsync(project);
+    }
+
+    public async Task<ProjectDto> UnarchiveProjectAsync(int id)
+    {
+        var project = await _unitOfWork.Projects.GetByIdAsync(id);
+        if (project == null)
+            throw new ArgumentException("项目不存在");
+
+        project.IsActive = true;
+        project.UpdatedAt = DateTime.UtcNow;
+
+        _unitOfWork.Projects.Update(project);
+        await _unitOfWork.SaveChangesAsync();
+
+        return await MapToProjectDtoAsync(project);
+    }
+
     private async Task<ProjectDto> MapToProjectDtoAsync(Project project)
     {
+        // 获取项目成员数量
+        var memberCount = await _unitOfWork.ProjectMembers.CountMembersByProjectIdAsync(project.Id);
+
         return new ProjectDto
         {
             Id = project.Id,
@@ -311,6 +344,8 @@ public class ProjectService : IProjectService
             Description = project.Description,
             RepositoryUrl = project.RepositoryUrl,
             Language = project.Language,
+            IsActive = project.IsActive,
+            MemberCount = memberCount,
             CreatedAt = project.CreatedAt,
             UpdatedAt = project.UpdatedAt
         };

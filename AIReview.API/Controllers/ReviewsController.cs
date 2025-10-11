@@ -268,6 +268,90 @@ public class ReviewsController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/approve")]
+    public async Task<ActionResult<ApiResponse<ReviewDto>>> ApproveReview(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            var review = await _reviewService.ApproveReviewAsync(id, userId);
+            
+            return Ok(new ApiResponse<ReviewDto>
+            {
+                Success = true,
+                Data = review,
+                Message = "评审已通过"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<ReviewDto>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error approving review {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<ReviewDto>
+            {
+                Success = false,
+                Message = "评审通过失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpPost("{id}/reject")]
+    public async Task<ActionResult<ApiResponse<ReviewDto>>> RejectReview(int id, [FromBody] RejectReviewRequest request)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            var review = await _reviewService.RejectReviewAsync(id, userId, request.Reason);
+            
+            return Ok(new ApiResponse<ReviewDto>
+            {
+                Success = true,
+                Data = review,
+                Message = "评审已拒绝"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<ReviewDto>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error rejecting review {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<ReviewDto>
+            {
+                Success = false,
+                Message = "评审拒绝失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
     [HttpPost("{id}/ai-review")]
     public async Task<ActionResult<ApiResponse<object>>> TriggerAIReview(int id)
     {

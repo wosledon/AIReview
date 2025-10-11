@@ -7,7 +7,8 @@ import {
   FolderIcon,
   CalendarIcon,
   UserGroupIcon,
-  EllipsisVerticalIcon
+  EllipsisVerticalIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 import { projectService } from '../services/project.service';
 import type { Project } from '../types/project';
@@ -217,20 +218,12 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
           }`}>
             {project.isActive !== false ? '活跃' : '已归档'}
           </span>
-        </div>
-        
-        {/* Action links */}
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to={`/projects/${project.id}/reviews`}
-            className="text-primary-600 hover:text-primary-700 text-sm font-medium px-2 py-1 rounded hover:bg-primary-50 transition-colors"
-          >
-            查看评审
-          </Link>
+
           <Link
             to={`/projects/${project.id}`}
-            className="text-primary-600 hover:text-primary-700 text-sm font-medium px-2 py-1 rounded hover:bg-primary-50 transition-colors"
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium px-2 py-1 rounded hover:bg-primary-50 transition-colors flex items-center"
           >
+            <Cog6ToothIcon className="h-4 w-4 mr-1" />
             项目设置
           </Link>
         </div>

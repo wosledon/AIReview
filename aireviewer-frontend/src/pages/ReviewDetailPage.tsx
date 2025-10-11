@@ -20,15 +20,17 @@ import { reviewService } from '../services/review.service';
 import { useNotifications } from '../hooks/useNotifications';
 import { DiffViewer } from '../components/DiffViewer';
 import { ReviewState, ReviewCommentSeverity, ReviewCommentCategory } from '../types/review';
-import type { Review, ReviewComment, AddCommentRequest } from '../types/review';
+import type { Review, ReviewComment, AddCommentRequest, RejectReviewRequest } from '../types/review';
 
 export const ReviewDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { joinGroup, leaveGroup } = useNotifications();
+  const { joinGroup, leaveGroup, addNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState<'overview' | 'comments' | 'diff'>('overview');
   const [showAddComment, setShowAddComment] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   const reviewId = parseInt(id!, 10);
 
@@ -68,6 +70,72 @@ export const ReviewDetailPage = () => {
       setShowAddComment(false);
     }
   });
+
+  const approveReviewMutation = useMutation({
+    mutationFn: () => reviewService.approveReview(reviewId),
+    onSuccess: (updatedReview) => {
+      queryClient.setQueryData(['review', reviewId], updatedReview);
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      addNotification({
+        type: 'review_status',
+        message: '评审已通过',
+        timestamp: new Date().toISOString(),
+        reviewId: String(reviewId)
+      });
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof Error ? error.message : '通过评审失败';
+      addNotification({
+        type: 'review_status',
+        message: msg,
+        timestamp: new Date().toISOString(),
+        reviewId: String(reviewId)
+      });
+    }
+  });
+
+  const rejectReviewMutation = useMutation({
+    mutationFn: (request: RejectReviewRequest) => reviewService.rejectReview(reviewId, request),
+    onSuccess: (updatedReview) => {
+      queryClient.setQueryData(['review', reviewId], updatedReview);
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['review-comments', reviewId] });
+      setShowRejectDialog(false);
+      setRejectReason('');
+      addNotification({
+        type: 'review_status',
+        message: '评审已拒绝',
+        timestamp: new Date().toISOString(),
+        reviewId: String(reviewId)
+      });
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof Error ? error.message : '拒绝评审失败';
+      addNotification({
+        type: 'review_status',
+        message: msg,
+        timestamp: new Date().toISOString(),
+        reviewId: String(reviewId)
+      });
+    }
+  });
+
+  const handleApproveReview = () => {
+    approveReviewMutation.mutate();
+  };
+
+  const handleRejectReview = () => {
+    setShowRejectDialog(true);
+  };
+
+  const handleConfirmReject = () => {
+    rejectReviewMutation.mutate({ reason: rejectReason.trim() || undefined });
+  };
+
+  const handleStartAIReview = () => {
+    // TODO: 实现 AI 评审开始逻辑
+    console.log('Starting AI review for', reviewId);
+  };
 
   if (isReviewLoading) {
     return (
@@ -133,6 +201,51 @@ export const ReviewDetailPage = () => {
 
   return (
     <div className="space-y-6">
+      {/* Reject Dialog */}
+      {showRejectDialog && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative p-6 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">拒绝评审</h3>
+              <div className="mb-4">
+                <label htmlFor="reject-reason" className="block text-sm font-medium text-gray-700 mb-2">
+                  拒绝原因 (可选)
+                </label>
+                <textarea
+                  id="reject-reason"
+                  rows={4}
+                  className="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-primary-500"
+                  placeholder="请说明拒绝的原因..."
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowRejectDialog(false);
+                    setRejectReason('');
+                  }}
+                  disabled={rejectReviewMutation.isPending}
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleConfirmReject}
+                  disabled={rejectReviewMutation.isPending}
+                >
+                  {rejectReviewMutation.isPending ? '处理中...' : '确认拒绝'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -168,18 +281,29 @@ export const ReviewDetailPage = () => {
 
         <div className="flex items-center space-x-3">
           {review.status === ReviewState.Pending && (
-            <button className="btn btn-primary">
+            <button 
+              className="btn btn-primary"
+              onClick={handleStartAIReview}
+            >
               <CpuChipIcon className="h-5 w-5 mr-2" />
               开始AI评审
             </button>
           )}
           {review.status === ReviewState.HumanReview && (
             <div className="flex space-x-2">
-              <button className="btn btn-danger">
-                拒绝
+              <button 
+                className="btn btn-danger"
+                onClick={handleRejectReview}
+                disabled={rejectReviewMutation.isPending}
+              >
+                {rejectReviewMutation.isPending ? '处理中...' : '拒绝'}
               </button>
-              <button className="btn btn-primary">
-                通过
+              <button 
+                className="btn btn-primary"
+                onClick={handleApproveReview}
+                disabled={approveReviewMutation.isPending}
+              >
+                {approveReviewMutation.isPending ? '处理中...' : '通过'}
               </button>
             </div>
           )}
@@ -216,7 +340,17 @@ export const ReviewDetailPage = () => {
 
       {/* Tab Content */}
       <div className="mt-6">
-        {activeTab === 'overview' && <OverviewTab review={review} comments={comments || []} getStatusText={getStatusText} />}
+        {activeTab === 'overview' && (
+          <OverviewTab 
+            review={review} 
+            comments={comments || []} 
+            getStatusText={getStatusText}
+            onApproveReview={handleApproveReview}
+            onRejectReview={handleRejectReview}
+            isApproving={approveReviewMutation.isPending}
+            isRejecting={rejectReviewMutation.isPending}
+          />
+        )}
         {activeTab === 'comments' && (
           <CommentsTab 
             comments={comments || []} 
@@ -237,9 +371,13 @@ interface OverviewTabProps {
   review: Review;
   comments: ReviewComment[];
   getStatusText: (status: string) => string;
+  onApproveReview: () => void;
+  onRejectReview: () => void;
+  isApproving: boolean;
+  isRejecting: boolean;
 }
 
-const OverviewTab = ({ review, comments, getStatusText }: OverviewTabProps) => {
+const OverviewTab = ({ review, comments, getStatusText, onApproveReview, onRejectReview, isApproving, isRejecting }: OverviewTabProps) => {
   const aiComments = comments.filter(c => c.isAIGenerated);
   const humanComments = comments.filter(c => !c.isAIGenerated);
 
@@ -310,17 +448,17 @@ const OverviewTab = ({ review, comments, getStatusText }: OverviewTabProps) => {
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getSeverityColor(comment.severity)}`}>
                           {comment.severity}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 flex items-center">
                           {getCategoryIcon(comment.category)}
                           <span className="ml-1">{comment.category}</span>
                         </span>
                       </div>
-                      <p className="text-sm text-gray-900">{comment.content}</p>
                       {comment.filePath && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 text-left mt-3">
                           {comment.filePath}:{comment.lineNumber}
                         </p>
                       )}
+                      <p className="text-sm text-gray-900 text-left mt-1">{comment.content}</p>
                     </div>
                   </div>
                 ))}
@@ -356,7 +494,12 @@ const OverviewTab = ({ review, comments, getStatusText }: OverviewTabProps) => {
                         {new Date(comment.createdAt).toLocaleString('zh-CN')}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-700">{comment.content}</p>
+                    {comment.filePath && (
+                        <p className="text-xs text-gray-500 text-left mt-3">
+                          {comment.filePath}:{comment.lineNumber}
+                        </p>
+                      )}
+                    <p className="text-sm text-gray-900 text-left mt-1">{comment.content}</p>
                   </div>
                 </div>
               ))}
@@ -447,11 +590,19 @@ const OverviewTab = ({ review, comments, getStatusText }: OverviewTabProps) => {
             </button>
             {review.status === ReviewState.HumanReview && (
               <>
-                <button className="btn btn-primary w-full">
-                  通过评审
+                <button 
+                  className="btn btn-primary w-full"
+                  onClick={onApproveReview}
+                  disabled={isApproving}
+                >
+                  {isApproving ? '处理中...' : '通过评审'}
                 </button>
-                <button className="btn btn-danger w-full">
-                  拒绝并要求修改
+                <button 
+                  className="btn btn-danger w-full"
+                  onClick={onRejectReview}
+                  disabled={isRejecting}
+                >
+                  {isRejecting ? '处理中...' : '拒绝并要求修改'}
                 </button>
               </>
             )}

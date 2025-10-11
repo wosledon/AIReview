@@ -94,6 +94,11 @@ public class UpdateCommentRequest
     public string? Suggestion { get; set; }
 }
 
+public class RejectReviewRequest
+{
+    public string? Reason { get; set; }
+}
+
 public class AIReviewResultDto
 {
     public int ReviewId { get; set; }

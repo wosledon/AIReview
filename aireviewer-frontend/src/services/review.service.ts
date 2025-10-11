@@ -6,6 +6,7 @@ import type {
   ReviewComment,
   AddCommentRequest,
   UpdateCommentRequest,
+  RejectReviewRequest,
   AIReviewResult,
   ReviewQueryParameters,
   PagedResult 
@@ -84,8 +85,8 @@ export class ReviewService {
     return response.data;
   }
 
-  async rejectReview(reviewId: number, reason?: string): Promise<Review> {
-    const response = await apiClient.post<{ success: boolean; data: Review }>(`/reviews/${reviewId}/reject`, { reason });
+  async rejectReview(reviewId: number, request?: RejectReviewRequest): Promise<Review> {
+    const response = await apiClient.post<{ success: boolean; data: Review }>(`/reviews/${reviewId}/reject`, request || {});
     return response.data;
   }
 
@@ -101,7 +102,7 @@ export class ReviewService {
 
   async getReviewsForProject(projectId: number, params?: Omit<ReviewQueryParameters, 'projectId'>): Promise<PagedResult<Review>> {
     const queryParams = new URLSearchParams();
-    
+    queryParams.append('projectId', projectId.toString());
     if (params?.status) queryParams.append('status', params.status);
     if (params?.authorId) queryParams.append('authorId', params.authorId);
     if (params?.createdAfter) queryParams.append('createdAfter', params.createdAfter);
@@ -110,8 +111,7 @@ export class ReviewService {
     if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
 
     const query = queryParams.toString();
-    const url = query ? `/projects/${projectId}/reviews?${query}` : `/projects/${projectId}/reviews`;
-    
+  const url = `/reviews?${query}`;
     // 获取 API 响应并提取 data 字段
     const response = await apiClient.get<{ success: boolean; data: PagedResult<Review> }>(url);
     return response.data;

@@ -207,6 +207,90 @@ public class ProjectsController : ControllerBase
         }
     }
 
+    [HttpPut("{id}/archive")]
+    public async Task<ActionResult<ApiResponse<ProjectDto>>> ArchiveProject(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var isOwner = await _projectService.IsProjectOwnerAsync(id, userId);
+            
+            if (!isOwner)
+            {
+                return Forbid();
+            }
+
+            var project = await _projectService.ArchiveProjectAsync(id);
+            
+            return Ok(new ApiResponse<ProjectDto>
+            {
+                Success = true,
+                Data = project,
+                Message = "项目已归档"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<ProjectDto>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error archiving project {ProjectId}", id);
+            return StatusCode(500, new ApiResponse<ProjectDto>
+            {
+                Success = false,
+                Message = "归档项目失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpPut("{id}/unarchive")]
+    public async Task<ActionResult<ApiResponse<ProjectDto>>> UnarchiveProject(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var isOwner = await _projectService.IsProjectOwnerAsync(id, userId);
+            
+            if (!isOwner)
+            {
+                return Forbid();
+            }
+
+            var project = await _projectService.UnarchiveProjectAsync(id);
+            
+            return Ok(new ApiResponse<ProjectDto>
+            {
+                Success = true,
+                Data = project,
+                Message = "项目已取消归档"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<ProjectDto>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error unarchiving project {ProjectId}", id);
+            return StatusCode(500, new ApiResponse<ProjectDto>
+            {
+                Success = false,
+                Message = "取消归档项目失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
     [HttpGet("{id}/members")]
     public async Task<ActionResult<ApiResponse<IEnumerable<ProjectMemberDto>>>> GetProjectMembers(int id)
     {

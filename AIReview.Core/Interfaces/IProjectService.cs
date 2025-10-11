@@ -10,6 +10,8 @@ public interface IProjectService
     Task<IEnumerable<ProjectDto>> GetProjectsByUserAsync(string userId);
     Task<ProjectDto> UpdateProjectAsync(int id, UpdateProjectRequest request);
     Task DeleteProjectAsync(int id);
+    Task<ProjectDto> ArchiveProjectAsync(int id);
+    Task<ProjectDto> UnarchiveProjectAsync(int id);
     
     Task<IEnumerable<ProjectMemberDto>> GetProjectMembersAsync(int projectId);
     Task AddProjectMemberAsync(int projectId, AddMemberRequest request);

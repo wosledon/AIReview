@@ -87,12 +87,12 @@ export class ProjectService {
   }
 
   async archiveProject(id: number): Promise<Project> {
-    const response = await apiClient.post<{ success: boolean; data: Project }>(`/projects/${id}/archive`);
+    const response = await apiClient.put<{ success: boolean; data: Project }>(`/projects/${id}/archive`, {});
     return response.data;
   }
 
   async unarchiveProject(id: number): Promise<Project> {
-    const response = await apiClient.post<{ success: boolean; data: Project }>(`/projects/${id}/unarchive`);
+    const response = await apiClient.put<{ success: boolean; data: Project }>(`/projects/${id}/unarchive`, {});
     return response.data;
   }
 }

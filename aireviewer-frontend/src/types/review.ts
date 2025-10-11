@@ -89,6 +89,10 @@ export interface UpdateCommentRequest {
   suggestion?: string;
 }
 
+export interface RejectReviewRequest {
+  reason?: string;
+}
+
 export interface AIReviewResult {
   reviewId: number;
   overallScore: number;
