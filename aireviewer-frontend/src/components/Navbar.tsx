@@ -33,8 +33,8 @@ export const Navbar: React.FC = () => {
   })();
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
-      <div className="container mx-auto px-4">
+    <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200">
+      <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo and brand */}
           <div className="flex items-center">
