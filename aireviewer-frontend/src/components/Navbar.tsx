@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Menu, Transition } from '@headlessui/react';
 import { 
   Bars3Icon, 
-  BellIcon, 
   CodeBracketIcon,
   PlusIcon,
   ChevronDownIcon,
@@ -14,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { useUISettings } from '../hooks/useUISettings';
+import { NotificationDropdown } from './NotificationDropdown';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -50,6 +50,12 @@ export const Navbar: React.FC = () => {
           {isAuthenticated && (
             <div className="hidden md:flex items-center space-x-8">
               <Link 
+                to="/dashboard" 
+                className="text-gray-700 dark:text-gray-200 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                仪表盘
+              </Link>
+              <Link 
                 to="/projects" 
                 className="text-gray-700 dark:text-gray-200 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
               >
@@ -76,9 +82,7 @@ export const Navbar: React.FC = () => {
             {isAuthenticated ? (
               <>
                 {/* Notifications */}
-                <button className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-100 p-2">
-                  <BellIcon className="h-6 w-6" />
-                </button>
+                <NotificationDropdown />
 
                 {/* User menu */}
                 <Menu as="div" className="relative">
@@ -114,12 +118,12 @@ export const Navbar: React.FC = () => {
                     leaveTo="transform opacity-0 scale-95"
                   >
                     <Menu.Items className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-900 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-gray-100 dark:border-gray-800">
-                      <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                         <div className="flex items-center gap-3">
                           {user?.avatar ? (
-                            <img src={user.avatar} alt={displayName} className="h-10 w-10 rounded-full object-cover ring-1 ring-gray-200" />
+                            <img src={user.avatar} alt={displayName} className="h-10 w-10 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700" />
                           ) : (
-                            <span className="h-10 w-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center ring-1 ring-gray-200 text-sm font-semibold">
+                            <span className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400 flex items-center justify-center ring-1 ring-gray-200 dark:ring-gray-700 text-sm font-semibold">
                               {initials}
                             </span>
                           )}
@@ -136,9 +140,9 @@ export const Navbar: React.FC = () => {
                           {({ active }) => (
                             <Link
                               to="/profile"
-                              className={`${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'} flex items-center gap-2 px-4 py-2 text-sm`}
+                              className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} flex items-center gap-2 px-4 py-2 text-sm transition-colors`}
                             >
-                              <UserIcon className="h-4 w-4 text-gray-400" />
+                              <UserIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                               <span>个人资料</span>
                             </Link>
                           )}
@@ -147,9 +151,9 @@ export const Navbar: React.FC = () => {
                           {({ active }) => (
                             <Link
                               to="/settings/reviews"
-                              className={`${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'} flex items-center gap-2 px-4 py-2 text-sm`}
+                              className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} flex items-center gap-2 px-4 py-2 text-sm transition-colors`}
                             >
-                              <Cog6ToothIcon className="h-4 w-4 text-gray-400" />
+                              <Cog6ToothIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                               <span>评审设置</span>
                             </Link>
                           )}
@@ -158,37 +162,37 @@ export const Navbar: React.FC = () => {
                           {({ active }) => (
                             <Link
                               to="/admin/llm-config"
-                              className={`${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'} flex items-center gap-2 px-4 py-2 text-sm`}
+                              className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} flex items-center gap-2 px-4 py-2 text-sm transition-colors`}
                             >
-                              <CpuChipIcon className="h-4 w-4 text-gray-400" />
+                              <CpuChipIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                               <span>LLM配置</span>
                             </Link>
                           )}
                         </Menu.Item>
-                        <div className="px-4 py-2">
-                          <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">主题</div>
+                        <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+                          <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">主题</div>
                           <div className="flex items-center gap-2">
                             {(['system','light','dark'] as const).map(m => (
-                              <button key={m} onClick={() => setTheme(m)} className={`px-2 py-1 rounded text-xs border ${theme===m ? 'bg-primary-50 text-primary-700 border-primary-200' : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{m==='system'?'跟随系统':m==='light'?'浅色':'深色'}</button>
+                              <button key={m} onClick={() => setTheme(m)} className={`px-2 py-1 rounded text-xs border transition-colors ${theme===m ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-800' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>{m==='system'?'跟随系统':m==='light'?'浅色':'深色'}</button>
                             ))}
                           </div>
                         </div>
                         <div className="px-4 py-2">
-                          <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">布局密度</div>
+                          <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">布局密度</div>
                           <div className="flex items-center gap-2">
                             {(['compact','comfortable','full'] as const).map(d => (
-                              <button key={d} onClick={() => setDensity(d)} className={`px-2 py-1 rounded text-xs border ${density===d ? 'bg-primary-50 text-primary-700 border-primary-200' : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{d==='compact'?'紧凑':d==='comfortable'?'舒展':'全宽'}</button>
+                              <button key={d} onClick={() => setDensity(d)} className={`px-2 py-1 rounded text-xs border transition-colors ${density===d ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-800' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>{d==='compact'?'紧凑':d==='comfortable'?'舒展':'全宽'}</button>
                             ))}
                           </div>
                         </div>
-                        <div className="my-1 border-t border-gray-100" />
+                        <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
                         <Menu.Item>
                           {({ active }) => (
                             <button
                               onClick={handleLogout}
-                              className={`${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'} w-full text-left px-4 py-2 text-sm flex items-center gap-2`}
+                              className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors`}
                             >
-                              <ArrowRightOnRectangleIcon className="h-4 w-4 text-gray-400" />
+                              <ArrowRightOnRectangleIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                               <span>退出登录</span>
                             </button>
                           )}

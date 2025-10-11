@@ -16,6 +16,8 @@ import { ReviewsPage } from './pages/ReviewsPage';
 import { CreateReviewPage } from './pages/CreateReviewPage';
 import { ReviewDetailPage } from './pages/ReviewDetailPage';
 import { ReviewSettingsPage } from './pages/ReviewSettingsPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import LLMConfigurationPage from './pages/admin/LLMConfigurationPage';
 import './App.css';
@@ -107,6 +109,22 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <ReviewSettingsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="profile" 
+                  element={
+                    <ProtectedRoute>
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="notifications" 
+                  element={
+                    <ProtectedRoute>
+                      <NotificationsPage />
                     </ProtectedRoute>
                   } 
                 />
