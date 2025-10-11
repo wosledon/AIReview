@@ -1,7 +1,7 @@
 AIReview — AI-powered Code/Doc Review Platform
 ================================================
 
-English | [简体中文](docs/Readme.zh-cn.md)
+English | [简体中文](docs/README.zh-cn.md)
 
 ## Overview
 
