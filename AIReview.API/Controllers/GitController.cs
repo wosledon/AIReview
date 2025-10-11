@@ -453,6 +453,56 @@ public class GitController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// 获取指定分支之间的代码差异
+    /// </summary>
+    [HttpGet("repositories/{id}/diff")]
+    public async Task<ActionResult<ApiResponse<string>>> GetRepositoryDiff(
+        int id, 
+        [FromQuery] string targetBranch, 
+        [FromQuery] string baseBranch = "main")
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(targetBranch))
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "目标分支不能为空"
+                });
+            }
+
+            var diff = await _gitService.GetDiffBetweenRefsAsync(id, baseBranch, targetBranch);
+            
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Data = diff,
+                Message = "差异获取成功"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<string>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting diff for repository {Id}, base: {BaseBranch}, target: {TargetBranch}", 
+                id, baseBranch, targetBranch);
+            return StatusCode(500, new ApiResponse<string>
+            {
+                Success = false,
+                Message = "获取代码差异失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
     private static GitRepositoryDto MapToDto(GitRepository repository)
     {
         return new GitRepositoryDto

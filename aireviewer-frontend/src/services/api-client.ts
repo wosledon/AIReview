@@ -93,7 +93,7 @@ export class ApiClient {
 
 // Create default API client instance
 const apiConfig: ApiConfig = {
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://localhost:7001/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://localhost:5000/api',
   timeout: 15000,
 };
 

@@ -10,15 +10,21 @@ public class ReviewService : IReviewService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IProjectService _projectService;
+    private readonly IGitService _gitService;
+    private readonly IDiffParserService _diffParserService;
     private readonly ILogger<ReviewService> _logger;
 
     public ReviewService(
         IUnitOfWork unitOfWork,
         IProjectService projectService,
+        IGitService gitService,
+        IDiffParserService diffParserService,
         ILogger<ReviewService> logger)
     {
         _unitOfWork = unitOfWork;
         _projectService = projectService;
+        _gitService = gitService;
+        _diffParserService = diffParserService;
         _logger = logger;
     }
 
@@ -252,7 +258,7 @@ public class ReviewService : IReviewService
             var comment = new ReviewComment
             {
                 ReviewRequestId = reviewId,
-                AuthorId = "system", // 系统用户ID
+                AuthorId = review.AuthorId, // 使用评审请求的作者ID而不是系统ID
                 FilePath = aiComment.FilePath,
                 LineNumber = aiComment.LineNumber,
                 Content = aiComment.Content,
@@ -271,7 +277,8 @@ public class ReviewService : IReviewService
         _unitOfWork.ReviewRequests.Update(review);
         await _unitOfWork.SaveChangesAsync();
 
-        _logger.LogInformation("AI review result saved for review: {ReviewId}", reviewId);
+        _logger.LogInformation("AI review result saved for review: {ReviewId} with {CommentCount} comments", 
+            reviewId, result.Comments.Count);
     }
 
     public async Task<bool> HasReviewAccessAsync(int reviewId, string userId)
@@ -281,6 +288,100 @@ public class ReviewService : IReviewService
             return false;
 
         return await _projectService.HasProjectAccessAsync(review.ProjectId, userId);
+    }
+
+    public async Task<string?> GetReviewDiffAsync(int reviewId)
+    {
+        var review = await _unitOfWork.ReviewRequests.GetReviewWithProjectAsync(reviewId);
+        if (review == null)
+            return null;
+
+        try
+        {
+            // 获取项目关联的Git仓库
+            var repositories = await _gitService.GetRepositoriesAsync(review.ProjectId);
+            var repository = repositories.FirstOrDefault();
+            
+            if (repository == null)
+            {
+                _logger.LogWarning("No Git repository found for project {ProjectId}", review.ProjectId);
+                return null;
+            }
+
+            // 获取代码差异
+            var diff = await _gitService.GetDiffBetweenRefsAsync(repository.Id, review.BaseBranch, review.Branch);
+            return diff;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting diff for review {ReviewId}", reviewId);
+            return null;
+        }
+    }
+
+    public async Task<DiffResponseDto?> GetReviewDiffDataAsync(int reviewId)
+    {
+        var review = await _unitOfWork.ReviewRequests.GetReviewWithProjectAsync(reviewId);
+        if (review == null)
+            return null;
+
+        try
+        {
+            // 获取项目关联的Git仓库
+            var repositories = await _gitService.GetRepositoriesAsync(review.ProjectId);
+            var repository = repositories.FirstOrDefault();
+            
+            if (repository == null)
+            {
+                _logger.LogWarning("No Git repository found for project {ProjectId}", review.ProjectId);
+                return null;
+            }
+
+            // 获取代码差异
+            var diff = await _gitService.GetDiffBetweenRefsAsync(repository.Id, review.BaseBranch, review.Branch);
+            if (string.IsNullOrEmpty(diff))
+                return null;
+
+            // 解析差异
+            var diffFiles = _diffParserService.ParseGitDiff(diff);
+
+            // 获取评审评论
+            var comments = await GetReviewCommentsAsync(reviewId);
+            var codeComments = comments.Where(c => !string.IsNullOrEmpty(c.FilePath))
+                .Select(c => new CodeCommentDto
+                {
+                    Id = c.Id.ToString(),
+                    FilePath = c.FilePath ?? "",
+                    LineNumber = c.LineNumber ?? 0,
+                    Content = c.Content,
+                    Author = c.AuthorName,
+                    CreatedAt = c.CreatedAt,
+                    Type = c.IsAIGenerated ? "ai" : "human",
+                    Severity = MapSeverity(c.Severity.ToString())
+                }).ToList();
+
+            return new DiffResponseDto
+            {
+                Files = diffFiles,
+                Comments = codeComments
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting diff data for review {ReviewId}", reviewId);
+            return null;
+        }
+    }
+
+    private string MapSeverity(string severity)
+    {
+        return severity.ToLowerInvariant() switch
+        {
+            "critical" => "critical",
+            "error" => "error", 
+            "warning" => "warning",
+            _ => "info"
+        };
     }
 
     private async Task<ReviewDto> MapToReviewDtoAsync(ReviewRequest review)

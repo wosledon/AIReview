@@ -35,28 +35,37 @@ public class MultiLLMService : IMultiLLMService
         {
             var provider = _providerFactory.CreateProvider(configuration);
             
-            var prompt = $@"作为一名资深的代码审查专家，请仔细分析以下代码并提供详细的审查报告。
+            var prompt = $@"作为一名资深的代码审查专家，请仔细分析以下Git差异并提供详细的审查报告。
 
 上下文信息：
 {context}
 
-待审查代码：
+Git差异内容：
 ```
 {code}
 ```
 
 请从以下几个方面进行分析：
 1. 代码质量和可读性
-2. 潜在的安全问题
+2. 潜在的安全问题  
 3. 性能优化建议
 4. 最佳实践遵循情况
 5. 可能的bug或逻辑错误
 
+请仔细分析Git diff中的文件路径和行号信息，为每个问题提供准确的文件位置。
+
 请以JSON格式返回审查结果，包含以下字段：
 - summary: 总体评价
-- issues: 发现的问题列表（每个问题包含severity, line, message, suggestion）
+- issues: 发现的问题列表，每个问题必须包含：
+  * severity: 严重程度（low/medium/high）
+  * filePath: 具体的文件路径（从Git diff中提取）
+  * line: 具体的行号（从Git diff中的@@ +行号 @@信息提取）
+  * message: 问题描述
+  * suggestion: 具体的改进建议
 - score: 代码质量评分（1-10分）
-- recommendations: 改进建议";
+- recommendations: 总体改进建议列表
+
+注意：请确保为每个问题都提供准确的filePath和line信息，这些信息可以从Git diff的文件头（如 diff --git a/path/file.ext b/path/file.ext）和行号标记（如 @@ -老行号,行数 +新行号,行数 @@）中获取。";
 
             var result = await provider.GenerateAsync(prompt);
             

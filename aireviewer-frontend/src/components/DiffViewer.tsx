@@ -223,10 +223,10 @@ function DiffLine({
         <div className="flex-shrink-0 w-8 px-2 py-1 text-center">
           {getLinePrefix()}
         </div>
-        <div className="flex-1 px-2 py-1 font-mono text-sm">
+        <div className="flex-1 px-2 py-1 font-mono text-sm text-left overflow-x-auto">
           <code 
             dangerouslySetInnerHTML={{ __html: highlightedContent }}
-            className="whitespace-pre"
+            className="whitespace-pre block leading-5"
           />
         </div>
         {showAddComment && (
@@ -281,6 +281,34 @@ interface FileViewerProps {
 function FileViewer({ file, comments, onAddComment, onDeleteComment, language }: FileViewerProps) {
   const { highlightCode } = useCodeHighlight();
   const [commentingLine, setCommentingLine] = useState<number | null>(null);
+  
+  const detectLanguageFromPath = (path: string, fallback: string) => {
+    if (fallback && fallback !== 'auto') return fallback;
+    const lower = (path || '').toLowerCase();
+    if (lower.endsWith('.ts')) return 'typescript';
+    if (lower.endsWith('.tsx')) return 'tsx';
+    if (lower.endsWith('.js')) return 'javascript';
+    if (lower.endsWith('.jsx')) return 'jsx';
+    if (lower.endsWith('.cs')) return 'csharp';
+    if (lower.endsWith('.json')) return 'json';
+    if (lower.endsWith('.css')) return 'css';
+    if (lower.endsWith('.scss')) return 'scss';
+    if (lower.endsWith('.less')) return 'less';
+    if (lower.endsWith('.html') || lower.endsWith('.htm')) return 'markup';
+    if (lower.endsWith('.xml')) return 'markup';
+    if (lower.endsWith('.py')) return 'python';
+    if (lower.endsWith('.java')) return 'java';
+    if (lower.endsWith('.go')) return 'go';
+    if (lower.endsWith('.rs')) return 'rust';
+    if (lower.endsWith('.sql')) return 'sql';
+    if (lower.endsWith('.yml') || lower.endsWith('.yaml')) return 'yaml';
+    if (lower.endsWith('.md')) return 'markdown';
+    if (lower.endsWith('.sh')) return 'bash';
+    if (lower.endsWith('.ps1')) return 'powershell';
+    if (lower.includes('dockerfile')) return 'docker';
+    if (lower.endsWith('.toml')) return 'toml';
+    return 'javascript';
+  };
 
   const getCommentsForLine = (lineNumber: number): CodeComment[] => {
     return comments.filter(comment => 
@@ -311,7 +339,7 @@ function FileViewer({ file, comments, onAddComment, onDeleteComment, language }:
           {file.newPath || file.oldPath}
         </h2>
         <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-          <span>语言: {language}</span>
+          <span>语言: {detectLanguageFromPath(file.newPath || file.oldPath, language)}</span>
           <span>变更类型: {file.type}</span>
           {file.oldPath !== file.newPath && (
             <span>重命名: {file.oldPath} → {file.newPath}</span>
@@ -328,8 +356,9 @@ function FileViewer({ file, comments, onAddComment, onDeleteComment, language }:
             {hunk.changes.map((change, changeIndex) => {
               const lineNumber = change.newLineNumber || change.oldLineNumber || 0;
               const lineComments = getCommentsForLine(lineNumber);
-              const highlightedContent = highlightCode(change.content, language);
-              
+              const lang = detectLanguageFromPath(file.newPath || file.oldPath, language);
+              const highlightedContent = highlightCode(change.content, lang);
+
               return (
                 <DiffLine
                   key={`${hunkIndex}-${changeIndex}`}

@@ -93,10 +93,10 @@ const LLMConfigurationPage: React.FC = () => {
     mutationFn: (id: number) => llmConfigurationService.testConnection(id),
     onSuccess: (response, id) => {
       const config = configurations.find((c: LLMConfiguration) => c.id === id);
-      if (response.data?.isConnected) {
+        if (response.isConnected) {
         console.log(`${config?.name} 连接测试成功`);
       } else {
-        console.error(`${config?.name} 连接测试失败: ${response.data?.message}`);
+          console.error(`${config?.name} 连接测试失败: ${response.message}`);
       }
     },
     onError: (error: Error, id) => {

@@ -7,13 +7,13 @@ namespace AIReview.Infrastructure.Services;
 
 public class AIReviewer : IAIReviewer
 {
-    private readonly ILLMService _llmService;
+    private readonly IMultiLLMService _multiLLMService;
     private readonly IContextBuilder _contextBuilder;
     private readonly ILogger<AIReviewer> _logger;
 
-    public AIReviewer(ILLMService llmService, IContextBuilder contextBuilder, ILogger<AIReviewer> logger)
+    public AIReviewer(IMultiLLMService multiLLMService, IContextBuilder contextBuilder, ILogger<AIReviewer> logger)
     {
-        _llmService = llmService;
+        _multiLLMService = multiLLMService;
         _contextBuilder = contextBuilder;
         _logger = logger;
     }
@@ -27,11 +27,8 @@ public class AIReviewer : IAIReviewer
             // 构建评审上下文
             var reviewContext = await _contextBuilder.BuildContextAsync(diff, context);
 
-            // 生成评审提示
-            var prompt = BuildReviewPrompt(diff, reviewContext);
-
-            // 调用AI模型
-            var reviewResponse = await _llmService.GenerateAsync(prompt);
+            // 使用MultiLLMService自动选择可用的LLM进行代码评审
+            var reviewResponse = await _multiLLMService.GenerateReviewAsync(diff, FormatContextForLLM(reviewContext));
 
             // 解析评审结果
             var result = ParseReviewResponse(reviewResponse);
@@ -48,55 +45,11 @@ public class AIReviewer : IAIReviewer
         }
     }
 
-    private string BuildReviewPrompt(string diff, ReviewContext context)
+    private string FormatContextForLLM(ReviewContext context)
     {
-        return $@"
-请对以下代码变更进行详细评审，并以JSON格式返回结果：
-
-**代码变更：**
-```
-{diff}
-```
-
-**项目上下文：**
-- 编程语言：{context.Language}
-- 项目类型：{context.ProjectType}
-- 编码规范：{context.CodingStandards}
-
-**评审要求：**
-1. 代码质量和可读性
-2. 潜在的bug和错误
-3. 性能优化建议
-4. 安全性检查
-5. 编码规范遵循情况
-
-**返回格式（严格按照以下JSON格式）：**
-{{
-  ""overallScore"": 85.5,
-  ""summary"": ""代码整体质量良好，但有几个需要改进的地方..."",
-  ""comments"": [
-    {{
-      ""filePath"": ""src/example.cs"",
-      ""lineNumber"": 10,
-      ""content"": ""建议使用更具描述性的变量名"",
-      ""severity"": ""warning"",
-      ""category"": ""style"",
-      ""suggestion"": ""将变量名从'x'改为'userCount'""
-    }}
-  ],
-  ""actionableItems"": [
-    ""添加输入验证"",
-    ""优化数据库查询""
-  ]
-}}
-
-请确保：
-- overallScore 是0-100之间的数字
-- severity 只能是: ""info"", ""warning"", ""error""
-- category 只能是: ""quality"", ""security"", ""performance"", ""style"", ""bug""
-- 所有文本内容使用中文
-- 返回纯JSON，不要包含任何其他文本
-";
+        return $@"编程语言：{context.Language}
+项目类型：{context.ProjectType}
+编码规范：{context.CodingStandards}";
     }
 
     private AIReviewResult ParseReviewResponse(string response)
@@ -121,13 +74,26 @@ public class AIReviewer : IAIReviewer
 
             var result = new AIReviewResult
             {
-                OverallScore = root.GetProperty("overallScore").GetDouble(),
                 Summary = root.GetProperty("summary").GetString() ?? "",
                 Comments = new List<AIReviewComment>(),
                 ActionableItems = new List<string>()
             };
 
-            // 解析评论
+            // 解析分数 - 支持多种格式
+            if (root.TryGetProperty("overallScore", out var overallScoreElement))
+            {
+                result.OverallScore = overallScoreElement.GetDouble();
+            }
+            else if (root.TryGetProperty("score", out var scoreElement))
+            {
+                result.OverallScore = scoreElement.GetDouble();
+            }
+            else
+            {
+                result.OverallScore = 75.0; // 默认分数
+            }
+
+            // 解析评论 - 支持 comments 和 issues 两种格式
             if (root.TryGetProperty("comments", out var commentsElement))
             {
                 foreach (var commentElement in commentsElement.EnumerateArray())
@@ -144,8 +110,24 @@ public class AIReviewer : IAIReviewer
                     result.Comments.Add(comment);
                 }
             }
+            else if (root.TryGetProperty("issues", out var issuesElement))
+            {
+                foreach (var issueElement in issuesElement.EnumerateArray())
+                {
+                    var comment = new AIReviewComment
+                    {
+                        FilePath = issueElement.TryGetProperty("filePath", out var fp) ? fp.GetString() : null,
+                        LineNumber = TryParseLineNumber(issueElement),
+                        Content = issueElement.GetProperty("message").GetString() ?? "",
+                        Severity = issueElement.TryGetProperty("severity", out var sev) ? sev.GetString() ?? "info" : "info",
+                        Category = DetermineCategoryFromContent(issueElement.GetProperty("message").GetString() ?? ""),
+                        Suggestion = issueElement.TryGetProperty("suggestion", out var sug) ? sug.GetString() : null
+                    };
+                    result.Comments.Add(comment);
+                }
+            }
 
-            // 解析可执行项
+            // 解析可执行项 - 支持 actionableItems 和 recommendations 两种格式
             if (root.TryGetProperty("actionableItems", out var itemsElement))
             {
                 foreach (var itemElement in itemsElement.EnumerateArray())
@@ -157,18 +139,32 @@ public class AIReviewer : IAIReviewer
                     }
                 }
             }
+            else if (root.TryGetProperty("recommendations", out var recommendationsElement))
+            {
+                foreach (var recommendationElement in recommendationsElement.EnumerateArray())
+                {
+                    var item = recommendationElement.GetString();
+                    if (!string.IsNullOrEmpty(item))
+                    {
+                        result.ActionableItems.Add(item);
+                    }
+                }
+            }
 
             return result;
         }
         catch (JsonException ex)
         {
-            _logger.LogWarning(ex, "Failed to parse AI response as JSON, falling back to text parsing");
+            _logger.LogWarning(ex, "Failed to parse AI response as JSON, falling back to text parsing. Response: {Response}", 
+                response.Length > 500 ? response.Substring(0, 500) + "..." : response);
             return ParseReviewResponseFallback(response);
         }
     }
 
     private AIReviewResult ParseReviewResponseFallback(string response)
     {
+        _logger.LogInformation("Using fallback text parsing for AI response");
+        
         // 回退方案：使用正则表达式提取关键信息
         var result = new AIReviewResult
         {
@@ -177,6 +173,9 @@ public class AIReviewer : IAIReviewer
             Comments = ExtractComments(response),
             ActionableItems = ExtractActionableItems(response)
         };
+
+        _logger.LogDebug("Fallback parsing result: Score={Score}, Comments={CommentCount}, Items={ItemCount}",
+            result.OverallScore, result.Comments.Count, result.ActionableItems.Count);
 
         return result;
     }
@@ -266,6 +265,49 @@ public class AIReviewer : IAIReviewer
             return "style";
         if (text.Contains("bug") || text.Contains("错误"))
             return "bug";
+        return "quality";
+    }
+
+    private int? TryParseLineNumber(JsonElement element)
+    {
+        if (element.TryGetProperty("lineNumber", out var lineNumberElement) && 
+            lineNumberElement.ValueKind == JsonValueKind.Number)
+        {
+            return lineNumberElement.GetInt32();
+        }
+        
+        if (element.TryGetProperty("line", out var lineElement))
+        {
+            if (lineElement.ValueKind == JsonValueKind.Number)
+            {
+                return lineElement.GetInt32();
+            }
+            if (lineElement.ValueKind == JsonValueKind.String && 
+                int.TryParse(lineElement.GetString(), out var lineNumber))
+            {
+                return lineNumber;
+            }
+        }
+        
+        return null;
+    }
+
+    private string DetermineCategoryFromContent(string content)
+    {
+        var lowerContent = content.ToLowerInvariant();
+        
+        if (lowerContent.Contains("安全") || lowerContent.Contains("漏洞") || lowerContent.Contains("security"))
+            return "security";
+        if (lowerContent.Contains("性能") || lowerContent.Contains("效率") || lowerContent.Contains("performance"))
+            return "performance";
+        if (lowerContent.Contains("风格") || lowerContent.Contains("格式") || lowerContent.Contains("命名") || 
+            lowerContent.Contains("style") || lowerContent.Contains("naming"))
+            return "style";
+        if (lowerContent.Contains("bug") || lowerContent.Contains("错误") || lowerContent.Contains("缺陷"))
+            return "bug";
+        if (lowerContent.Contains("重构") || lowerContent.Contains("设计") || lowerContent.Contains("架构"))
+            return "design";
+        
         return "quality";
     }
 }

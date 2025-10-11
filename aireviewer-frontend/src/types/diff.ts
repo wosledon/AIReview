@@ -1,3 +1,8 @@
+export interface DiffResponse {
+  files: DiffFile[];
+  comments: CodeComment[];
+}
+
 export interface DiffFile {
   oldPath: string;
   newPath: string;

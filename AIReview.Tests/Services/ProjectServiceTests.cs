@@ -16,8 +16,9 @@ namespace AIReview.Tests.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly Mock<ILogger<ProjectService>> _loggerMock;
-    private readonly ProjectService _projectService;
-    private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
+        private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
+        private readonly Mock<IGitService> _gitServiceMock;
+        private readonly ProjectService _projectService;
         private readonly string _testUserId = "test-user-id";
 
         public ProjectServiceTests()
@@ -29,8 +30,9 @@ namespace AIReview.Tests.Services
             _context = new ApplicationDbContext(options);
             _loggerMock = new Mock<ILogger<ProjectService>>();
             _userManagerMock = new Mock<UserManager<ApplicationUser>>(Mock.Of<IUserStore<ApplicationUser>>(), null, null, null, null, null, null, null, null);
+            _gitServiceMock = new Mock<IGitService>();
             var unitOfWork = new UnitOfWork(_context);
-            _projectService = new ProjectService(unitOfWork, _userManagerMock.Object, _loggerMock.Object);
+            _projectService = new ProjectService(unitOfWork, _userManagerMock.Object, _gitServiceMock.Object, _loggerMock.Object);
         }
 
         [Fact]

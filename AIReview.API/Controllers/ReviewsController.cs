@@ -67,7 +67,18 @@ public class ReviewsController : ControllerBase
 
             var userId = GetCurrentUserId();
             var review = await _reviewService.CreateReviewAsync(request, userId);
-            
+            // 尝试在创建后立即入队 AI 评审（非阻塞）
+            try
+            {
+                var jobId = await _aiReviewService.EnqueueReviewAsync(review.Id);
+                _logger.LogInformation("AI review enqueued (JobId: {JobId}) for review {ReviewId}", jobId, review.Id);
+            }
+            catch (Exception ex)
+            {
+                // 入队失败不应阻止评审创建，记录警告
+                _logger.LogWarning(ex, "Failed to enqueue AI review for review {ReviewId}", review.Id);
+            }
+
             return CreatedAtAction(nameof(GetReview), new { id = review.Id }, new ApiResponse<ReviewDto>
             {
                 Success = true,
@@ -75,7 +86,7 @@ public class ReviewsController : ControllerBase
                 Message = "评审请求创建成功"
             });
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
             return Forbid();
         }
@@ -127,6 +138,48 @@ public class ReviewsController : ControllerBase
             {
                 Success = false,
                 Message = "获取评审详情失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpGet("{id}/diff")]
+    public async Task<ActionResult<ApiResponse<DiffResponseDto>>> GetReviewDiff(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            var diffData = await _reviewService.GetReviewDiffDataAsync(id);
+            if (diffData == null)
+            {
+                return NotFound(new ApiResponse<DiffResponseDto>
+                {
+                    Success = false,
+                    Message = "评审代码差异不存在"
+                });
+            }
+
+            return Ok(new ApiResponse<DiffResponseDto>
+            {
+                Success = true,
+                Data = diffData,
+                Message = "代码差异获取成功"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting review diff for {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<DiffResponseDto>
+            {
+                Success = false,
+                Message = "获取代码差异失败",
                 Errors = new List<string> { ex.Message }
             });
         }

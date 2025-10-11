@@ -110,6 +110,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany(u => u.ReviewComments)
                 .HasForeignKey(e => e.AuthorId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.ReviewRequest)
+                .WithMany(r => r.Comments)
+                .HasForeignKey(e => e.ReviewRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // 配置Identity表名（可选）

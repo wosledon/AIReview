@@ -4,6 +4,7 @@ using Moq;
 using Xunit;
 using AIReview.Core.Entities;
 using AIReview.Core.Services;
+using AIReview.Core.Interfaces;
 using AIReview.Infrastructure;
 using AIReview.Infrastructure.Data;
 using AIReview.Shared.DTOs;
@@ -14,8 +15,10 @@ namespace AIReview.Tests.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly Mock<ILogger<ReviewService>> _loggerMock;
-    private readonly ReviewService _reviewService;
-    private readonly Mock<AIReview.Core.Interfaces.IProjectService> _projectServiceMock;
+        private readonly ReviewService _reviewService;
+        private readonly Mock<IProjectService> _projectServiceMock;
+        private readonly Mock<IGitService> _gitServiceMock;
+        private readonly Mock<IDiffParserService> _diffParserServiceMock;
         private readonly string _testUserId = "test-user-id";
 
         public ReviewServiceTests()
@@ -28,9 +31,11 @@ namespace AIReview.Tests.Services
             _loggerMock = new Mock<ILogger<ReviewService>>();
             
             var unitOfWork = new UnitOfWork(_context);
-            _projectServiceMock = new Mock<AIReview.Core.Interfaces.IProjectService>();
+            _projectServiceMock = new Mock<IProjectService>();
+            _gitServiceMock = new Mock<IGitService>();
+            _diffParserServiceMock = new Mock<IDiffParserService>();
             _projectServiceMock.Setup(p => p.HasProjectAccessAsync(It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync(true);
-            _reviewService = new ReviewService(unitOfWork, _projectServiceMock.Object, _loggerMock.Object);
+            _reviewService = new ReviewService(unitOfWork, _projectServiceMock.Object, _gitServiceMock.Object, _diffParserServiceMock.Object, _loggerMock.Object);
 
             // Setup test data
             SeedTestData();

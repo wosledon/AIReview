@@ -19,7 +19,6 @@ import {
 import { reviewService } from '../services/review.service';
 import { useNotifications } from '../hooks/useNotifications';
 import { DiffViewer } from '../components/DiffViewer';
-import { generateMockDiffData, generateMockComments } from '../utils/mockDiffData';
 import { ReviewState, ReviewCommentSeverity, ReviewCommentCategory } from '../types/review';
 import type { Review, ReviewComment, AddCommentRequest } from '../types/review';
 
@@ -441,7 +440,7 @@ const OverviewTab = ({ review, comments, getStatusText }: OverviewTabProps) => {
             >
               查看项目
             </Link>
-            <button className="btn btn-secondary w-full">
+            <button className="btn btn-secondary w-full inline-flex items-center space-x-1">
               <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2" />
               添加评论
             </button>
@@ -527,7 +526,7 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
         </h3>
         <button
           onClick={() => onShowAddComment(!showAddComment)}
-          className="btn btn-primary"
+          className="btn btn-primary inline-flex items-center space-x-1"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
           添加评论
@@ -752,9 +751,11 @@ interface DiffTabProps {
 }
 
 const DiffTab = ({ review }: DiffTabProps) => {
-  // 使用模拟数据进行演示
-  const diffFiles = generateMockDiffData();
-  const diffComments = generateMockComments();
+  // 使用真实的API数据
+  const { data: diffData, isLoading: isDiffLoading, error: diffError } = useQuery({
+    queryKey: ['review-diff', review.id],
+    queryFn: () => reviewService.getReviewDiff(review.id),
+  });
 
   const handleAddComment = (filePath: string, lineNumber: number, content: string) => {
     console.log('Adding comment:', { filePath, lineNumber, content });
@@ -766,6 +767,36 @@ const DiffTab = ({ review }: DiffTabProps) => {
     // 这里可以调用API删除评论
   };
 
+  if (isDiffLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <span className="ml-2 text-gray-600">加载代码变更中...</span>
+      </div>
+    );
+  }
+
+  if (diffError) {
+    return (
+      <div className="text-center py-8">
+        <ExclamationTriangleIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-500">无法加载代码变更</p>
+        <p className="text-sm text-gray-400 mt-2">
+          {diffError instanceof Error ? diffError.message : '未知错误'}
+        </p>
+      </div>
+    );
+  }
+
+  if (!diffData || !diffData.files || diffData.files.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-500">暂无代码变更</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -775,13 +806,13 @@ const DiffTab = ({ review }: DiffTabProps) => {
         </div>
       </div>
 
-      <div className="h-96">
+      <div className="h-[70vh] md:h-[78vh]">
         <DiffViewer
-          files={diffFiles}
-          comments={diffComments}
+          files={diffData.files}
+          comments={diffData.comments}
           onAddComment={handleAddComment}
           onDeleteComment={handleDeleteComment}
-          language="typescript"
+          language="auto"
         />
       </div>
     </div>

@@ -11,15 +11,18 @@ public class ProjectService : IProjectService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IGitService _gitService;
     private readonly ILogger<ProjectService> _logger;
 
     public ProjectService(
         IUnitOfWork unitOfWork,
         UserManager<ApplicationUser> userManager,
+        IGitService gitService,
         ILogger<ProjectService> logger)
     {
         _unitOfWork = unitOfWork;
         _userManager = userManager;
+        _gitService = gitService;
         _logger = logger;
     }
 
@@ -39,7 +42,69 @@ public class ProjectService : IProjectService
 
         _logger.LogInformation("Project created: {ProjectId} by {OwnerId}", project.Id, ownerId);
 
+        // 如果提供了仓库URL，自动创建Git仓库记录
+        if (!string.IsNullOrWhiteSpace(request.RepositoryUrl))
+        {
+            try
+            {
+                await CreateGitRepositoryForProjectAsync(project, request.RepositoryUrl);
+                _logger.LogInformation("Git repository created for project {ProjectId}", project.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create Git repository for project {ProjectId}: {Error}", 
+                    project.Id, ex.Message);
+                // 不中断项目创建流程，Git仓库创建失败不应影响项目创建
+            }
+        }
+
         return await MapToProjectDtoAsync(project);
+    }
+
+    private async Task CreateGitRepositoryForProjectAsync(Project project, string repositoryUrl)
+    {
+        // 从URL中提取仓库名称
+        var repoName = ExtractRepositoryNameFromUrl(repositoryUrl);
+        
+        var gitRepository = new GitRepository
+        {
+            Name = repoName,
+            Url = repositoryUrl,
+            ProjectId = project.Id,
+            DefaultBranch = "main", // 默认分支
+            IsActive = true
+        };
+
+        await _gitService.CreateRepositoryAsync(gitRepository);
+    }
+
+    private string ExtractRepositoryNameFromUrl(string url)
+    {
+        try
+        {
+            // 处理常见的Git URL格式
+            // https://github.com/user/repo.git -> repo
+            // https://github.com/user/repo -> repo
+            // git@github.com:user/repo.git -> repo
+            
+            var uri = new Uri(url.Replace("git@", "https://").Replace(":", "/"));
+            var segments = uri.Segments;
+            var lastSegment = segments[segments.Length - 1];
+            
+            // 移除.git后缀
+            if (lastSegment.EndsWith(".git"))
+            {
+                lastSegment = lastSegment.Substring(0, lastSegment.Length - 4);
+            }
+            
+            // 移除尾部的斜杠
+            return lastSegment.TrimEnd('/');
+        }
+        catch
+        {
+            // 如果URL解析失败，使用项目名称作为仓库名称
+            return $"repo-{DateTime.UtcNow.Ticks}";
+        }
     }
 
     public async Task<ProjectDto?> GetProjectAsync(int id)
@@ -70,6 +135,8 @@ public class ProjectService : IProjectService
         if (project == null)
             throw new ArgumentException($"Project with id {id} not found");
 
+        var originalRepositoryUrl = project.RepositoryUrl;
+
         if (!string.IsNullOrEmpty(request.Name))
             project.Name = request.Name;
 
@@ -85,9 +152,45 @@ public class ProjectService : IProjectService
         _unitOfWork.Projects.Update(project);
         await _unitOfWork.SaveChangesAsync();
 
+        // 处理Git仓库URL变更
+        if (!string.IsNullOrEmpty(request.RepositoryUrl) && 
+            request.RepositoryUrl != originalRepositoryUrl)
+        {
+            try
+            {
+                await UpdateGitRepositoryForProjectAsync(project, request.RepositoryUrl);
+                _logger.LogInformation("Git repository updated for project {ProjectId}", project.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update Git repository for project {ProjectId}: {Error}", 
+                    project.Id, ex.Message);
+            }
+        }
+
         _logger.LogInformation("Project updated: {ProjectId}", project.Id);
 
         return await MapToProjectDtoAsync(project);
+    }
+
+    private async Task UpdateGitRepositoryForProjectAsync(Project project, string repositoryUrl)
+    {
+        // 查找项目关联的Git仓库
+        var repositories = await _gitService.GetRepositoriesAsync(project.Id);
+        var existingRepo = repositories.FirstOrDefault();
+
+        if (existingRepo != null)
+        {
+            // 更新现有仓库
+            existingRepo.Url = repositoryUrl;
+            existingRepo.Name = ExtractRepositoryNameFromUrl(repositoryUrl);
+            await _gitService.UpdateRepositoryAsync(existingRepo);
+        }
+        else
+        {
+            // 创建新的Git仓库记录
+            await CreateGitRepositoryForProjectAsync(project, repositoryUrl);
+        }
     }
 
     public async Task DeleteProjectAsync(int id)

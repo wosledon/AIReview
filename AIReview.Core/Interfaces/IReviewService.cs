@@ -22,4 +22,6 @@ public interface IReviewService
     Task<AIReviewResultDto?> GetAIReviewResultAsync(int reviewId);
     Task SaveAIReviewResultAsync(int reviewId, AIReviewResult result);
     Task<bool> HasReviewAccessAsync(int reviewId, string userId);
+    Task<string?> GetReviewDiffAsync(int reviewId);
+    Task<DiffResponseDto?> GetReviewDiffDataAsync(int reviewId);
 }

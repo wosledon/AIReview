@@ -10,6 +10,7 @@ import type {
   ReviewQueryParameters,
   PagedResult 
 } from '../types/review';
+import type { DiffResponse } from '../types/diff';
 
 export class ReviewService {
   async getReviews(params?: ReviewQueryParameters): Promise<PagedResult<Review>> {
@@ -113,6 +114,11 @@ export class ReviewService {
     
     // 获取 API 响应并提取 data 字段
     const response = await apiClient.get<{ success: boolean; data: PagedResult<Review> }>(url);
+    return response.data;
+  }
+
+  async getReviewDiff(reviewId: number): Promise<DiffResponse> {
+    const response = await apiClient.get<{ success: boolean; data: DiffResponse }>(`/reviews/${reviewId}/diff`);
     return response.data;
   }
 }

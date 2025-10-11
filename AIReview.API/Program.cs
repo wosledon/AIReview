@@ -147,12 +147,18 @@ builder.Services.AddHangfire(configuration => configuration
     .UseRecommendedSerializerSettings()
     .UseSQLiteStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddHangfireServer();
+// 启动 Hangfire Server 并监听 ai-review 队列（确保后台 worker 处理 AI 评审作业）
+builder.Services.AddHangfireServer(options =>
+{
+    options.Queues = new[] { "ai-review" };
+});
 
 // 注册应用服务
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IDiffParserService, DiffParserService>();
+builder.Services.AddScoped<ProjectGitMigrationService>();
 
 // 注册Git服务
 builder.Services.AddScoped<IGitService, GitService>();
@@ -162,7 +168,6 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
 builder.Services.AddScoped<ILLMConfigurationService, LLMConfigurationService>();
 builder.Services.AddScoped<IMultiLLMService, MultiLLMService>();
-builder.Services.AddScoped<ILLMService, OpenAIService>();
 builder.Services.AddScoped<IContextBuilder, ContextBuilder>();
 builder.Services.AddScoped<IAIReviewer, AIReviewer>();
 
@@ -174,22 +179,28 @@ builder.Services.AddScoped<AIReviewJob>();
 builder.Services.AddScoped<AIReview.Core.Interfaces.INotificationService, NotificationService>();
 
 // 配置SignalR
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+});
 
 // 配置CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "https://localhost:3000", "http://localhost:5173", "https://localhost:5173")
+        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
     });
 });
 
 // 添加健康检查（暂不使用 AddDbContextCheck 以避免依赖缺失）
 builder.Services.AddHealthChecks();
+
+builder.WebHost.UseUrls("http://*:5000");
 
 var app = builder.Build();
 
@@ -208,8 +219,10 @@ app.UseSwaggerUI(c =>
 
 app.UseHangfireDashboard("/hangfire");
 
-app.UseHttpsRedirection();
+// CORS必须在其他中间件之前
 app.UseCors("AllowFrontend");
+
+// app.UseHttpsRedirection();
 
 // 添加Prometheus监控中间件
 app.UseHttpMetrics();

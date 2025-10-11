@@ -384,15 +384,73 @@ public class GitService : IGitService
             return null;
         }
 
-        // 使用三点语法 base...head（与 PR 比较一致）；失败则回退到两点 base..head
-        var diffTriple = await ExecuteGitCommandAsync($"diff {@base}...{head}", repository.LocalPath);
-        if (diffTriple.Success && !string.IsNullOrWhiteSpace(diffTriple.Output))
+        try
         {
-            return diffTriple.Output;
-        }
+            // 首先尝试从远程同步最新信息
+            await ExecuteGitCommandAsync("fetch origin", repository.LocalPath);
 
-        var diffDouble = await ExecuteGitCommandAsync($"diff {@base}..{head}", repository.LocalPath);
-        return diffDouble.Success ? diffDouble.Output : null;
+            // 标准化分支引用名称
+            var normalizedBase = await NormalizeRefNameAsync(repository.LocalPath, @base);
+            var normalizedHead = await NormalizeRefNameAsync(repository.LocalPath, head);
+
+            _logger.LogDebug("Normalized refs: {Base} -> {NormalizedBase}, {Head} -> {NormalizedHead}", 
+                @base, normalizedBase, head, normalizedHead);
+
+            // 验证分支/引用是否存在
+            var baseExists = await ValidateRefExistsAsync(repository.LocalPath, normalizedBase);
+            var headExists = await ValidateRefExistsAsync(repository.LocalPath, normalizedHead);
+
+            if (!baseExists || !headExists)
+            {
+                _logger.LogWarning("Invalid git references: base={Base}({BaseExists}), head={Head}({HeadExists})", 
+                    normalizedBase, baseExists, normalizedHead, headExists);
+                
+                // 如果分支不存在，尝试从远程获取
+                if (!baseExists)
+                {
+                    await TryFetchRemoteBranchAsync(repository.LocalPath, @base);
+                    normalizedBase = await NormalizeRefNameAsync(repository.LocalPath, @base);
+                }
+                if (!headExists)
+                {
+                    await TryFetchRemoteBranchAsync(repository.LocalPath, head);
+                    normalizedHead = await NormalizeRefNameAsync(repository.LocalPath, head);
+                }
+            }
+
+            // 使用三点语法 base...head（显示 head 分支相对于 base 的独有更改）
+            var diffTriple = await ExecuteGitCommandAsync($"diff {normalizedBase}...{normalizedHead}", repository.LocalPath);
+            if (diffTriple.Success && !string.IsNullOrWhiteSpace(diffTriple.Output))
+            {
+                _logger.LogDebug("Successfully generated diff using three-dot syntax for {Base}...{Head}", normalizedBase, normalizedHead);
+                return diffTriple.Output;
+            }
+
+            // 回退到两点语法 base..head
+            var diffDouble = await ExecuteGitCommandAsync($"diff {normalizedBase}..{normalizedHead}", repository.LocalPath);
+            if (diffDouble.Success && !string.IsNullOrWhiteSpace(diffDouble.Output))
+            {
+                _logger.LogDebug("Successfully generated diff using two-dot syntax for {Base}..{Head}", normalizedBase, normalizedHead);
+                return diffDouble.Output;
+            }
+
+            // 如果仍然失败，尝试直接 diff
+            var diffDirect = await ExecuteGitCommandAsync($"diff {normalizedBase} {normalizedHead}", repository.LocalPath);
+            if (diffDirect.Success)
+            {
+                _logger.LogDebug("Successfully generated diff using direct syntax for {Base} {Head}", normalizedBase, normalizedHead);
+                return diffDirect.Output;
+            }
+
+            _logger.LogWarning("All diff attempts failed for {Base} and {Head}: {Error}", normalizedBase, normalizedHead, diffDirect.Error);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting diff between {Base} and {Head} for repository {RepositoryId}", 
+                @base, head, repositoryId);
+            return null;
+        }
     }
 
     #endregion
@@ -603,6 +661,97 @@ public class GitService : IGitService
         public string CommitterEmail { get; set; } = string.Empty;
         public DateTime CommitterDate { get; set; }
         public string Message { get; set; } = string.Empty;
+    }
+
+    private async Task<bool> ValidateRefExistsAsync(string localPath, string refName)
+    {
+        try
+        {
+            // 尝试解析引用（分支、标签或提交SHA）
+            var result = await ExecuteGitCommandAsync($"rev-parse --verify {refName}", localPath);
+            if (result.Success)
+            {
+                return true;
+            }
+
+            // 如果本地不存在，检查是否是远程分支
+            var remoteResult = await ExecuteGitCommandAsync($"rev-parse --verify origin/{refName}", localPath);
+            if (remoteResult.Success)
+            {
+                return true;
+            }
+
+            // 检查是否存在其他远程分支格式
+            var remoteBranchResult = await ExecuteGitCommandAsync($"branch -r --list '*/{refName}'", localPath);
+            return remoteBranchResult.Success && !string.IsNullOrWhiteSpace(remoteBranchResult.Output);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task<bool> TryFetchRemoteBranchAsync(string localPath, string branchName)
+    {
+        try
+        {
+            _logger.LogInformation("Attempting to fetch remote branch: {BranchName}", branchName);
+            
+            // 首先尝试从远程获取所有分支信息
+            var fetchResult = await ExecuteGitCommandAsync("fetch origin", localPath);
+            if (!fetchResult.Success)
+            {
+                _logger.LogWarning("Failed to fetch from origin: {Error}", fetchResult.Error);
+                return false;
+            }
+
+            // 检查远程分支是否存在
+            var remoteBranchCheck = await ExecuteGitCommandAsync($"branch -r --list 'origin/{branchName}'", localPath);
+            if (remoteBranchCheck.Success && !string.IsNullOrWhiteSpace(remoteBranchCheck.Output))
+            {
+                // 如果远程分支存在，尝试创建本地分支
+                var checkoutResult = await ExecuteGitCommandAsync($"checkout -b {branchName} origin/{branchName}", localPath);
+                if (checkoutResult.Success)
+                {
+                    _logger.LogInformation("Successfully created local branch {BranchName} from origin/{BranchName}", branchName, branchName);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch remote branch: {BranchName}", branchName);
+            return false;
+        }
+    }
+
+    private async Task<string> NormalizeRefNameAsync(string localPath, string refName)
+    {
+        try
+        {
+            // 如果引用已经存在，直接返回
+            var directResult = await ExecuteGitCommandAsync($"rev-parse --verify {refName}", localPath);
+            if (directResult.Success)
+            {
+                return refName;
+            }
+
+            // 尝试添加 origin/ 前缀
+            var originResult = await ExecuteGitCommandAsync($"rev-parse --verify origin/{refName}", localPath);
+            if (originResult.Success)
+            {
+                return $"origin/{refName}";
+            }
+
+            // 如果都失败了，返回原始名称（让Git处理错误）
+            return refName;
+        }
+        catch
+        {
+            return refName;
+        }
     }
 
     #endregion
