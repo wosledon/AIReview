@@ -88,7 +88,7 @@ Configure the API base URL in the frontend environment (e.g., .env or vite confi
 
 ## License
 
-TBD. If contributing or deploying internally, align with your organization’s licensing and compliance policies.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Links
 
