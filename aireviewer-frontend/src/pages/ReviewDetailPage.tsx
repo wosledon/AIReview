@@ -200,21 +200,21 @@ export const ReviewDetailPage = () => {
   ] as const;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 fade-in">
       {/* Reject Dialog */}
       {showRejectDialog && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-          <div className="relative p-6 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-gray-900/70 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative p-6 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-900 dark:border-gray-700">
             <div className="mt-3">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">拒绝评审</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">拒绝评审</h3>
               <div className="mb-4">
-                <label htmlFor="reject-reason" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="reject-reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   拒绝原因 (可选)
                 </label>
                 <textarea
                   id="reject-reason"
                   rows={4}
-                  className="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 text-gray-700 dark:text-gray-200 border dark:border-gray-600 rounded-lg focus:outline-none focus:border-primary-500 bg-white dark:bg-gray-800"
                   placeholder="请说明拒绝的原因..."
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
@@ -251,24 +251,24 @@ export const ReviewDetailPage = () => {
         <div className="flex items-center space-x-4">
           <button
             onClick={() => navigate('/reviews')}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <ArrowLeftIcon className="h-5 w-5" />
           </button>
           <div>
             <div className="flex items-center space-x-3">
-              <h1 className="text-2xl font-bold text-gray-900">{review.title}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{review.title}</h1>
               <div className="flex items-center">
                 {getStatusIcon(review.status)}
-                <span className="ml-2 text-sm font-medium text-gray-700">
+                <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                   {getStatusText(review.status)}
                 </span>
               </div>
             </div>
             {review.description && (
-              <p className="text-gray-500 mt-1">{review.description}</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">{review.description}</p>
             )}
-            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
               <span>项目: {review.projectName}</span>
               <span>分支: {review.branch}</span>
               <span>作者: {review.authorName}</span>
@@ -311,7 +311,7 @@ export const ReviewDetailPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-800">
         <nav className="-mb-px flex space-x-8">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -322,13 +322,13 @@ export const ReviewDetailPage = () => {
                 className={`${
                   activeTab === tab.id
                     ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-700'
+                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors`}
               >
                 <Icon className="h-5 w-5" />
                 <span>{tab.name}</span>
                 {'count' in tab && tab.count > 0 && (
-                  <span className="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
+                  <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 py-0.5 px-2 rounded-full text-xs">
                     {tab.count}
                   </span>
                 )}
@@ -426,39 +426,39 @@ const OverviewTab = ({ review, comments, getStatusText, onApproveReview, onRejec
       <div className="lg:col-span-2 space-y-6">
         {/* AI Review Summary */}
         {aiComments.length > 0 && (
-          <div className="card">
+          <div className="card dark:bg-gray-900 dark:border-gray-800 transform transition-all duration-300 hover:shadow-lg">
             <div className="flex items-center mb-4">
               <CpuChipIcon className="h-6 w-6 text-blue-500 mr-3" />
-              <h3 className="text-lg font-semibold text-gray-900">AI评审总结</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">AI评审总结</h3>
             </div>
             
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-blue-800">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-blue-800 dark:text-blue-300">
                   AI分析发现了 {aiComments.length} 个问题，建议重点关注安全性和代码质量问题。
                 </p>
               </div>
 
               <div className="space-y-3">
                 {aiComments.slice(0, 3).map((comment) => (
-                  <div key={comment.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                  <div key={comment.id} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg row-hover-transition">
                     {getSeverityIcon(comment.severity)}
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getSeverityColor(comment.severity)}`}>
                           {comment.severity}
                         </span>
-                        <span className="text-xs text-gray-500 flex items-center">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                           {getCategoryIcon(comment.category)}
                           <span className="ml-1">{comment.category}</span>
                         </span>
                       </div>
                       {comment.filePath && (
-                        <p className="text-xs text-gray-500 text-left mt-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 text-left mt-3">
                           {comment.filePath}:{comment.lineNumber}
                         </p>
                       )}
-                      <p className="text-sm text-gray-900 text-left mt-1">{comment.content}</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100 text-left mt-1">{comment.content}</p>
                     </div>
                   </div>
                 ))}
@@ -466,7 +466,7 @@ const OverviewTab = ({ review, comments, getStatusText, onApproveReview, onRejec
 
               {aiComments.length > 3 && (
                 <div className="text-center">
-                  <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                  <button className="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
                     查看全部 {aiComments.length} 个AI评审意见
                   </button>
                 </div>
@@ -477,29 +477,29 @@ const OverviewTab = ({ review, comments, getStatusText, onApproveReview, onRejec
 
         {/* Human Comments */}
         {humanComments.length > 0 && (
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">人工评审</h3>
+          <div className="card dark:bg-gray-900 dark:border-gray-800 transform transition-all duration-300 hover:shadow-lg">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">人工评审</h3>
             <div className="space-y-3">
               {humanComments.map((comment) => (
-                <div key={comment.id} className="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg">
-                  <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                    <span className="text-primary-600 font-medium text-sm">
+                <div key={comment.id} className="flex items-start space-x-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg row-hover-transition">
+                  <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <span className="text-primary-600 dark:text-primary-400 font-medium text-sm">
                       {comment.authorName.charAt(0).toUpperCase()}
                     </span>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-sm font-medium text-gray-900">{comment.authorName}</span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{comment.authorName}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         {new Date(comment.createdAt).toLocaleString('zh-CN')}
                       </span>
                     </div>
                     {comment.filePath && (
-                        <p className="text-xs text-gray-500 text-left mt-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 text-left mt-3">
                           {comment.filePath}:{comment.lineNumber}
                         </p>
                       )}
-                    <p className="text-sm text-gray-900 text-left mt-1">{comment.content}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 text-left mt-1">{comment.content}</p>
                   </div>
                 </div>
               ))}
@@ -509,10 +509,10 @@ const OverviewTab = ({ review, comments, getStatusText, onApproveReview, onRejec
 
         {/* No Comments */}
         {comments.length === 0 && (
-          <div className="card text-center py-8">
+          <div className="card dark:bg-gray-900 dark:border-gray-800 text-center py-8 transform transition-all duration-300 hover:shadow-lg">
             <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">暂无评审意见</p>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-gray-500 dark:text-gray-400">暂无评审意见</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
               {review.status === ReviewState.Pending ? '等待AI评审完成' : '开始添加评审意见'}
             </p>
           </div>
@@ -522,50 +522,50 @@ const OverviewTab = ({ review, comments, getStatusText, onApproveReview, onRejec
       {/* Sidebar */}
       <div className="space-y-6">
         {/* Review Info */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">评审信息</h3>
+        <div className="card dark:bg-gray-900 dark:border-gray-800 transform transition-all duration-300 hover:shadow-lg">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">评审信息</h3>
           <dl className="space-y-3">
             <div>
-              <dt className="text-sm font-medium text-gray-500">状态</dt>
-              <dd className="mt-1 text-sm text-gray-900">{getStatusText(review.status)}</dd>
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">状态</dt>
+              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{getStatusText(review.status)}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">创建时间</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">创建时间</dt>
+              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                 {new Date(review.createdAt).toLocaleString('zh-CN')}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">更新时间</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">更新时间</dt>
+              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                 {new Date(review.updatedAt).toLocaleString('zh-CN')}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">基础分支</dt>
-              <dd className="mt-1 text-sm text-gray-900">{review.baseBranch}</dd>
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">基础分支</dt>
+              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{review.baseBranch}</dd>
             </div>
           </dl>
         </div>
 
         {/* Stats */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">统计信息</h3>
+        <div className="card dark:bg-gray-900 dark:border-gray-800 transform transition-all duration-300 hover:shadow-lg">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">统计信息</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">总评论数</span>
-              <span className="text-sm font-semibold text-gray-900">{comments.length}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">总评论数</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{comments.length}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">AI评论</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">AI评论</span>
               <span className="text-sm font-semibold text-blue-600">{aiComments.length}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">人工评论</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">人工评论</span>
               <span className="text-sm font-semibold text-green-600">{humanComments.length}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">严重问题</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">严重问题</span>
               <span className="text-sm font-semibold text-red-600">
                 {comments.filter(c => c.severity === ReviewCommentSeverity.Critical || c.severity === ReviewCommentSeverity.Error).length}
               </span>
@@ -574,31 +574,31 @@ const OverviewTab = ({ review, comments, getStatusText, onApproveReview, onRejec
         </div>
 
         {/* Quick Actions */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
+        <div className="card dark:bg-gray-900 dark:border-gray-800 transform transition-all duration-300 hover:shadow-lg">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">快速操作</h3>
           <div className="space-y-3">
             <Link
               to={`/projects/${review.projectId}`}
-              className="btn btn-secondary w-full inline-flex items-center space-x-1"
+              className="btn btn-secondary w-full inline-flex items-center space-x-1 transition-all hover:scale-105"
             >
               <EyeIcon className="h-5 w-5 mr-2" />
               查看项目
             </Link>
-            <button className="btn btn-secondary w-full inline-flex items-center space-x-1">
+            <button className="btn btn-secondary w-full inline-flex items-center space-x-1 transition-all hover:scale-105">
               <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2" />
               添加评论
             </button>
             {review.status === ReviewState.HumanReview && (
               <>
                 <button 
-                  className="btn btn-primary w-full"
+                  className="btn btn-primary w-full transition-all hover:scale-105"
                   onClick={onApproveReview}
                   disabled={isApproving}
                 >
                   {isApproving ? '处理中...' : '通过评审'}
                 </button>
                 <button 
-                  className="btn btn-danger w-full"
+                  className="btn btn-danger w-full transition-all hover:scale-105"
                   onClick={onRejectReview}
                   disabled={isRejecting}
                 >
@@ -671,14 +671,14 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 fade-in">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           评审意见 ({comments.length})
         </h3>
         <button
           onClick={() => onShowAddComment(!showAddComment)}
-          className="btn btn-primary inline-flex items-center space-x-1"
+          className="btn btn-primary inline-flex items-center space-x-1 transition-all hover:scale-105"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
           添加评论
@@ -687,16 +687,16 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
 
       {/* Add Comment Form */}
       {showAddComment && (
-        <div className="card">
-          <h4 className="text-md font-semibold text-gray-900 mb-4">添加评审意见</h4>
+        <div className="card dark:bg-gray-900 dark:border-gray-800 transform transition-all duration-300">
+          <h4 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">添加评审意见</h4>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 评论内容 *
               </label>
               <textarea
                 rows={4}
-                className="input resize-none"
+                className="input resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 placeholder="请输入您的评审意见..."
                 value={newComment.content}
                 onChange={(e) => setNewComment(prev => ({ ...prev, content: e.target.value }))}
@@ -707,11 +707,11 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   严重程度
                 </label>
                 <select
-                  className="input"
+                  className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                   value={newComment.severity}
                   onChange={(e) => setNewComment(prev => ({ ...prev, severity: e.target.value as ReviewCommentSeverity }))}
                   disabled={isAddingComment}
@@ -724,11 +724,11 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   分类
                 </label>
                 <select
-                  className="input"
+                  className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                   value={newComment.category}
                   onChange={(e) => setNewComment(prev => ({ ...prev, category: e.target.value as ReviewCommentCategory }))}
                   disabled={isAddingComment}
@@ -744,12 +744,12 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   文件路径
                 </label>
                 <input
                   type="text"
-                  className="input"
+                  className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                   placeholder="src/components/Example.tsx"
                   value={newComment.filePath}
                   onChange={(e) => setNewComment(prev => ({ ...prev, filePath: e.target.value }))}
@@ -758,12 +758,12 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   行号
                 </label>
                 <input
                   type="number"
-                  className="input"
+                  className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                   placeholder="123"
                   value={newComment.lineNumber || ''}
                   onChange={(e) => setNewComment(prev => ({ ...prev, lineNumber: e.target.value ? parseInt(e.target.value) : undefined }))}
@@ -773,12 +773,12 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 建议修改
               </label>
               <textarea
                 rows={3}
-                className="input resize-none"
+                className="input resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 placeholder="请提供具体的修改建议（可选）"
                 value={newComment.suggestion}
                 onChange={(e) => setNewComment(prev => ({ ...prev, suggestion: e.target.value }))}
@@ -790,14 +790,14 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
               <button
                 type="button"
                 onClick={() => onShowAddComment(false)}
-                className="btn btn-secondary"
+                className="btn btn-secondary transition-all hover:scale-105"
                 disabled={isAddingComment}
               >
                 取消
               </button>
               <button
                 type="submit"
-                className="btn btn-primary"
+                className="btn btn-primary transition-all hover:scale-105"
                 disabled={isAddingComment || !newComment.content.trim()}
               >
                 {isAddingComment ? '提交中...' : '提交评论'}
@@ -809,20 +809,26 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
 
       {/* Comments List */}
       {comments.length === 0 ? (
-        <div className="card text-center py-8">
+        <div className="card dark:bg-gray-900 dark:border-gray-800 text-center py-8 transform transition-all duration-300 hover:shadow-lg">
           <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">暂无评审意见</p>
+          <p className="text-gray-500 dark:text-gray-400">暂无评审意见</p>
           <button
             onClick={() => onShowAddComment(true)}
-            className="btn btn-primary mt-4"
+            className="btn btn-primary mt-4 transition-all hover:scale-105"
           >
             添加第一个评论
           </button>
         </div>
       ) : (
         <div className="space-y-4">
-          {comments.map((comment) => (
-            <CommentCard key={comment.id} comment={comment} />
+          {comments.map((comment, index) => (
+            <div 
+              key={comment.id} 
+              className="animate-fade-in" 
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <CommentCard comment={comment} />
+            </div>
           ))}
         </div>
       )}
@@ -838,26 +844,32 @@ const CommentCard = ({ comment }: CommentCardProps) => {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case ReviewCommentSeverity.Critical:
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800';
       case ReviewCommentSeverity.Error:
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800';
       case ReviewCommentSeverity.Warning:
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800';
       default:
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800';
     }
   };
 
   return (
-    <div className={`border rounded-lg p-4 ${comment.isAIGenerated ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
+    <div className={`border rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+      comment.isAIGenerated 
+        ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' 
+        : 'bg-white border-gray-200 dark:bg-gray-900 dark:border-gray-800'
+    }`}>
       <div className="flex items-start space-x-3">
-        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-          comment.isAIGenerated ? 'bg-blue-100' : 'bg-primary-100'
+        <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
+          comment.isAIGenerated 
+            ? 'bg-blue-100 dark:bg-blue-900/40' 
+            : 'bg-primary-100 dark:bg-primary-900/40'
         }`}>
           {comment.isAIGenerated ? (
-            <CpuChipIcon className="h-5 w-5 text-blue-600" />
+            <CpuChipIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           ) : (
-            <span className="text-primary-600 font-medium text-sm">
+            <span className="text-primary-600 dark:text-primary-400 font-medium text-sm">
               {comment.authorName.charAt(0).toUpperCase()}
             </span>
           )}
@@ -865,31 +877,31 @@ const CommentCard = ({ comment }: CommentCardProps) => {
         
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-2">
-            <span className="text-sm font-medium text-gray-900">
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {comment.isAIGenerated ? 'AI评审' : comment.authorName}
             </span>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getSeverityColor(comment.severity)}`}>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors ${getSeverityColor(comment.severity)}`}>
               {comment.severity}
             </span>
-            <span className="text-xs text-gray-500">{comment.category}</span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-gray-400">{comment.category}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               {new Date(comment.createdAt).toLocaleString('zh-CN')}
             </span>
           </div>
           
           {comment.filePath && (
-            <div className="text-xs text-gray-500 mb-2">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
               📁 {comment.filePath}
               {comment.lineNumber && `:${comment.lineNumber}`}
             </div>
           )}
           
-          <p className="text-sm text-gray-900 mb-3">{comment.content}</p>
+          <p className="text-sm text-gray-900 dark:text-gray-100 mb-3">{comment.content}</p>
           
           {comment.suggestion && (
-            <div className="bg-gray-50 border border-gray-200 rounded p-3">
-              <div className="text-xs font-medium text-gray-700 mb-1">💡 建议修改:</div>
-              <p className="text-sm text-gray-700">{comment.suggestion}</p>
+            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3 transition-colors">
+              <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">💡 建议修改:</div>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{comment.suggestion}</p>
             </div>
           )}
         </div>
@@ -904,13 +916,13 @@ interface DiffTabProps {
 
 const DiffTab = ({ review }: DiffTabProps) => {
   const { addNotification } = useNotifications();
+  const queryClient = useQueryClient();
+  
   // 使用真实的API数据
   const { data: diffData, isLoading: isDiffLoading, error: diffError } = useQuery({
     queryKey: ['review-diff', review.id],
     queryFn: () => reviewService.getReviewDiff(review.id),
   });
-
-  const queryClient = useQueryClient();
 
   const addLineComment = useMutation({
     mutationFn: async (payload: { filePath: string; lineNumber: number; content: string }) => {
@@ -990,44 +1002,53 @@ const DiffTab = ({ review }: DiffTabProps) => {
 
   if (isDiffLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <span className="ml-2 text-gray-600">加载代码变更中...</span>
+      <div className="flex items-center justify-center h-64 dark:bg-gray-900/50 rounded-lg fade-in">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">正在加载代码差异...</p>
+        </div>
       </div>
     );
   }
 
   if (diffError) {
     return (
-      <div className="text-center py-8">
-        <ExclamationTriangleIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-500">无法加载代码变更</p>
-        <p className="text-sm text-gray-400 mt-2">
+      <div className="card dark:bg-gray-900 dark:border-gray-800 text-center py-8 fade-in">
+        <ExclamationTriangleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">加载失败</h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-2">无法加载代码差异信息</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
           {diffError instanceof Error ? diffError.message : '未知错误'}
         </p>
+        <button 
+          className="btn btn-primary transition-all hover:scale-105"
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['review-diff', review.id] })}
+        >
+          重试
+        </button>
       </div>
     );
   }
 
   if (!diffData || !diffData.files || diffData.files.length === 0) {
     return (
-      <div className="text-center py-8">
+      <div className="card dark:bg-gray-900 dark:border-gray-800 text-center py-8 fade-in">
         <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-500">暂无代码变更</p>
+        <p className="text-gray-500 dark:text-gray-400">暂无代码变更</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 fade-in">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">代码变更</h3>
-        <div className="text-sm text-gray-500">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">代码变更</h3>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
           {review.branch} ← {review.baseBranch}
         </div>
       </div>
 
-      <div className="h-[70vh] md:h-[78vh]">
+      <div className="h-[70vh] md:h-[78vh] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors">
         <DiffViewer
           files={diffData.files}
           comments={diffData.comments}
