@@ -19,6 +19,12 @@ AIReview 是一款面向团队的智能评审平台，支持对代码与文档�
 - 英文设计：docs/design.en-us.md
 - 中文设计：docs/design.md
 
+## 概览
+
+![home](./../docs/images/home.png)
+
+![review](./../docs/images/review.png)
+
 ## 仓库结构
 
 - AIReview.API：ASP.NET Core Web API（后端）

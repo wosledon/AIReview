@@ -19,6 +19,12 @@ For high-level architecture, module responsibilities, and workflows, see:
 - English design: docs/design.en-us.md
 - Chinese design: docs/design.md
 
+## Links
+
+![home](./docs/images/home.png)
+
+![review](./docs/images/review.png)
+
 ## Repository Structure
 
 - AIReview.API: ASP.NET Core Web API (backend)
