@@ -436,8 +436,9 @@ const OverviewTab = ({ review, comments, getStatusText }: OverviewTabProps) => {
           <div className="space-y-3">
             <Link
               to={`/projects/${review.projectId}`}
-              className="btn btn-secondary w-full"
+              className="btn btn-secondary w-full inline-flex items-center space-x-1"
             >
+              <EyeIcon className="h-5 w-5 mr-2" />
               查看项目
             </Link>
             <button className="btn btn-secondary w-full inline-flex items-center space-x-1">
@@ -751,20 +752,89 @@ interface DiffTabProps {
 }
 
 const DiffTab = ({ review }: DiffTabProps) => {
+  const { addNotification } = useNotifications();
   // 使用真实的API数据
   const { data: diffData, isLoading: isDiffLoading, error: diffError } = useQuery({
     queryKey: ['review-diff', review.id],
     queryFn: () => reviewService.getReviewDiff(review.id),
   });
 
+  const queryClient = useQueryClient();
+
+  const addLineComment = useMutation({
+    mutationFn: async (payload: { filePath: string; lineNumber: number; content: string }) => {
+      const request: AddCommentRequest = {
+        content: payload.content,
+        filePath: payload.filePath,
+        lineNumber: payload.lineNumber,
+        severity: ReviewCommentSeverity.Info,
+        category: ReviewCommentCategory.Quality,
+      };
+      return reviewService.addComment(review.id, request);
+    },
+    onSuccess: () => {
+      addNotification({
+        type: 'review_comment',
+        message: '评论已添加',
+        timestamp: new Date().toISOString(),
+        reviewId: String(review.id),
+        content: '已添加行级评论'
+      });
+      queryClient.invalidateQueries({ queryKey: ['review-diff', review.id] });
+      queryClient.invalidateQueries({ queryKey: ['review-comments', review.id] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : '添加评论失败';
+      addNotification({
+        type: 'review_comment',
+        message: msg,
+        timestamp: new Date().toISOString(),
+        reviewId: String(review.id)
+      });
+    }
+  });
+
+  const deleteLineComment = useMutation({
+    mutationFn: async (commentId: number) => {
+      return reviewService.deleteReviewComment(review.id, commentId);
+    },
+    onSuccess: () => {
+      addNotification({
+        type: 'review_comment',
+        message: '评论已删除',
+        timestamp: new Date().toISOString(),
+        reviewId: String(review.id),
+      });
+      queryClient.invalidateQueries({ queryKey: ['review-diff', review.id] });
+      queryClient.invalidateQueries({ queryKey: ['review-comments', review.id] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : '删除评论失败';
+      addNotification({
+        type: 'review_comment',
+        message: msg,
+        timestamp: new Date().toISOString(),
+        reviewId: String(review.id)
+      });
+    }
+  });
+
   const handleAddComment = (filePath: string, lineNumber: number, content: string) => {
-    console.log('Adding comment:', { filePath, lineNumber, content });
-    // 这里可以调用API添加评论
+    addLineComment.mutate({ filePath, lineNumber, content });
   };
 
   const handleDeleteComment = (commentId: string) => {
-    console.log('Deleting comment:', commentId);
-    // 这里可以调用API删除评论
+    const idNum = parseInt(commentId, 10);
+    if (!Number.isNaN(idNum)) {
+      deleteLineComment.mutate(idNum);
+    } else {
+      addNotification({
+        type: 'review_comment',
+        message: '无法删除评论：无效的评论ID',
+        timestamp: new Date().toISOString(),
+        reviewId: String(review.id)
+      });
+    }
   };
 
   if (isDiffLoading) {

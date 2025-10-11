@@ -34,7 +34,11 @@ var builder = WebApplication.CreateBuilder(args);
 // builder.Host.UseSerilog();
 
 // 添加服务
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    // 允许使用枚举名称进行序列化/反序列化（例如 "Info"、"Warning"）
+    options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
 builder.Services.AddEndpointsApiExplorer();
 
 // 配置Swagger
