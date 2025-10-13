@@ -294,7 +294,7 @@ const OverviewTab = ({ project, onSwitchToReviews, onSwitchToMembers, onSwitchTo
             <div>
               <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">创建时间</dt>
               <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                {new Date(project.createdAt).toLocaleDateString('zh-CN')}
+                {new Date(project.createdAt).toLocaleDateString()}
               </dd>
             </div>
           </dl>
@@ -346,7 +346,7 @@ const OverviewTab = ({ project, onSwitchToReviews, onSwitchToMembers, onSwitchTo
                         <span className="text-xs text-gray-500 dark:text-gray-400">{review.authorName}</span>
                         <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(review.createdAt).toLocaleDateString('zh-CN')}
+                          {new Date(review.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -505,7 +505,7 @@ const MembersTab = ({ members, isLoading }: Omit<MembersTabProps, 'projectId'>) 
                       {member.role}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                      {new Date(member.joinedAt).toLocaleDateString('zh-CN')}
+                      {new Date(member.joinedAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button className="text-red-600 hover:text-red-700">
@@ -695,7 +695,7 @@ const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
                       {review.authorName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
-                      {new Date(review.createdAt).toLocaleDateString('zh-CN')}
+                      {new Date(review.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                       <Link

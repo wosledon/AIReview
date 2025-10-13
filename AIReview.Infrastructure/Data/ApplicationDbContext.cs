@@ -18,6 +18,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ReviewComment> ReviewComments { get; set; }
     public DbSet<LLMConfiguration> LLMConfigurations { get; set; }
     
+    // 新增分析功能实体
+    public DbSet<RiskAssessment> RiskAssessments { get; set; }
+    public DbSet<ImprovementSuggestion> ImprovementSuggestions { get; set; }
+    public DbSet<PullRequestChangeSummary> PullRequestChangeSummaries { get; set; }
+    
     // Git相关实体
     public DbSet<GitRepository> GitRepositories { get; set; }
     public DbSet<GitBranch> GitBranches { get; set; }
@@ -224,6 +229,79 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(e => e.DeletedLines).HasDefaultValue(0);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
+
+        // 配置风险评估实体
+        builder.Entity<RiskAssessment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.OverallRiskScore).IsRequired();
+            entity.Property(e => e.ComplexityRisk).IsRequired();
+            entity.Property(e => e.SecurityRisk).IsRequired();
+            entity.Property(e => e.PerformanceRisk).IsRequired();
+            entity.Property(e => e.MaintainabilityRisk).IsRequired();
+            entity.Property(e => e.TestCoverageRisk).IsRequired();
+            entity.Property(e => e.ChangedFilesCount).IsRequired();
+            entity.Property(e => e.ChangedLinesCount).IsRequired();
+            entity.Property(e => e.AIModelVersion).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // 每个评审请求只能有一个风险评估
+            entity.HasIndex(e => e.ReviewRequestId).IsUnique();
+
+            // 关系配置
+            entity.HasOne(e => e.ReviewRequest)
+                .WithOne(r => r.RiskAssessment)
+                .HasForeignKey<RiskAssessment>(e => e.ReviewRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 配置改进建议实体
+        builder.Entity<ImprovementSuggestion>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FilePath).HasMaxLength(500);
+            entity.Property(e => e.Type).IsRequired();
+            entity.Property(e => e.Priority).IsRequired();
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).IsRequired();
+            entity.Property(e => e.ImplementationComplexity).IsRequired().HasDefaultValue(5);
+            entity.Property(e => e.ImpactAssessment).HasMaxLength(500);
+            entity.Property(e => e.IsAccepted).HasDefaultValue(false);
+            entity.Property(e => e.IsIgnored).HasDefaultValue(false);
+            entity.Property(e => e.AIModelVersion).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // 关系配置
+            entity.HasOne(e => e.ReviewRequest)
+                .WithMany(r => r.ImprovementSuggestions)
+                .HasForeignKey(e => e.ReviewRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 配置PR变更摘要实体
+        builder.Entity<PullRequestChangeSummary>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ChangeType).IsRequired();
+            entity.Property(e => e.Summary).IsRequired();
+            entity.Property(e => e.BusinessImpact).IsRequired();
+            entity.Property(e => e.TechnicalImpact).IsRequired();
+            entity.Property(e => e.BreakingChangeRisk).IsRequired();
+            entity.Property(e => e.AIModelVersion).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // 每个评审请求只能有一个变更摘要
+            entity.HasIndex(e => e.ReviewRequestId).IsUnique();
+
+            // 关系配置
+            entity.HasOne(e => e.ReviewRequest)
+                .WithOne(r => r.ChangeSummary)
+                .HasForeignKey<PullRequestChangeSummary>(e => e.ReviewRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
     public override int SaveChanges()
@@ -241,7 +319,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     private void UpdateTimestamps()
     {
         var entities = ChangeTracker.Entries()
-            .Where(e => e.Entity is Project || e.Entity is ReviewRequest || e.Entity is ApplicationUser || e.Entity is LLMConfiguration)
+            .Where(e => e.Entity is Project || e.Entity is ReviewRequest || e.Entity is ApplicationUser || 
+                       e.Entity is LLMConfiguration || e.Entity is RiskAssessment || 
+                       e.Entity is ImprovementSuggestion || e.Entity is PullRequestChangeSummary)
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
 
         foreach (var entity in entities)
@@ -267,6 +347,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 {
                     llmConfig.CreatedAt = DateTime.UtcNow;
                     llmConfig.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (entity.Entity is RiskAssessment riskAssessment)
+                {
+                    riskAssessment.CreatedAt = DateTime.UtcNow;
+                    riskAssessment.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (entity.Entity is ImprovementSuggestion suggestion)
+                {
+                    suggestion.CreatedAt = DateTime.UtcNow;
+                    suggestion.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (entity.Entity is PullRequestChangeSummary changeSummary)
+                {
+                    changeSummary.CreatedAt = DateTime.UtcNow;
+                    changeSummary.UpdatedAt = DateTime.UtcNow;
                 }
                 else if (entity.Entity is GitRepository gitRepo)
                 {
@@ -304,6 +399,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 else if (entity.Entity is LLMConfiguration llmConfig)
                 {
                     llmConfig.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (entity.Entity is RiskAssessment riskAssessment)
+                {
+                    riskAssessment.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (entity.Entity is ImprovementSuggestion suggestion)
+                {
+                    suggestion.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (entity.Entity is PullRequestChangeSummary changeSummary)
+                {
+                    changeSummary.UpdatedAt = DateTime.UtcNow;
                 }
                 else if (entity.Entity is GitRepository gitRepo)
                 {

@@ -151,10 +151,10 @@ builder.Services.AddHangfire(configuration => configuration
     .UseRecommendedSerializerSettings()
     .UseSQLiteStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 启动 Hangfire Server 并监听 ai-review 队列（确保后台 worker 处理 AI 评审作业）
+// 启动 Hangfire Server 并监听 ai-review 和 ai-analysis 队列
 builder.Services.AddHangfireServer(options =>
 {
-    options.Queues = new[] { "ai-review" };
+    options.Queues = new[] { "ai-review", "ai-analysis" };
 });
 
 // 注册应用服务
@@ -163,6 +163,11 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IDiffParserService, DiffParserService>();
 builder.Services.AddScoped<ProjectGitMigrationService>();
+
+// 注册分析服务
+builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
+builder.Services.AddScoped<IImprovementSuggestionService, ImprovementSuggestionService>();
+builder.Services.AddScoped<IPullRequestAnalysisService, PullRequestAnalysisService>();
 
 // 注册Git服务
 builder.Services.AddScoped<IGitService, GitService>();
@@ -177,7 +182,9 @@ builder.Services.AddScoped<IAIReviewer, AIReviewer>();
 
 // 注册后台任务服务
 builder.Services.AddScoped<IAIReviewService, HangfireAIReviewService>();
+builder.Services.AddScoped<IAsyncAnalysisService, HangfireAsyncAnalysisService>();
 builder.Services.AddScoped<AIReviewJob>();
+builder.Services.AddScoped<AIAnalysisJob>();
 
 // 注册通知服务
 builder.Services.AddScoped<AIReview.Core.Interfaces.INotificationService, NotificationService>();

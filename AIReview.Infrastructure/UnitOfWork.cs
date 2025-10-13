@@ -14,6 +14,9 @@ public class UnitOfWork : IUnitOfWork
     private IProjectMemberRepository? _projectMembers;
     private IReviewRequestRepository? _reviewRequests;
     private IReviewCommentRepository? _reviewComments;
+    private IRiskAssessmentRepository? _riskAssessments;
+    private IImprovementSuggestionRepository? _improvementSuggestions;
+    private IPullRequestChangeSummaryRepository? _pullRequestChangeSummaries;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -31,6 +34,15 @@ public class UnitOfWork : IUnitOfWork
 
     public IReviewCommentRepository ReviewComments =>
         _reviewComments ??= new ReviewCommentRepository(_context);
+
+    public IRiskAssessmentRepository RiskAssessments =>
+        _riskAssessments ??= new RiskAssessmentRepository(_context);
+
+    public IImprovementSuggestionRepository ImprovementSuggestions =>
+        _improvementSuggestions ??= new ImprovementSuggestionRepository(_context);
+
+    public IPullRequestChangeSummaryRepository PullRequestChangeSummaries =>
+        _pullRequestChangeSummaries ??= new PullRequestChangeSummaryRepository(_context);
 
     public async Task<int> SaveChangesAsync()
     {

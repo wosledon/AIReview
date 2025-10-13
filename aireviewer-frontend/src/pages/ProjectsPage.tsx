@@ -223,7 +223,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
         <div className="flex items-center min-w-0 mr-2">
           <CalendarIcon className="h-4 w-4 mr-1 flex-shrink-0" />
           <span className="truncate">
-            {new Date(project.createdAt).toLocaleDateString('zh-CN')}
+            {new Date(project.createdAt).toLocaleDateString()}
           </span>
         </div>
         <div className="flex items-center flex-shrink-0">

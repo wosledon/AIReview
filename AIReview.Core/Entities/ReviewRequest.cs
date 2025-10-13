@@ -45,4 +45,7 @@ public class ReviewRequest
     public virtual Project Project { get; set; } = null!;
     public virtual ApplicationUser Author { get; set; } = null!;
     public virtual ICollection<ReviewComment> Comments { get; set; } = new List<ReviewComment>();
+    public virtual RiskAssessment? RiskAssessment { get; set; }
+    public virtual PullRequestChangeSummary? ChangeSummary { get; set; }
+    public virtual ICollection<ImprovementSuggestion> ImprovementSuggestions { get; set; } = new List<ImprovementSuggestion>();
 }

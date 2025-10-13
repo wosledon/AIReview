@@ -23,6 +23,7 @@ public interface ILLMConfigurationService
 public interface IMultiLLMService
 {
     Task<string> GenerateReviewAsync(string code, string context, int? configurationId = null);
+    Task<string> GenerateAnalysisAsync(string prompt, string code, int? configurationId = null);
     Task<bool> TestConnectionAsync(int configurationId);
     Task<LLMConfiguration?> GetActiveConfigurationAsync();
     Task<IEnumerable<LLMConfiguration>> GetAvailableConfigurationsAsync();

@@ -90,7 +90,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ clas
       const diffInDays = Math.floor(diffInHours / 24);
       if (diffInDays < 30) return `${diffInDays} 天前`;
       
-      return date.toLocaleDateString('zh-CN');
+      return date.toLocaleDateString();
     } catch {
       return '刚刚';
     }

@@ -6,6 +6,23 @@ public class DiffResponseDto
     public List<CodeCommentDto> Comments { get; set; } = new();
 }
 
+/// <summary>
+/// 文件差异DTO - 用于分析服务
+/// </summary>
+public class FileDiffDto
+{
+    public string FilePath { get; set; } = string.Empty;
+    public int AddedLines { get; set; }
+    public int DeletedLines { get; set; }
+    public bool IsNewFile { get; set; }
+    public bool IsDeletedFile { get; set; }
+    public string ChangeType { get; set; } = string.Empty; // "added", "deleted", "modified", "renamed"
+    public string? OldPath { get; set; }
+    public string? NewPath { get; set; }
+    public List<string> AddedContent { get; set; } = new();
+    public List<string> DeletedContent { get; set; } = new();
+}
+
 public class DiffFileDto
 {
     public string OldPath { get; set; } = "";

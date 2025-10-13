@@ -17,17 +17,25 @@ import {
   BoltIcon
 } from '@heroicons/react/24/outline';
 import { reviewService } from '../services/review.service';
+import { analysisService } from '../services/analysis.service';
 import { useNotifications } from '../hooks/useNotifications';
 import { DiffViewer } from '../components/DiffViewer';
 import { ReviewState, ReviewCommentSeverity, ReviewCommentCategory } from '../types/review';
 import type { Review, ReviewComment, AddCommentRequest, RejectReviewRequest } from '../types/review';
+import type { AnalysisData, RiskAssessment, ImprovementSuggestion, PullRequestChangeSummary } from '../types/analysis';
+import { getRiskLevel } from '../types/analysis';
+import { LoadingSpinner, LoadingCard, EmptyState, ErrorState } from '../components/common/LoadingStates';
+import { ProgressBar } from '../components/common/ProgressBar';
+import { AnalysisCard, MetricGrid, Tag } from '../components/common/AnalysisCard';
+import { RiskDonutChart } from '../components/common/Charts';
+import { AnalysisDashboard } from '../components/common/AnalysisDashboard';
 
 export const ReviewDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { joinGroup, leaveGroup, addNotification } = useNotifications();
-  const [activeTab, setActiveTab] = useState<'overview' | 'comments' | 'diff'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'comments' | 'diff' | 'analysis'>('overview');
   const [showAddComment, setShowAddComment] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -197,6 +205,7 @@ export const ReviewDetailPage = () => {
     { id: 'overview', name: '概览', icon: EyeIcon },
     { id: 'comments', name: '评论', icon: ChatBubbleLeftRightIcon, count: comments?.length || 0 },
     { id: 'diff', name: '代码变更', icon: DocumentTextIcon },
+    { id: 'analysis', name: 'AI分析', icon: CpuChipIcon },
   ] as const;
 
   return (
@@ -282,7 +291,7 @@ export const ReviewDetailPage = () => {
         <div className="flex items-center space-x-3">
           {review.status === ReviewState.Pending && (
             <button 
-              className="btn btn-primary"
+              className="btn btn-primary inline-flex items-center space-x-1 transition-all hover:scale-105"
               onClick={handleStartAIReview}
             >
               <CpuChipIcon className="h-5 w-5 mr-2" />
@@ -362,6 +371,7 @@ export const ReviewDetailPage = () => {
           />
         )}
         {activeTab === 'diff' && <DiffTab review={review} />}
+        {activeTab === 'analysis' && <AnalysisTab review={review} />}
       </div>
     </div>
   );
@@ -1057,6 +1067,679 @@ const DiffTab = ({ review }: DiffTabProps) => {
           language="auto"
         />
       </div>
+    </div>
+  );
+};
+
+// Analysis Tab Component
+interface AnalysisTabProps {
+  review: Review;
+}
+
+const AnalysisTab = ({ review }: AnalysisTabProps) => {
+  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [activeSection, setActiveSection] = useState<'dashboard' | 'risk' | 'suggestions' | 'summary'>('dashboard');
+
+  useEffect(() => {
+    const loadAnalysisData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await analysisService.getAnalysisData(review.id);
+        setAnalysisData(data);
+      } catch (error) {
+        console.error('Failed to load analysis data:', error);
+        setError(error instanceof Error ? error.message : '加载分析数据失败');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAnalysisData();
+  }, [review.id]);
+
+  const handleGenerateAnalysis = async (type: 'risk' | 'suggestions' | 'summary') => {
+    try {
+      setIsGenerating(true);
+      setError(null);
+      
+      switch (type) {
+        case 'risk': {
+          const riskData = await analysisService.generateRiskAssessment(review.id);
+          setAnalysisData(prev => ({ ...prev!, riskAssessment: riskData }));
+          break;
+        }
+        case 'suggestions': {
+          const suggestionsData = await analysisService.generateImprovementSuggestions(review.id);
+          setAnalysisData(prev => ({ ...prev!, improvementSuggestions: suggestionsData }));
+          break;
+        }
+        case 'summary': {
+          const summaryData = await analysisService.generatePullRequestSummary(review.id);
+          setAnalysisData(prev => ({ ...prev!, pullRequestSummary: summaryData }));
+          break;
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to generate ${type} analysis:`, error);
+      setError(`生成${type === 'risk' ? '风险评估' : type === 'suggestions' ? '改进建议' : 'PR摘要'}失败`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateComprehensive = async () => {
+    try {
+      setIsGenerating(true);
+      setError(null);
+      const data = await analysisService.generateComprehensiveAnalysis(review.id);
+      setAnalysisData(data);
+    } catch (error) {
+      console.error('Failed to generate comprehensive analysis:', error);
+      setError('生成综合分析失败');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <LoadingCard key={i} title="加载中..." description="正在获取分析数据" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="分析数据加载失败"
+        description={error}
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Section Navigation - 改进的二级菜单 */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+        <nav className="flex space-x-1">
+          {[
+            { id: 'dashboard', name: '智能概览', icon: CpuChipIcon, description: '全面分析数据总览' },
+            { id: 'risk', name: '风险评估', icon: ShieldCheckIcon, description: '代码安全风险分析' },
+            { id: 'suggestions', name: '改进建议', icon: BoltIcon, description: 'AI 优化建议' },
+            { id: 'summary', name: 'PR摘要', icon: DocumentTextIcon, description: '变更内容总结' },
+          ].map((section) => (
+            <button
+              key={section.id}
+              onClick={() => setActiveSection(section.id as 'dashboard' | 'risk' | 'suggestions' | 'summary')}
+              className={`${
+                activeSection === section.id
+                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-700'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent'
+              } relative flex-1 px-4 py-3 rounded-md border transition-all duration-200 ease-in-out group`}
+              title={section.description}
+            >
+              <div className="flex flex-col items-center space-y-1">
+                <section.icon className={`h-5 w-5 ${
+                  activeSection === section.id 
+                    ? 'text-primary-600 dark:text-primary-400' 
+                    : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'
+                }`} />
+                <span className={`text-sm font-medium ${
+                  activeSection === section.id 
+                    ? 'text-primary-700 dark:text-primary-300' 
+                    : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200'
+                }`}>
+                  {section.name}
+                </span>
+                {/* 隐藏描述文本，仅在 tooltip 中显示 */}
+                <span className="sr-only">{section.description}</span>
+              </div>
+              
+              {/* 活动状态指示器 */}
+              {activeSection === section.id && (
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-full"></div>
+              )}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* 快速操作栏 */}
+      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            AI 分析状态：
+            <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              analysisData?.riskAssessment && analysisData?.improvementSuggestions?.length && analysisData?.pullRequestSummary
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+            }`}>
+              {analysisData?.riskAssessment && analysisData?.improvementSuggestions?.length && analysisData?.pullRequestSummary
+                ? '已完成' : '部分完成'}
+            </span>
+          </div>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleGenerateComprehensive}
+            disabled={isGenerating}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isGenerating ? (
+              <>
+                <LoadingSpinner className="w-4 h-4 mr-2" />
+                生成中...
+              </>
+            ) : (
+              <>
+                <CpuChipIcon className="w-4 h-4 mr-2" />
+                一键生成全部分析
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+          >
+            刷新数据
+          </button>
+        </div>
+      </div>
+
+      {/* Dashboard Section */}
+      {activeSection === 'dashboard' && (
+        <AnalysisDashboard analysisData={analysisData} />
+      )}
+
+      {/* Risk Assessment Section */}
+      {activeSection === 'risk' && (
+        <RiskAssessmentSection 
+          riskAssessment={analysisData?.riskAssessment}
+          onGenerate={() => handleGenerateAnalysis('risk')}
+          isGenerating={isGenerating}
+        />
+      )}
+
+      {/* Improvement Suggestions Section */}
+      {activeSection === 'suggestions' && (
+        <ImprovementSuggestionsSection 
+          suggestions={analysisData?.improvementSuggestions || []}
+          onGenerate={() => handleGenerateAnalysis('suggestions')}
+          isGenerating={isGenerating}
+        />
+      )}
+
+      {/* PR Summary Section */}
+      {activeSection === 'summary' && (
+        <PullRequestSummarySection 
+          summary={analysisData?.pullRequestSummary}
+          onGenerate={() => handleGenerateAnalysis('summary')}
+          isGenerating={isGenerating}
+        />
+      )}
+    </div>
+  );
+};
+
+// Risk Assessment Section Component
+interface RiskAssessmentSectionProps {
+  riskAssessment?: RiskAssessment;
+  onGenerate: () => void;
+  isGenerating: boolean;
+}
+
+const RiskAssessmentSection = ({ riskAssessment, onGenerate, isGenerating }: RiskAssessmentSectionProps) => {
+  if (!riskAssessment) {
+    return (
+      <EmptyState
+        icon={ShieldCheckIcon}
+        title="暂无风险评估数据"
+        description="AI 分析可以帮助识别代码变更中的潜在风险点"
+        action={
+          <button
+            onClick={onGenerate}
+            disabled={isGenerating}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+          >
+            {isGenerating ? '生成中...' : '生成风险评估'}
+          </button>
+        }
+      />
+    );
+  }
+
+  // 准备图表数据
+  const riskDistributionData = [
+    { level: 'high' as const, count: 1, percentage: 25 },
+    { level: 'medium' as const, count: 2, percentage: 50 },
+    { level: 'low' as const, count: 1, percentage: 25 }
+  ];
+
+  // 计算风险等级
+  // 若未引入getRiskLevel, 可在顶部import { getRiskLevel } from '../types/analysis';
+  const riskLevel = getRiskLevel(riskAssessment.overallRiskScore);
+  const riskMetrics = [
+    {
+      label: '总体风险评分',
+      value: riskAssessment.overallRiskScore,
+      color: (riskAssessment.overallRiskScore > 80 ? 'red' : riskAssessment.overallRiskScore > 60 ? 'orange' : 'green') as 'red' | 'orange' | 'green'
+    },
+    {
+      label: '风险等级',
+      value: riskLevel,
+      color: (riskLevel === 'Critical' ? 'red' : riskLevel === 'High' ? 'orange' : 'green') as 'red' | 'orange' | 'green'
+    },
+    {
+      label: 'AI 置信度',
+      value: riskAssessment.confidenceScore !== undefined ? `${Math.round(riskAssessment.confidenceScore * 100)}%` : '未知',
+      color: 'blue' as const
+    }
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* 概览指标 */}
+      <AnalysisCard title="风险概览" className="mb-6">
+        <MetricGrid metrics={riskMetrics} columns={3} />
+      </AnalysisCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 风险分布图 */}
+        <AnalysisCard title="风险分布">
+          <RiskDonutChart data={riskDistributionData} />
+        </AnalysisCard>
+
+        {/* 风险维度 */}
+        <AnalysisCard title="风险维度分析">
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">复杂性风险</span>
+                <span className="text-sm font-medium">{riskAssessment.complexityRisk}%</span>
+              </div>
+              <ProgressBar 
+                value={riskAssessment.complexityRisk} 
+                max={100} 
+                className="h-2" 
+                showValue={false}
+              />
+            </div>
+            
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">安全风险</span>
+                <span className="text-sm font-medium">{riskAssessment.securityRisk}%</span>
+              </div>
+              <ProgressBar 
+                value={riskAssessment.securityRisk} 
+                max={100} 
+                className="h-2" 
+                showValue={false}
+              />
+            </div>
+            
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">性能风险</span>
+                <span className="text-sm font-medium">{riskAssessment.performanceRisk}%</span>
+              </div>
+              <ProgressBar 
+                value={riskAssessment.performanceRisk} 
+                max={100} 
+                className="h-2" 
+                showValue={false}
+              />
+            </div>
+            
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">可维护性风险</span>
+                <span className="text-sm font-medium">{riskAssessment.maintainabilityRisk}%</span>
+              </div>
+              <ProgressBar 
+                value={riskAssessment.maintainabilityRisk} 
+                max={100} 
+                className="h-2" 
+                showValue={false}
+              />
+            </div>
+          </div>
+        </AnalysisCard>
+      </div>
+
+      {/* 缓解建议 */}
+      <AnalysisCard title="缓解建议" collapsible defaultExpanded={true}>
+        <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+          {riskAssessment.mitigationSuggestions || '无具体建议'}
+        </div>
+      </AnalysisCard>
+
+      {/* 风险描述 */}
+      {riskAssessment.riskDescription && (
+        <AnalysisCard title="风险描述" collapsible defaultExpanded={false}>
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+            {riskAssessment.riskDescription}
+          </p>
+        </AnalysisCard>
+      )}
+    </div>
+  );
+};
+
+// Improvement Suggestions Section Component
+interface ImprovementSuggestionsSectionProps {
+  suggestions: ImprovementSuggestion[];
+  onGenerate: () => void;
+  isGenerating: boolean;
+}
+
+const ImprovementSuggestionsSection = ({ suggestions, onGenerate, isGenerating }: ImprovementSuggestionsSectionProps) => {
+  if (suggestions.length === 0) {
+    return (
+      <EmptyState
+        icon={BoltIcon}
+        title="暂无改进建议"
+        description="AI 可以分析代码并提供具体的改进建议"
+        action={
+          <button
+            onClick={onGenerate}
+            disabled={isGenerating}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+          >
+            {isGenerating ? '生成中...' : '生成改进建议'}
+          </button>
+        }
+      />
+    );
+  }
+
+  // 统计建议类型
+  const suggestionStats = suggestions.reduce((acc, suggestion) => {
+    acc[suggestion.type] = (acc[suggestion.type] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const priorityStats = suggestions.reduce((acc, suggestion) => {
+    acc[suggestion.priority] = (acc[suggestion.priority] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const statsMetrics = [
+    { label: '总建议数', value: suggestions.length, color: 'blue' as const },
+    { label: '高优先级', value: priorityStats['High'] || 0, color: 'orange' as const },
+    { label: '代码质量', value: suggestionStats['CodeQuality'] || 0, color: 'green' as const }
+  ];
+
+  const getTagVariant = (type: string) => {
+    switch (type) {
+      case 'BugFix': return 'danger' as const;
+      case 'Security': return 'warning' as const;
+      case 'Performance': return 'info' as const;
+      case 'CodeQuality': return 'success' as const;
+      case 'Maintainability': return 'secondary' as const;
+      case 'Testing': return 'primary' as const;
+      default: return 'secondary' as const;
+    }
+  };
+
+  const getPriorityVariant = (priority: string) => {
+    switch (priority) {
+      case 'Critical': return 'danger' as const;
+      case 'High': return 'warning' as const;
+      case 'Medium': return 'info' as const;
+      case 'Low': return 'success' as const;
+      default: return 'secondary' as const;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* 统计概览 */}
+      <AnalysisCard title="建议概览">
+        <MetricGrid metrics={statsMetrics} columns={3} />
+      </AnalysisCard>
+
+      {/* 建议列表 */}
+      <div className="space-y-4">
+        {suggestions.map((suggestion) => (
+          <AnalysisCard 
+            key={suggestion.id} 
+            title={suggestion.title}
+            collapsible
+            defaultExpanded={suggestion.priority === 'Critical' || suggestion.priority === 'High'}
+            headerActions={
+              <div className="flex items-center space-x-2">
+                <Tag variant={getPriorityVariant(suggestion.priority)} size="sm">
+                  {suggestion.priority}
+                </Tag>
+                <Tag variant={getTagVariant(suggestion.type)} size="sm">
+                  {suggestion.type}
+                </Tag>
+              </div>
+            }
+          >
+            <div className="space-y-4">
+              {/* 文件路径和行号 */}
+              {suggestion.filePath && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                  {suggestion.filePath}
+                  {suggestion.startLine && suggestion.endLine && 
+                    ` (行 ${suggestion.startLine}-${suggestion.endLine})`
+                  }
+                </div>
+              )}
+
+              {/* 描述 */}
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                {suggestion.description}
+              </p>
+
+              {/* 代码对比 */}
+              {suggestion.originalCode && suggestion.suggestedCode && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      原代码
+                    </h5>
+                    <pre className="text-xs bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 p-3 rounded overflow-x-auto">
+                      {suggestion.originalCode}
+                    </pre>
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      建议代码
+                    </h5>
+                    <pre className="text-xs bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 p-3 rounded overflow-x-auto">
+                      {suggestion.suggestedCode}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              {/* 推理和收益 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {suggestion.reasoning && (
+                  <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded">
+                    <h5 className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+                      分析推理
+                    </h5>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      {suggestion.reasoning}
+                    </p>
+                  </div>
+                )}
+
+                {suggestion.expectedBenefits && (
+                  <div className="bg-green-50 dark:bg-green-900/10 p-3 rounded">
+                    <h5 className="text-xs font-medium text-green-700 dark:text-green-300 mb-1">
+                      预期收益
+                    </h5>
+                    <p className="text-xs text-green-600 dark:text-green-400">
+                      {suggestion.expectedBenefits}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 实施信息 */}
+              <div className="flex items-center justify-between text-xs bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                <div className="flex items-center space-x-4">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    实施复杂度: 
+                    <ProgressBar 
+                      value={suggestion.implementationComplexity} 
+                      max={10} 
+                      className="w-16 h-1.5 ml-1 inline-block" 
+                    />
+                    <span className="ml-1">{suggestion.implementationComplexity}/10</span>
+                  </span>
+                </div>
+                {suggestion.confidenceScore && (
+                  <span className="text-gray-600 dark:text-gray-400">
+                    置信度: {Math.round(suggestion.confidenceScore * 100)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          </AnalysisCard>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Pull Request Summary Section Component
+interface PullRequestSummarySectionProps {
+  summary?: PullRequestChangeSummary;
+  onGenerate: () => void;
+  isGenerating: boolean;
+}
+
+const PullRequestSummarySection = ({ summary, onGenerate, isGenerating }: PullRequestSummarySectionProps) => {
+  if (!summary) {
+    return (
+      <EmptyState
+        icon={DocumentTextIcon}
+        title="暂无 PR 摘要"
+        description="AI 可以生成详细的变更摘要和影响分析"
+        action={
+          <button
+            onClick={onGenerate}
+            disabled={isGenerating}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+          >
+            {isGenerating ? '生成中...' : '生成 PR 摘要'}
+          </button>
+        }
+      />
+    );
+  }
+
+  // 影响分析数据（如有需要可解析 impactAnalysis 字段）
+  const summaryMetrics = [
+    { label: '置信度', value: summary.confidenceScore !== undefined ? `${Math.round(summary.confidenceScore * 100)}%` : '未知', color: 'blue' as const },
+    { label: '变更类型', value: summary.changeType, color: 'orange' as const },
+    { label: '变更统计', value: summary.changeStatistics ? summary.changeStatistics.modifiedFiles : 0, color: 'green' as const }
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* 摘要指标 */}
+      <AnalysisCard title="摘要概览">
+        <MetricGrid metrics={summaryMetrics} columns={3} />
+      </AnalysisCard>
+
+      {/* 整体摘要 */}
+      <AnalysisCard title="整体摘要">
+        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          {summary.summary}
+        </p>
+      </AnalysisCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 关键变更 */}
+        <AnalysisCard title="关键变更" collapsible defaultExpanded={true}>
+          {summary.keyChanges ? (
+            <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.keyChanges}</div>
+          ) : (
+            <div className="text-sm text-gray-400">无关键变更</div>
+          )}
+        </AnalysisCard>
+
+        {/* 影响分析 */}
+        <AnalysisCard title="影响分析">
+          <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.impactAnalysis || '无影响分析'}</div>
+        </AnalysisCard>
+      </div>
+
+      {/* 影响分析和风险评估 */}
+      {/* 其他信息展示（如有） */}
+
+      {/* 破坏性变更风险 */}
+      {summary.breakingChangeRisk && summary.breakingChangeRisk !== 'None' && (
+        <AnalysisCard 
+          title="破坏性变更风险" 
+          className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/10"
+        >
+          <div className="flex items-start space-x-2 mb-3">
+            <ExclamationTriangleIcon className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-orange-700 dark:text-orange-400 font-medium">
+              风险等级：{summary.breakingChangeRisk}
+            </p>
+          </div>
+        </AnalysisCard>
+      )}
+
+      {/* 受影响组件（如有） */}
+
+      {/* 测试和部署建议 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {summary.testingRecommendations && (
+          <AnalysisCard title="测试建议" collapsible defaultExpanded={false}>
+            <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.testingRecommendations}</div>
+          </AnalysisCard>
+        )}
+
+        {summary.deploymentConsiderations && (
+          <AnalysisCard title="部署注意事项" collapsible defaultExpanded={false}>
+            <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.deploymentConsiderations}</div>
+          </AnalysisCard>
+        )}
+      </div>
+
+      {/* 性能和安全影响 */}
+      {(summary.performanceImpact || summary.securityImpact) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {summary.performanceImpact && (
+            <AnalysisCard title="性能影响" collapsible defaultExpanded={false}>
+              <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.performanceImpact}</div>
+            </AnalysisCard>
+          )}
+
+          {summary.securityImpact && (
+            <AnalysisCard title="安全影响" collapsible defaultExpanded={false}>
+              <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.securityImpact}</div>
+            </AnalysisCard>
+          )}
+        </div>
+      )}
+
+      {/* AI 模型信息 */}
+      {summary.aiModelVersion && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 text-center bg-gray-50 dark:bg-gray-900 p-2 rounded">
+          AI 模型版本: {summary.aiModelVersion}
+        </div>
+      )}
     </div>
   );
 };

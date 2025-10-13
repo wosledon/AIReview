@@ -516,6 +516,75 @@ public class ReviewsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// 触发增强AI分析（包含风险评估、改进建议和PR摘要）
+    /// </summary>
+    [HttpPost("{id}/enhanced-ai-analysis")]
+    public async Task<ActionResult<ApiResponse<object>>> TriggerEnhancedAIAnalysis(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            // 检查评审是否存在
+            var review = await _reviewService.GetReviewAsync(id);
+            if (review == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "评审请求不存在"
+                });
+            }
+
+            // 触发传统AI评审
+            try
+            {
+                await _aiReviewService.EnqueueReviewAsync(id);
+                _logger.LogInformation("Traditional AI review enqueued for review {ReviewId}", id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to enqueue traditional AI review for review {ReviewId}", id);
+            }
+
+            return Accepted(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "增强AI分析已启动，包括风险评估、改进建议和变更摘要分析。请稍后查看结果。",
+                Data = new { 
+                    ReviewId = id,
+                    AnalysisTypes = new[] { "risk-assessment", "improvement-suggestions", "change-summary" },
+                    Message = "可通过 /api/analysis/reviews/{id}/comprehensive 获取完整分析结果"
+                }
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ApiResponse<object>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error triggering enhanced AI analysis for review {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<object>
+            {
+                Success = false,
+                Message = "启动增强AI分析失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
     private string GetCurrentUserId()
     {
         return User.FindFirst(ClaimTypes.NameIdentifier)?.Value 

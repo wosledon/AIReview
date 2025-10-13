@@ -6,6 +6,9 @@ public interface IUnitOfWork : IDisposable
     IProjectMemberRepository ProjectMembers { get; }
     IReviewRequestRepository ReviewRequests { get; }
     IReviewCommentRepository ReviewComments { get; }
+    IRiskAssessmentRepository RiskAssessments { get; }
+    IImprovementSuggestionRepository ImprovementSuggestions { get; }
+    IPullRequestChangeSummaryRepository PullRequestChangeSummaries { get; }
     
     Task<int> SaveChangesAsync();
     Task BeginTransactionAsync();

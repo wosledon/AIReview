@@ -79,6 +79,40 @@ Git差异内容：
         }
     }
 
+    public async Task<string> GenerateAnalysisAsync(string prompt, string code, int? configurationId = null)
+    {
+        var configuration = await GetConfigurationAsync(configurationId);
+        if (configuration == null)
+        {
+            throw new InvalidOperationException("未找到可用的LLM配置");
+        }
+
+        try
+        {
+            var provider = _providerFactory.CreateProvider(configuration);
+            
+            // 构建完整的分析prompt，包含代码内容
+            var fullPrompt = $@"{prompt}
+
+代码内容：
+```
+{code}
+```";
+
+            _logger.LogInformation("使用 {Provider} 进行AI分析", configuration.Provider);
+            
+            var result = await provider.GenerateAsync(fullPrompt);
+            
+            _logger.LogInformation("使用 {Provider} 完成AI分析", configuration.Provider);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "使用 {Provider} 进行AI分析时发生错误", configuration.Provider);
+            throw;
+        }
+    }
+
     public async Task<bool> TestConnectionAsync(int configurationId)
     {
         var configuration = await _configurationService.GetByIdAsync(configurationId);
