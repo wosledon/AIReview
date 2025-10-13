@@ -5,21 +5,21 @@ English | [简体中文](docs/README.zh-cn.md)
 
 ## Overview
 
-AIReview is an AI-assisted review platform that analyzes code and documents, generates actionable review comments, and integrates with your Git workflow and IDEs. It aims to boost review efficiency and quality while reducing manual workload.
+AIReview is an AI-powered code review platform designed for development teams. It leverages artificial intelligence to automatically analyze code quality, generate review suggestions, and seamlessly integrates with Git workflows to significantly improve code review efficiency and quality.
 
-Key capabilities:
-- Automated code quality and risk detection
-- AI-generated review insights and fix suggestions
-- Multi-language code/doc support
-- Git platform and IDE integrations
-- Configurable review workflow with real-time updates
-- Team collaboration, permissions, and audit trail
+Key Features:
+- **AI-Driven Code Review**: Automatically analyze code quality, security risks, and best practices
+- **Git Integration**: Support project import and code diff analysis  
+- **Real-time Collaboration**: Real-time notifications and comments via SignalR
+- **Multi-LLM Support**: Configurable AI model providers
+- **Project Management**: Support project creation, member management, and permission control
+- **Review Workflow**: Support review status management, approval/rejection processes
 
 For high-level architecture, module responsibilities, and workflows, see:
 - English design: docs/design.en-us.md
 - Chinese design: docs/design.md
 
-## Links
+## Screenshots
 
 ![home](./docs/images/home.png)
 
@@ -27,39 +27,89 @@ For high-level architecture, module responsibilities, and workflows, see:
 
 ## Repository Structure
 
-- AIReview.API: ASP.NET Core Web API (backend)
-- AIReview.Core: Domain models, services, and interfaces
-- AIReview.Infrastructure: EF Core, repositories, migrations, background jobs
-- AIReview.Shared: Shared DTOs and enums
-- AIReview.Tests: Test projects
-- aireviewer-frontend: Web frontend (Vite + TypeScript)
-- docs: Design and documentation
+- **AIReview.API**: ASP.NET Core Web API backend with controllers, hubs, and service configuration
+- **AIReview.Core**: Core business logic with entity models, service interfaces, and business services  
+- **AIReview.Infrastructure**: Infrastructure layer with EF Core data access, repository pattern, and background jobs
+- **AIReview.Shared**: Shared Data Transfer Objects (DTOs) and enums
+- **AIReview.Tests**: Unit tests and integration tests
+- **aireviewer-frontend**: React + TypeScript frontend application built with Vite
+- **docs**: Project documentation and design specifications
+
+## Tech Stack
+
+### Backend
+- **.NET 8.0**: Modern cross-platform application development framework
+- **ASP.NET Core Web API**: RESTful API services
+- **Entity Framework Core**: Object-Relational Mapping (ORM)
+- **ASP.NET Core Identity**: User authentication and authorization
+- **SignalR**: Real-time bidirectional communication
+- **SQLite**: Lightweight database (PostgreSQL configurable)
+- **Background Jobs**: Asynchronous AI review processing
+
+### Frontend
+- **React 19**: Modern UI framework
+- **TypeScript**: Type-safe JavaScript
+- **Vite**: Fast frontend build tool
+- **TailwindCSS**: Utility-first CSS framework
+- **React Query**: Server state management
+- **React Router**: Client-side routing
+- **Axios**: HTTP client
 
 ## Prerequisites
 
 - .NET SDK 8.0+
-- Node.js 18+ and pnpm/npm (for frontend)
-- PostgreSQL 14+ (or a compatible version)
-- Optional: Redis, Docker Desktop, Kubernetes tooling
+- Node.js 18+ and npm/pnpm (for frontend)
+- SQLite (default) or PostgreSQL 14+ (optional)
+- Optional: Redis (for caching and sessions), Docker Desktop
 
-## Backend Setup (API)
+## Backend Setup and Running
 
-1) Configure appsettings.Development.json in AIReview.API with your PostgreSQL connection string, JWT, and any LLM provider settings.
-2) Apply database migrations.
-3) Run the API.
+1. **Configure Application Settings**: Configure in `AIReview.API/appsettings.Development.json`:
+   ```json
+   {
+     "ConnectionStrings": {
+       "DefaultConnection": "Data Source=aireviewer.db",  // SQLite
+       "Redis": "localhost:6379"
+     },
+     "Jwt": {
+       "Secret": "YourJWTSecretKey(AtLeast32Characters)",
+       "Issuer": "AIReview", 
+       "Audience": "AIReview"
+     },
+     "LLMProviders": {
+       // Configure AI model providers
+     }
+   }
+   ```
 
-Example environment notes:
-- Database: Host=localhost; Database=ai_review; Username=...; Password=...
-- JWT: issuer, audience, signing key
-- LLM: provider name, model id, api key (store securely)
+2. **Apply Database Migrations**:
+   ```bash
+   cd AIReview.API
+   dotnet ef database update
+   ```
 
-## Frontend Setup (Web)
+3. **Start API Service**:
+   ```bash
+   dotnet run
+   ```
 
-1) cd aireviewer-frontend
-2) Install dependencies
-3) Start the dev server
+## Frontend Setup and Running
 
-Configure the API base URL in the frontend environment (e.g., .env or vite config) to point to the backend.
+1. **Install Dependencies**:
+   ```bash
+   cd aireviewer-frontend
+   npm install
+   ```
+
+2. **Configure Environment Variables**: Create `.env` file:
+   ```
+   VITE_API_BASE_URL=http://localhost:5000
+   ```
+
+3. **Start Development Server**:
+   ```bash
+   npm run dev
+   ```
 
 ## Tests
 
@@ -81,17 +131,33 @@ Configure the API base URL in the frontend environment (e.g., .env or vite confi
 
 ## Roadmap (high level)
 
-- GitHub/GitLab integration, IDE extensions (VS Code)
-- Advanced AI suggestions and auto-fix proposals
-- Team preference learning and rules adaptation
-- Multi-tenant and enterprise policy controls
+### Short-term Plans
+- [ ] **PR Intelligent Summary Feature**
+  - AI-generated Pull Request change summaries and impact analysis
+  - Automatic identification of code change types (feature enhancement, bug fixes, refactoring, etc.)
+  - Generate change risk assessments and recommended testing focus areas
+  - Support semantic analysis of multi-language code changes
+- [ ] GitHub/GitLab integration, IDE extensions (VS Code)
+- [ ] Advanced AI suggestions and auto-fix proposals
+- [ ] Support for more AI models (Claude, GPT-4, etc.)
+
+### Medium-term Plans
+- [ ] Team preference learning and rules adaptation
+- [ ] Batch review and batch processing optimization
+- [ ] Review reports and statistical analysis
+- [ ] Mobile application support
+
+### Long-term Vision
+- [ ] Multi-tenant and enterprise policy controls
+- [ ] Machine learning model optimization
+- [ ] Open source community ecosystem development
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Links
+## 相关文档
 
 - High-level design (EN): docs/design.en-us.md
 - 高层设计（中文）: docs/design.md
-- 中文 README：docs/Readme.zh-cn.md
+- 中文 README：docs/README.zh-cn.md
