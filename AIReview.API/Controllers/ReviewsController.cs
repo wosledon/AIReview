@@ -185,6 +185,100 @@ public class ReviewsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// 获取文件列表（轻量级，不包含diff内容）
+    /// </summary>
+    [HttpGet("{id}/diff/files")]
+    public async Task<ActionResult<ApiResponse<DiffFileListDto>>> GetReviewDiffFileList(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            var fileList = await _reviewService.GetReviewDiffFileListAsync(id);
+            if (fileList == null)
+            {
+                return NotFound(new ApiResponse<DiffFileListDto>
+                {
+                    Success = false,
+                    Message = "评审文件列表不存在"
+                });
+            }
+
+            return Ok(new ApiResponse<DiffFileListDto>
+            {
+                Success = true,
+                Data = fileList,
+                Message = "文件列表获取成功"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting review diff file list for {ReviewId}", id);
+            return StatusCode(500, new ApiResponse<DiffFileListDto>
+            {
+                Success = false,
+                Message = "获取文件列表失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    /// <summary>
+    /// 获取单个文件的diff内容（按需加载）
+    /// </summary>
+    [HttpGet("{id}/diff/files/{*filePath}")]
+    public async Task<ActionResult<ApiResponse<DiffFileDetailDto>>> GetReviewDiffFile(int id, string filePath)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var hasAccess = await _reviewService.HasReviewAccessAsync(id, userId);
+            
+            if (!hasAccess)
+            {
+                return Forbid();
+            }
+
+            // URL decode file path
+            filePath = Uri.UnescapeDataString(filePath);
+
+            var fileDetail = await _reviewService.GetReviewDiffFileAsync(id, filePath);
+            if (fileDetail == null)
+            {
+                return NotFound(new ApiResponse<DiffFileDetailDto>
+                {
+                    Success = false,
+                    Message = "文件差异不存在"
+                });
+            }
+
+            return Ok(new ApiResponse<DiffFileDetailDto>
+            {
+                Success = true,
+                Data = fileDetail,
+                Message = "文件差异获取成功"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting review diff file {FilePath} for {ReviewId}", filePath, id);
+            return StatusCode(500, new ApiResponse<DiffFileDetailDto>
+            {
+                Success = false,
+                Message = "获取文件差异失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<ReviewDto>>> UpdateReview(int id, [FromBody] UpdateReviewRequest request)
     {

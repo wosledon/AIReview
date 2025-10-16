@@ -27,4 +27,10 @@ public interface IReviewService
     Task<bool> HasReviewAccessAsync(int reviewId, string userId);
     Task<string?> GetReviewDiffAsync(int reviewId);
     Task<DiffResponseDto?> GetReviewDiffDataAsync(int reviewId);
+    
+    // 新增：轻量级文件列表API
+    Task<DiffFileListDto?> GetReviewDiffFileListAsync(int reviewId);
+    
+    // 新增：按需加载单个文件的diff
+    Task<DiffFileDetailDto?> GetReviewDiffFileAsync(int reviewId, string filePath);
 }

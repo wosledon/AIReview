@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import { 
   ChatBubbleLeftIcon, 
   PlusIcon, 
@@ -12,9 +12,11 @@ import { useCodeHighlight } from '../hooks/useCodeHighlight';
 import type { DiffFile, DiffChange, CodeComment, DiffViewerProps } from '../types/diff';
 
 // 性能配置常量
-const INITIAL_LINES_TO_SHOW = 200; // 初始显示的行数
-const LINES_TO_LOAD_MORE = 100; // 每次加载更多时增加的行数
-const LARGE_DIFF_THRESHOLD = 300; // 超过此行数视为大diff
+const INITIAL_LINES_TO_SHOW = 50; // 极限优化：减少到50行
+const LINES_TO_LOAD_MORE = 30; // 每次加载30行
+const LARGE_DIFF_THRESHOLD = 100; // 降低大文件阈值到100
+const HIGHLIGHT_DEBOUNCE_MS = 100; // 增加延迟到100ms
+const FILE_SWITCH_DEBOUNCE_MS = 150; // 文件切换延迟
 
 interface FileTreeProps {
   files: DiffFile[];
@@ -38,27 +40,40 @@ function FileTree({ files, selectedFile, onSelectFile }: FileTreeProps) {
     }
   };
 
+  // 使用memo优化FileTreeItem
+  const FileTreeItem = memo(({ file, index, isSelected }: { file: DiffFile; index: number; isSelected: boolean }) => (
+    <button
+      key={`${file.oldPath}-${file.newPath}-${index}`}
+      onClick={() => onSelectFile(file.newPath || file.oldPath)}
+      className={`w-full text-left p-2 rounded-md text-sm flex items-center space-x-2 hover:bg-gray-100 transition-colors ${
+        isSelected 
+          ? 'bg-blue-100 text-blue-800' 
+          : 'text-gray-700'
+      }`}
+      title={file.newPath || file.oldPath}
+    >
+      {getFileIcon(file.type)}
+      <span className="truncate flex-1">{file.newPath || file.oldPath}</span>
+    </button>
+  ));
+
   return (
     <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
         <h3 className="text-sm font-semibold text-gray-900">文件变更 ({files.length})</h3>
+        {files.length > 50 && (
+          <p className="text-xs text-gray-500 mt-1">💡 大量文件，使用搜索快速定位</p>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-1">
           {files.map((file, index) => (
-            <button
+            <FileTreeItem
               key={`${file.oldPath}-${file.newPath}-${index}`}
-              onClick={() => onSelectFile(file.newPath || file.oldPath)}
-              className={`w-full text-left p-2 rounded-md text-sm flex items-center space-x-2 hover:bg-gray-100 transition-colors ${
-                selectedFile === (file.newPath || file.oldPath) 
-                  ? 'bg-blue-100 text-blue-800' 
-                  : 'text-gray-700'
-              }`}
-              title={file.newPath || file.oldPath}
-            >
-              {getFileIcon(file.type)}
-              <span className="truncate flex-1">{file.newPath || file.oldPath}</span>
-            </button>
+              file={file}
+              index={index}
+              isSelected={selectedFile === (file.newPath || file.oldPath)}
+            />
           ))}
         </div>
       </div>
@@ -186,7 +201,8 @@ interface DiffLineProps {
   onCancelComment: () => void;
 }
 
-function DiffLine({ 
+// 使用 React.memo 优化，避免不必要的重渲染
+const DiffLine = memo(function DiffLine({ 
   change, 
   lineNumber, 
   comments, 
@@ -234,7 +250,7 @@ function DiffLine({
         <div className="flex-shrink-0 w-8 px-2 py-1 text-center">
           {getLinePrefix()}
         </div>
-        <div className="flex-1 px-2 py-1 font-mono text-sm text-left overflow-x-auto">
+        <div className="flex-1 px-2 py-1 font-mono text-sm text-left">
           <code 
             dangerouslySetInnerHTML={{ __html: highlightedContent }}
             className="whitespace-pre block leading-5"
@@ -279,20 +295,25 @@ function DiffLine({
       )}
     </div>
   );
-}
+});
 
-interface FileViewerProps {
+// 导出FileViewerProps供外部使用
+export interface FileViewerProps {
   file: DiffFile;
   comments: CodeComment[];
   onAddComment?: (filePath: string, lineNumber: number, content: string) => void;
   onDeleteComment?: (commentId: string) => void;
   language: string;
+  isActive: boolean; // 新增：是否是激活状态
 }
 
-function FileViewer({ file, comments, onAddComment, onDeleteComment, language }: FileViewerProps) {
+// 导出FileViewer组件供LazyDiffViewer使用
+export function FileViewer({ file, comments, onAddComment, onDeleteComment, language, isActive }: FileViewerProps) {
   const { highlightCode } = useCodeHighlight();
   const [commentingLine, setCommentingLine] = useState<number | null>(null);
   const [visibleLines, setVisibleLines] = useState(INITIAL_LINES_TO_SHOW);
+  const [highlightedLines, setHighlightedLines] = useState<Map<number, string>>(new Map());
+  const [isRendered, setIsRendered] = useState(false); // 新增：延迟渲染标记
   
   // 计算总行数
   const totalLines = useMemo(() => {
@@ -301,6 +322,80 @@ function FileViewer({ file, comments, onAddComment, onDeleteComment, language }:
 
   const isLargeDiff = totalLines > LARGE_DIFF_THRESHOLD;
   const hasMoreToShow = visibleLines < totalLines;
+  
+  // 只在激活时才渲染内容（延迟150ms避免快速切换时的浪费）
+  useEffect(() => {
+    if (isActive) {
+      const timer = setTimeout(() => {
+        setIsRendered(true);
+      }, FILE_SWITCH_DEBOUNCE_MS);
+      return () => clearTimeout(timer);
+    } else {
+      // 文件失去激活状态时，延迟卸载内容以节省内存
+      const timer = setTimeout(() => {
+        setIsRendered(false);
+        setHighlightedLines(new Map()); // 清空缓存
+        setVisibleLines(INITIAL_LINES_TO_SHOW); // 重置行数
+      }, 500); // 500ms后卸载
+      return () => clearTimeout(timer);
+    }
+  }, [isActive]);
+  
+  // 延迟高亮：只高亮可见行，使用requestIdleCallback
+  const performHighlighting = useCallback(() => {
+    // 只有在渲染时才执行高亮
+    if (!isRendered) return;
+    
+    const newHighlightedLines = new Map<number, string>();
+    let lineCount = 0;
+    const lang = detectLanguageFromPath(file.newPath || file.oldPath, language);
+    
+    for (const hunk of file.hunks) {
+      if (lineCount >= visibleLines) break;
+      
+      for (const change of hunk.changes) {
+        if (lineCount >= visibleLines) break;
+        
+        const lineNumber = change.newLineNumber || change.oldLineNumber || 0;
+        // 对于normal行（未修改），跳过高亮以节省性能
+        if (change.type === 'normal') {
+          newHighlightedLines.set(lineNumber, escapeHtml(change.content));
+        } else {
+          const highlighted = highlightCode(change.content, lang);
+          newHighlightedLines.set(lineNumber, highlighted);
+        }
+        lineCount++;
+      }
+    }
+    
+    setHighlightedLines(newHighlightedLines);
+  }, [file, visibleLines, language, highlightCode, isRendered]);
+
+  useEffect(() => {
+    if (!isRendered) return; // 未渲染时不执行高亮
+    
+    if (isLargeDiff) {
+      // 对于大文件，延迟高亮
+      const timer = setTimeout(() => {
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => performHighlighting());
+        } else {
+          performHighlighting();
+        }
+      }, HIGHLIGHT_DEBOUNCE_MS);
+      return () => clearTimeout(timer);
+    } else {
+      // 小文件立即高亮
+      performHighlighting();
+    }
+  }, [isLargeDiff, performHighlighting, isRendered]);
+
+  // 简单的HTML转义
+  const escapeHtml = (text: string) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  };
   
   const detectLanguageFromPath = (path: string, fallback: string) => {
     if (fallback && fallback !== 'auto') return fallback;
@@ -360,35 +455,50 @@ function FileViewer({ file, comments, onAddComment, onDeleteComment, language }:
     setVisibleLines(totalLines);
   }, [totalLines]);
 
+  // 如果未渲染，显示加载占位符
+  if (!isRendered) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">加载文件内容中...</p>
+          <p className="text-xs text-gray-500 mt-2">{file.newPath || file.oldPath}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 overflow-auto">
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
-        <h2 className="text-lg font-semibold text-gray-900">
-          {file.newPath || file.oldPath}
-        </h2>
-        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-          <span>语言: {detectLanguageFromPath(file.newPath || file.oldPath, language)}</span>
-          <span>变更类型: {file.type}</span>
-          {file.oldPath !== file.newPath && (
-            <span>重命名: {file.oldPath} → {file.newPath}</span>
-          )}
-          {isLargeDiff && (
-            <span className="text-orange-600 font-medium">
-              ⚠️ 大文件 ({totalLines} 行变更)
-            </span>
-          )}
-        </div>
-        {isLargeDiff && hasMoreToShow && (
-          <div className="mt-2 text-xs text-gray-500">
-            正在显示前 {visibleLines} / {totalLines} 行
+      {/* 内容容器，设置min-width确保长行代码不会被截断 */}
+      <div className="min-w-max">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {file.newPath || file.oldPath}
+          </h2>
+          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+            <span>语言: {detectLanguageFromPath(file.newPath || file.oldPath, language)}</span>
+            <span>变更类型: {file.type}</span>
+            {file.oldPath !== file.newPath && (
+              <span>重命名: {file.oldPath} → {file.newPath}</span>
+            )}
+            {isLargeDiff && (
+              <span className="text-orange-600 font-medium">
+                ⚠️ 大文件 ({totalLines} 行变更)
+              </span>
+            )}
           </div>
-        )}
-      </div>
+          {isLargeDiff && hasMoreToShow && (
+            <div className="mt-2 text-xs text-gray-500">
+              正在显示前 {visibleLines} / {totalLines} 行
+            </div>
+          )}
+        </div> {/* 闭合 sticky header */}
       
-      <div className="divide-y divide-gray-200">
-        {file.hunks.map((hunk, hunkIndex) => {
-          // 计算当前hunk之前已经显示的行数
-          let linesBefore = 0;
+        <div className="divide-y divide-gray-200">
+          {file.hunks.map((hunk, hunkIndex) => {
+            // 计算当前hunk之前已经显示的行数
+            let linesBefore = 0;
           for (let i = 0; i < hunkIndex; i++) {
             linesBefore += file.hunks[i].changes.length;
           }
@@ -412,8 +522,8 @@ function FileViewer({ file, comments, onAddComment, onDeleteComment, language }:
               {hunk.changes.slice(0, linesToShowInThisHunk).map((change, changeIndex) => {
                 const lineNumber = change.newLineNumber || change.oldLineNumber || 0;
                 const lineComments = getCommentsForLine(lineNumber);
-                const lang = detectLanguageFromPath(file.newPath || file.oldPath, language);
-                const highlightedContent = highlightCode(change.content, lang);
+                // 使用缓存的高亮结果，如果不存在则使用原始内容
+                const highlightedContent = highlightedLines.get(lineNumber) || escapeHtml(change.content);
 
                 return (
                   <DiffLine
@@ -434,36 +544,37 @@ function FileViewer({ file, comments, onAddComment, onDeleteComment, language }:
             </div>
           );
         })}
-      </div>
+        </div> {/* 闭合 divide-y divide-gray-200 */}
       
-      {/* 加载更多按钮 */}
-      {hasMoreToShow && (
-        <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent p-6 text-center border-t border-gray-200">
-          <div className="space-y-3">
-            <p className="text-sm text-gray-600">
-              已显示 {visibleLines} / {totalLines} 行变更
-            </p>
-            <div className="flex items-center justify-center space-x-3">
-              <button
-                onClick={handleLoadMore}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-              >
-                <ChevronDownIcon className="h-4 w-4 mr-2" />
-                加载更多 ({LINES_TO_LOAD_MORE} 行)
-              </button>
-              <button
-                onClick={handleShowAll}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-              >
-                显示全部 ({totalLines - visibleLines} 行)
-              </button>
+        {/* 加载更多按钮 */}
+        {hasMoreToShow && (
+          <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent p-6 text-center border-t border-gray-200">
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">
+                已显示 {visibleLines} / {totalLines} 行变更
+              </p>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={handleLoadMore}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                >
+                  <ChevronDownIcon className="h-4 w-4 mr-2" />
+                  加载更多 ({LINES_TO_LOAD_MORE} 行)
+                </button>
+                <button
+                  onClick={handleShowAll}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                >
+                  显示全部 ({totalLines - visibleLines} 行)
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">
+                💡 提示：大文件分批加载可以提升浏览器性能
+              </p>
             </div>
-            <p className="text-xs text-gray-500">
-              💡 提示：大文件分批加载可以提升浏览器性能
-            </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -528,6 +639,7 @@ export function DiffViewer({
           onAddComment={onAddComment}
           onDeleteComment={onDeleteComment}
           language={language}
+          isActive={true} // 当前显示的文件总是激活状态
         />
       ) : (
         <div className="flex-1 flex items-center justify-center text-gray-500">

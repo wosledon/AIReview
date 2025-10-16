@@ -450,6 +450,143 @@ public class ReviewService : IReviewService
         };
     }
 
+    /// <summary>
+    /// 获取文件列表（轻量级，不包含diff内容）
+    /// </summary>
+    public async Task<DiffFileListDto?> GetReviewDiffFileListAsync(int reviewId)
+    {
+        var review = await _unitOfWork.ReviewRequests.GetReviewWithProjectAsync(reviewId);
+        if (review == null)
+            return null;
+
+        try
+        {
+            // 获取项目关联的Git仓库
+            var repositories = await _gitService.GetRepositoriesAsync(review.ProjectId);
+            var repository = repositories.FirstOrDefault();
+            
+            if (repository == null)
+            {
+                _logger.LogWarning("No Git repository found for project {ProjectId}", review.ProjectId);
+                return null;
+            }
+
+            // 获取代码差异
+            var diff = await _gitService.GetDiffBetweenRefsAsync(repository.Id, review.BaseBranch, review.Branch);
+            if (string.IsNullOrEmpty(diff))
+                return null;
+
+            // 解析差异 - 只提取元数据
+            var diffFiles = _diffParserService.ParseGitDiff(diff);
+
+            // 构建轻量级文件元数据列表
+            var fileMetadata = diffFiles.Select(f => new DiffFileMetadataDto
+            {
+                OldPath = f.OldPath,
+                NewPath = f.NewPath,
+                Type = f.Type,
+                AddedLines = f.Hunks.SelectMany(h => h.Changes).Count(c => c.Type == "insert"),
+                DeletedLines = f.Hunks.SelectMany(h => h.Changes).Count(c => c.Type == "delete"),
+                TotalChanges = f.Hunks.Count
+            }).ToList();
+
+            // 获取评审评论
+            var comments = await GetReviewCommentsAsync(reviewId);
+            var codeComments = comments.Where(c => !string.IsNullOrEmpty(c.FilePath))
+                .Select(c => new CodeCommentDto
+                {
+                    Id = c.Id.ToString(),
+                    FilePath = c.FilePath ?? "",
+                    LineNumber = c.LineNumber ?? 0,
+                    Content = c.Content,
+                    Author = c.AuthorName,
+                    CreatedAt = c.CreatedAt,
+                    Type = c.IsAIGenerated ? "ai" : "human",
+                    Severity = MapSeverity(c.Severity.ToString())
+                }).ToList();
+
+            return new DiffFileListDto
+            {
+                Files = fileMetadata,
+                Comments = codeComments,
+                TotalFiles = fileMetadata.Count,
+                TotalAddedLines = fileMetadata.Sum(f => f.AddedLines),
+                TotalDeletedLines = fileMetadata.Sum(f => f.DeletedLines)
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting diff file list for review {ReviewId}", reviewId);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 获取单个文件的完整diff内容（按需加载）
+    /// </summary>
+    public async Task<DiffFileDetailDto?> GetReviewDiffFileAsync(int reviewId, string filePath)
+    {
+        var review = await _unitOfWork.ReviewRequests.GetReviewWithProjectAsync(reviewId);
+        if (review == null)
+            return null;
+
+        try
+        {
+            // 获取项目关联的Git仓库
+            var repositories = await _gitService.GetRepositoriesAsync(review.ProjectId);
+            var repository = repositories.FirstOrDefault();
+            
+            if (repository == null)
+            {
+                _logger.LogWarning("No Git repository found for project {ProjectId}", review.ProjectId);
+                return null;
+            }
+
+            // 获取代码差异
+            var diff = await _gitService.GetDiffBetweenRefsAsync(repository.Id, review.BaseBranch, review.Branch);
+            if (string.IsNullOrEmpty(diff))
+                return null;
+
+            // 解析差异并找到目标文件
+            var diffFiles = _diffParserService.ParseGitDiff(diff);
+            var targetFile = diffFiles.FirstOrDefault(f => 
+                f.NewPath == filePath || f.OldPath == filePath);
+
+            if (targetFile == null)
+            {
+                _logger.LogWarning("File {FilePath} not found in diff for review {ReviewId}", filePath, reviewId);
+                return null;
+            }
+
+            // 获取该文件相关的评论
+            var comments = await GetReviewCommentsAsync(reviewId);
+            var fileComments = comments
+                .Where(c => c.FilePath == filePath)
+                .Select(c => new CodeCommentDto
+                {
+                    Id = c.Id.ToString(),
+                    FilePath = c.FilePath ?? "",
+                    LineNumber = c.LineNumber ?? 0,
+                    Content = c.Content,
+                    Author = c.AuthorName,
+                    CreatedAt = c.CreatedAt,
+                    Type = c.IsAIGenerated ? "ai" : "human",
+                    Severity = MapSeverity(c.Severity.ToString())
+                }).ToList();
+
+            return new DiffFileDetailDto
+            {
+                File = targetFile,
+                Comments = fileComments
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting diff for file {FilePath} in review {ReviewId}", filePath, reviewId);
+            return null;
+        }
+    }
+
     private Task<ReviewDto> MapToReviewDtoAsync(ReviewRequest review)
     {
         return Task.FromResult(new ReviewDto
