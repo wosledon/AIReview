@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using AIReview.Core.Entities;
 using AIReview.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +13,8 @@ namespace AIReview.Infrastructure.Services;
 /// </summary>
 public class ChunkedReviewService
 {
-    private readonly IMultiLLMService _multiLLMService;
+    private readonly ILLMConfigurationService _configurationService;
+    private readonly ILLMProviderFactory _providerFactory;
     private readonly ILogger<ChunkedReviewService> _logger;
     
     // Token估算:粗略估计每4个字符约等于1个token(对于代码)
@@ -25,10 +27,12 @@ public class ChunkedReviewService
     private const int MAX_CODE_CHARS = MAX_CODE_TOKENS * CHARS_PER_TOKEN; // ~404,000 字符
 
     public ChunkedReviewService(
-        IMultiLLMService multiLLMService,
+        ILLMConfigurationService configurationService,
+        ILLMProviderFactory providerFactory,
         ILogger<ChunkedReviewService> logger)
     {
-        _multiLLMService = multiLLMService;
+        _configurationService = configurationService;
+        _providerFactory = providerFactory;
         _logger = logger;
     }
 
@@ -84,14 +88,19 @@ public class ChunkedReviewService
         {
             _logger.LogInformation("代码量在限制内,使用标准{ProcessType}流程", isReview ? "评审" : "分析");
             
-            if (isReview)
+            // 获取配置并调用LLM
+            var configuration = await GetConfigurationAsync(configurationId);
+            if (configuration == null)
             {
-                return await _multiLLMService.GenerateReviewAsync(code, promptOrContext, configurationId);
+                throw new InvalidOperationException("没有可用的LLM配置");
             }
-            else
-            {
-                return await _multiLLMService.GenerateAnalysisAsync(promptOrContext, code, configurationId);
-            }
+            
+            var provider = _providerFactory.CreateProvider(configuration);
+            var prompt = isReview 
+                ? BuildReviewPrompt(code, promptOrContext)
+                : BuildAnalysisPrompt(promptOrContext, code);
+            
+            return await provider.GenerateAsync(prompt);
         }
 
         // 超出限制,使用分块处理
@@ -137,21 +146,19 @@ public class ChunkedReviewService
                     "{ProcessType}第 {Index}/{Total} 个文件块: {FileName} ({Size} 字符)",
                     isReview ? "评审" : "分析", index + 1, chunks.Count, chunk.FileName, chunk.Content.Length);
                 
-                string result;
-                if (isReview)
+                // 获取配置并调用LLM
+                var configuration = await GetConfigurationAsync(configurationId);
+                if (configuration == null)
                 {
-                    result = await _multiLLMService.GenerateReviewAsync(
-                        chunk.Content, 
-                        chunkPromptOrContext, 
-                        configurationId);
+                    throw new InvalidOperationException("没有可用的LLM配置");
                 }
-                else
-                {
-                    result = await _multiLLMService.GenerateAnalysisAsync(
-                        chunkPromptOrContext,
-                        chunk.Content, 
-                        configurationId);
-                }
+                
+                var provider = _providerFactory.CreateProvider(configuration);
+                var prompt = isReview 
+                    ? BuildReviewPrompt(chunk.Content, chunkPromptOrContext)
+                    : BuildAnalysisPrompt(chunkPromptOrContext, chunk.Content);
+                
+                var result = await provider.GenerateAsync(prompt);
                 
                 return new ChunkReviewResult
                 {
@@ -407,6 +414,71 @@ public class ChunkedReviewService
     private int EstimateTokens(string text)
     {
         return text.Length / CHARS_PER_TOKEN;
+    }
+
+    /// <summary>
+    /// 获取LLM配置
+    /// </summary>
+    private async Task<LLMConfiguration?> GetConfigurationAsync(int? configurationId)
+    {
+        if (configurationId.HasValue)
+        {
+            var config = await _configurationService.GetByIdAsync(configurationId.Value);
+            if (config != null && config.IsActive)
+            {
+                return config;
+            }
+        }
+
+        // 如果没有指定ID或指定的配置不可用，使用默认配置
+        return await _configurationService.GetDefaultConfigurationAsync();
+    }
+
+    /// <summary>
+    /// 构建代码评审Prompt
+    /// </summary>
+    private string BuildReviewPrompt(string code, string context)
+    {
+        return $@"# 代码审查任务
+
+你是一位资深的代码审查专家。请仔细分析以下Git差异，提供专业、详细的审查报告。
+
+## 上下文信息
+{context}
+
+## Git差异内容
+```diff
+{code}
+```
+
+## 输出要求
+
+请提供结构化的审查结果，使用JSON格式输出。";
+    }
+
+    /// <summary>
+    /// 构建AI分析Prompt
+    /// </summary>
+    private string BuildAnalysisPrompt(string taskPrompt, string code)
+    {
+        return $@"# AI 分析任务
+
+{taskPrompt}
+
+## 代码内容
+```
+{code}
+```
+
+## 输出要求
+
+1. 请提供结构化的分析结果
+2. 使用JSON格式输出(如任务要求)
+3. 确保分析深入、全面、准确
+4. 提供具体的数据和证据支持你的结论
+5. 如果发现问题，请提供可行的解决方案
+
+请开始分析...";
     }
 
     // 内部类
