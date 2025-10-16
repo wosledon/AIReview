@@ -188,7 +188,8 @@ public class RiskAssessmentService : IRiskAssessmentService
         
         try
         {
-            var response = await _llmService.GenerateAnalysisAsync(prompt, rawDiff);
+            // 使用自动分块分析,当代码量超过限制时会自动分块处理
+            var response = await _llmService.AnalyzeWithAutoChunkingAsync(prompt, rawDiff);
             return ParseAIRiskAnalysis(response);
         }
         catch (Exception ex)

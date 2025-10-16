@@ -144,37 +144,79 @@ builder.Services.AddMemoryCache();
 // 尝试配置 Redis 缓存，失败则仅使用内存缓存
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 var redisAvailableForCache = false;
+StackExchange.Redis.IConnectionMultiplexer? redisConnection = null;
+
 if (!string.IsNullOrWhiteSpace(redisConnectionString))
 {
     try
     {
-        // 快速测试 Redis 连接
+        // 配置Redis连接
         var testConfig = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString);
         testConfig.AbortOnConnectFail = false;
-        testConfig.ConnectTimeout = 1500;
-        testConfig.SyncTimeout = 1500;
-        testConfig.ConnectRetry = 1;
+        testConfig.ConnectTimeout = 5000;
+        testConfig.SyncTimeout = 5000;
+        testConfig.ConnectRetry = 3;
         
-        using var testConn = StackExchange.Redis.ConnectionMultiplexer.Connect(testConfig);
-        if (testConn.IsConnected)
+        redisConnection = StackExchange.Redis.ConnectionMultiplexer.Connect(testConfig);
+        
+        if (redisConnection.IsConnected)
         {
             redisAvailableForCache = true;
+            
+            // 注册 IConnectionMultiplexer (单例)
+            builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<Program>>();
+                
+                // 连接事件日志
+                redisConnection.ConnectionRestored += (sender, args) =>
+                    logger.LogInformation("Redis连接已恢复: {EndPoint}", args.EndPoint);
+                redisConnection.ConnectionFailed += (sender, args) =>
+                    logger.LogError("Redis连接失败: {EndPoint}, {FailureType}", args.EndPoint, args.FailureType);
+                redisConnection.ErrorMessage += (sender, args) =>
+                    logger.LogError("Redis错误: {Message}", args.Message);
+                
+                logger.LogInformation("Redis连接已建立: {Endpoints}", 
+                    string.Join(", ", redisConnection.GetEndPoints().Select(e => e.ToString())));
+                
+                return redisConnection;
+            });
+            
+            // 配置分布式缓存
             builder.Services.AddStackExchangeRedisCache(options =>
             {
-                options.Configuration = redisConnectionString + ",abortConnect=false,connectTimeout=5000,syncTimeout=5000";
+                options.ConfigurationOptions = testConfig;
+                options.InstanceName = builder.Configuration["Redis:InstanceName"] ?? "AIReview:";
             });
-            Console.WriteLine("✓ Redis distributed cache configured successfully");
+            
+            // 注册分布式缓存服务
+            builder.Services.AddScoped<IDistributedCacheService, RedisDistributedCacheService>();
+            
+            // 注册Job幂等性服务
+            builder.Services.AddScoped<IJobIdempotencyService, JobIdempotencyService>();
+            
+            Console.WriteLine("✓ Redis distributed cache and idempotency services configured successfully");
         }
     }
     catch (Exception ex)
     {
         Console.WriteLine($"⚠ Redis cache unavailable, using memory cache only: {ex.Message}");
+        redisConnection?.Dispose();
+        redisConnection = null;
     }
 }
 
 if (!redisAvailableForCache)
 {
     Console.WriteLine("ℹ Using in-memory cache (Redis not available)");
+    Console.WriteLine("⚠ Falling back to in-memory implementations for distributed services");
+    Console.WriteLine("⚠ In-memory services only work in single-instance deployments");
+    
+    // 注册内存版本的分布式缓存服务
+    builder.Services.AddScoped<IDistributedCacheService, InMemoryDistributedCacheService>();
+    
+    // 注册内存版本的Job幂等性服务
+    builder.Services.AddScoped<IJobIdempotencyService, InMemoryJobIdempotencyService>();
 }
 
 // 配置Hangfire（优先使用 Redis 实现分布式；Redis 不可用时降级到 SQLite）
@@ -267,6 +309,7 @@ builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
 builder.Services.AddScoped<ILLMConfigurationService, LLMConfigurationService>();
 builder.Services.AddScoped<IMultiLLMService, MultiLLMService>();
 builder.Services.AddScoped<IContextBuilder, ContextBuilder>();
+builder.Services.AddScoped<ChunkedReviewService>(); // 分块评审服务
 builder.Services.AddScoped<IAIReviewer, AIReviewer>();
 
 // 注册后台任务服务

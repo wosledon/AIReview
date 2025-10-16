@@ -24,6 +24,17 @@ public interface IMultiLLMService
 {
     Task<string> GenerateReviewAsync(string code, string context, int? configurationId = null);
     Task<string> GenerateAnalysisAsync(string prompt, string code, int? configurationId = null);
+    
+    /// <summary>
+    /// 智能代码评审:自动判断是否需要分块
+    /// </summary>
+    Task<string> ReviewWithAutoChunkingAsync(string diff, string context, int? configurationId = null);
+    
+    /// <summary>
+    /// 智能AI分析:自动判断是否需要分块
+    /// </summary>
+    Task<string> AnalyzeWithAutoChunkingAsync(string prompt, string code, int? configurationId = null);
+    
     Task<bool> TestConnectionAsync(int configurationId);
     Task<LLMConfiguration?> GetActiveConfigurationAsync();
     Task<IEnumerable<LLMConfiguration>> GetAvailableConfigurationsAsync();

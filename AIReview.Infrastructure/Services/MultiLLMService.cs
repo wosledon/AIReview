@@ -11,15 +11,18 @@ public class MultiLLMService : IMultiLLMService
 {
     private readonly ILLMConfigurationService _configurationService;
     private readonly ILLMProviderFactory _providerFactory;
+    private readonly ChunkedReviewService _chunkedReviewService;
     private readonly ILogger<MultiLLMService> _logger;
 
     public MultiLLMService(
         ILLMConfigurationService configurationService,
         ILLMProviderFactory providerFactory,
+        ChunkedReviewService chunkedReviewService,
         ILogger<MultiLLMService> logger)
     {
         _configurationService = configurationService;
         _providerFactory = providerFactory;
+        _chunkedReviewService = chunkedReviewService;
         _logger = logger;
     }
 
@@ -35,41 +38,21 @@ public class MultiLLMService : IMultiLLMService
         {
             var provider = _providerFactory.CreateProvider(configuration);
             
-            var prompt = $@"作为一名资深的代码审查专家，请仔细分析以下Git差异并提供详细的审查报告。
-
-上下文信息：
-{context}
-
-Git差异内容：
-```
-{code}
-```
-
-请从以下几个方面进行分析：
-1. 代码质量和可读性
-2. 潜在的安全问题  
-3. 性能优化建议
-4. 最佳实践遵循情况
-5. 可能的bug或逻辑错误
-
-请仔细分析Git diff中的文件路径和行号信息，为每个问题提供准确的文件位置。
-
-请以JSON格式返回审查结果，包含以下字段：
-- summary: 总体评价
-- issues: 发现的问题列表，每个问题必须包含：
-  * severity: 严重程度（low/medium/high）
-  * filePath: 具体的文件路径（从Git diff中提取）
-  * line: 具体的行号（从Git diff中的@@ +行号 @@信息提取）
-  * message: 问题描述
-  * suggestion: 具体的改进建议
-- score: 代码质量评分（1-10分）
-- recommendations: 总体改进建议列表
-
-注意：请确保为每个问题都提供准确的filePath和line信息，这些信息可以从Git diff的文件头（如 diff --git a/path/file.ext b/path/file.ext）和行号标记（如 @@ -老行号,行数 +新行号,行数 @@）中获取。";
+            var prompt = BuildReviewPrompt(code, context);
+            
+            _logger.LogInformation("使用 {Provider} 进行代码审查, Prompt长度: {PromptLength}", 
+                configuration.Provider, prompt.Length);
 
             var result = await provider.GenerateAsync(prompt);
             
-            _logger.LogInformation("使用 {Provider} 完成代码审查生成", configuration.Provider);
+            if (string.IsNullOrWhiteSpace(result))
+            {
+                throw new InvalidOperationException($"LLM提供商 {configuration.Provider} 返回了空结果");
+            }
+            
+            _logger.LogInformation("使用 {Provider} 完成代码审查生成, 结果长度: {ResultLength}", 
+                configuration.Provider, result.Length);
+            
             return result;
         }
         catch (Exception ex)
@@ -77,6 +60,112 @@ Git差异内容：
             _logger.LogError(ex, "使用 {Provider} 生成代码审查时发生错误", configuration.Provider);
             throw;
         }
+    }
+
+    /// <summary>
+    /// 构建结构化的代码评审Prompt
+    /// </summary>
+    private string BuildReviewPrompt(string code, string context)
+    {
+        return $@"# 代码审查任务
+
+你是一位资深的代码审查专家。请仔细分析以下Git差异，提供专业、详细的审查报告。
+
+## 上下文信息
+{context}
+
+## Git差异内容
+```diff
+{code}
+```
+
+## 审查要求
+
+请从以下维度进行全面分析：
+
+### 1. 代码质量 (Code Quality)
+- 代码的可读性和清晰度
+- 变量命名和函数命名是否符合规范
+- 代码结构和组织是否合理
+- 是否遵循SOLID原则
+
+### 2. 潜在问题 (Potential Issues)
+- 逻辑错误或边界条件处理不当
+- 可能的空引用或未处理的异常
+- 资源泄漏风险(文件句柄、数据库连接等)
+- 并发安全问题
+
+### 3. 安全性 (Security)
+- SQL注入、XSS等常见安全漏洞
+- 敏感信息泄露风险
+- 输入验证和数据清理
+- 权限控制和访问验证
+
+### 4. 性能 (Performance)
+- 算法复杂度和效率
+- 数据库查询优化机会
+- 缓存使用策略
+- 内存使用和垃圾回收
+
+### 5. 最佳实践 (Best Practices)
+- 是否符合语言和框架的最佳实践
+- 设计模式的应用
+- 错误处理和日志记录
+- 测试覆盖率考虑
+
+## 输出格式要求
+
+请严格按照以下JSON格式返回结果：
+
+```json
+{{
+  ""summary"": ""总体评价，简要描述本次变更的质量和主要发现"",
+  ""overallScore"": 85,
+  ""issues"": [
+    {{
+      ""severity"": ""high|medium|low"",
+      ""category"": ""security|performance|style|bug|design|maintainability"",
+      ""filePath"": ""从Git diff中提取的完整文件路径"",
+      ""line"": 行号(整数),
+      ""message"": ""问题描述，要具体明确"",
+      ""suggestion"": ""具体的改进建议或修复方案""
+    }}
+  ],
+  ""recommendations"": [
+    ""总体性的改进建议1"",
+    ""总体性的改进建议2""
+  ]
+}}
+```
+
+## 重要提示
+
+1. **准确的位置信息**: 必须从Git diff中准确提取`filePath`和`line`信息
+   - 文件路径格式: `diff --git a/path/to/file.ext b/path/to/file.ext`
+   - 行号信息: `@@ -旧行号,行数 +新行号,行数 @@`
+
+2. **严重程度分级**:
+   - `high`: 严重bug、安全漏洞、性能问题
+   - `medium`: 警告、潜在问题、不当实践
+   - `low`: 建议、优化、风格问题
+
+3. **类别分类**:
+   - `security`: 安全相关
+   - `performance`: 性能相关
+   - `bug`: 功能缺陷
+   - `style`: 代码风格
+   - `design`: 设计和架构
+   - `maintainability`: 可维护性
+
+4. **评分标准** (0-100分):
+   - 90-100: 优秀，几乎无问题
+   - 75-89: 良好，有少量可改进点
+   - 60-74: 中等，有明显问题需要修复
+   - 0-59: 较差，有严重问题
+
+5. 只返回JSON，不要添加任何其他说明文字
+6. 确保JSON格式正确，可以被解析器正确解析
+7. 如果没有发现问题，issues数组可以为空，但要提供建设性的recommendations";
     }
 
     public async Task<string> GenerateAnalysisAsync(string prompt, string code, int? configurationId = null)
@@ -91,19 +180,22 @@ Git差异内容：
         {
             var provider = _providerFactory.CreateProvider(configuration);
             
-            // 构建完整的分析prompt，包含代码内容
-            var fullPrompt = $@"{prompt}
+            // 构建完整的分析prompt
+            var fullPrompt = BuildAnalysisPrompt(prompt, code);
 
-代码内容：
-```
-{code}
-```";
-
-            _logger.LogInformation("使用 {Provider} 进行AI分析", configuration.Provider);
+            _logger.LogInformation("使用 {Provider} 进行AI分析, Prompt长度: {PromptLength}", 
+                configuration.Provider, fullPrompt.Length);
             
             var result = await provider.GenerateAsync(fullPrompt);
             
-            _logger.LogInformation("使用 {Provider} 完成AI分析", configuration.Provider);
+            if (string.IsNullOrWhiteSpace(result))
+            {
+                throw new InvalidOperationException($"LLM提供商 {configuration.Provider} 返回了空结果");
+            }
+            
+            _logger.LogInformation("使用 {Provider} 完成AI分析, 结果长度: {ResultLength}", 
+                configuration.Provider, result.Length);
+            
             return result;
         }
         catch (Exception ex)
@@ -111,6 +203,31 @@ Git差异内容：
             _logger.LogError(ex, "使用 {Provider} 进行AI分析时发生错误", configuration.Provider);
             throw;
         }
+    }
+
+    /// <summary>
+    /// 构建分析任务的Prompt
+    /// </summary>
+    private string BuildAnalysisPrompt(string taskPrompt, string code)
+    {
+        return $@"# AI 分析任务
+
+{taskPrompt}
+
+## 代码内容
+```
+{code}
+```
+
+## 输出要求
+
+1. 请提供结构化的分析结果
+2. 使用JSON格式输出(如任务要求)
+3. 确保分析深入、全面、准确
+4. 提供具体的数据和证据支持你的结论
+5. 如果发现问题，请提供可行的解决方案
+
+请开始分析...";
     }
 
     public async Task<bool> TestConnectionAsync(int configurationId)
@@ -122,6 +239,16 @@ Git差异内容：
         }
 
         return await _configurationService.TestConnectionAsync(configuration);
+    }
+
+    public async Task<string> ReviewWithAutoChunkingAsync(string diff, string context, int? configurationId = null)
+    {
+        return await _chunkedReviewService.ReviewWithAutoChunkingAsync(diff, context, configurationId);
+    }
+
+    public async Task<string> AnalyzeWithAutoChunkingAsync(string prompt, string code, int? configurationId = null)
+    {
+        return await _chunkedReviewService.AnalyzeWithAutoChunkingAsync(prompt, code, configurationId);
     }
 
     public async Task<LLMConfiguration?> GetActiveConfigurationAsync()

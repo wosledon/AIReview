@@ -19,20 +19,8 @@ namespace AIReview.Infrastructure.BackgroundJobs
         private readonly IContextBuilder _contextBuilder;
         private readonly IMultiLLMService _multiLLMService;
         private readonly Core.Services.ProjectGitMigrationService _projectGitMigrationService;
-
-        // 使用分布式锁，替代进程内静态集合，支持多实例
-        private IDisposable? TryAcquireDistributedLock(string resource, TimeSpan timeout)
-        {
-            try
-            {
-                var conn = JobStorage.Current.GetConnection();
-                return conn.AcquireDistributedLock(resource, timeout);
-            }
-            catch (DistributedLockTimeoutException)
-            {
-                return null;
-            }
-        }
+        private readonly IJobIdempotencyService _jobIdempotencyService;
+        private readonly IDistributedCacheService _distributedCacheService;
         private readonly ILogger<AIReviewJob> _logger;
 
         public AIReviewJob(
@@ -43,6 +31,8 @@ namespace AIReview.Infrastructure.BackgroundJobs
             IContextBuilder contextBuilder,
             IMultiLLMService multiLLMService,
             Core.Services.ProjectGitMigrationService projectGitMigrationService,
+            IJobIdempotencyService jobIdempotencyService,
+            IDistributedCacheService distributedCacheService,
             ILogger<AIReviewJob> logger)
         {
             _aiReviewer = aiReviewer;
@@ -52,6 +42,8 @@ namespace AIReview.Infrastructure.BackgroundJobs
             _contextBuilder = contextBuilder;
             _multiLLMService = multiLLMService;
             _projectGitMigrationService = projectGitMigrationService;
+            _jobIdempotencyService = jobIdempotencyService;
+            _distributedCacheService = distributedCacheService;
             _logger = logger;
         }
 
@@ -60,27 +52,35 @@ namespace AIReview.Infrastructure.BackgroundJobs
         public async Task ProcessReviewAsync(int reviewRequestId)
         {
             var startTime = DateTime.UtcNow;
-            var executionId = Guid.NewGuid().ToString("N")[..8]; // 生成执行ID用于跟踪
             
-            // 分布式去重：同一评审仅允许一个处理流程
-            using var distLock = TryAcquireDistributedLock($"lock:ai:review:{reviewRequestId}", TimeSpan.FromSeconds(1));
-            if (distLock == null)
+            // 使用幂等性服务确保Job只执行一次
+            await using var executionContext = await _jobIdempotencyService.TryStartExecutionAsync(
+                "ai-review", 
+                reviewRequestId.ToString(), 
+                TimeSpan.FromMinutes(30));
+            
+            if (executionContext == null)
             {
-                _logger.LogWarning("[{ExecutionId}] Skip review {ReviewRequestId}: another instance is running", executionId, reviewRequestId);
+                _logger.LogWarning("Review {ReviewRequestId} is already being processed or completed recently, skipping", 
+                    reviewRequestId);
                 return;
             }
             
             try
             {
                 _logger.LogInformation("[{ExecutionId}] Starting AI review for request {ReviewRequestId}", 
-                    executionId, reviewRequestId);
+                    executionContext.ExecutionId, reviewRequestId);
+
+                // 更新进度: 开始处理
+                await executionContext.UpdateProgressAsync(10, "验证评审请求");
 
                 // 验证评审是否存在
                 var reviewDto = await _reviewService.GetReviewAsync(reviewRequestId);
                 if (reviewDto == null)
                 {
                     _logger.LogWarning("[{ExecutionId}] Review request {ReviewRequestId} not found", 
-                        executionId, reviewRequestId);
+                        executionContext.ExecutionId, reviewRequestId);
+                    await executionContext.MarkFailureAsync("评审请求不存在");
                     return;
                 }
 
@@ -88,16 +88,20 @@ namespace AIReview.Infrastructure.BackgroundJobs
                 if (reviewDto.Status != ReviewState.Pending)
                 {
                     _logger.LogWarning("[{ExecutionId}] Review request {ReviewRequestId} is already in {Status} state, skipping processing", 
-                        executionId, reviewRequestId, reviewDto.Status);
+                        executionContext.ExecutionId, reviewRequestId, reviewDto.Status);
+                    await executionContext.MarkSuccessAsync("评审已处理");
                     return;
                 }
+
+                // 更新进度: 检查配置
+                await executionContext.UpdateProgressAsync(20, "检查LLM配置");
 
                 // 检查是否有可用的LLM配置
                 var availableConfigs = await _multiLLMService.GetAvailableConfigurationsAsync();
                 if (!availableConfigs.Any())
                 {
                     _logger.LogError("[{ExecutionId}] No active LLM configurations available for review {ReviewRequestId}", 
-                        executionId, reviewRequestId);
+                        executionContext.ExecutionId, reviewRequestId);
                     await _reviewService.UpdateReviewStatusAsync(reviewRequestId, ReviewState.Rejected);
                     await _notificationService.SendReviewStatusUpdateAsync(
                         reviewDto.AuthorId,
@@ -105,18 +109,23 @@ namespace AIReview.Infrastructure.BackgroundJobs
                         "failed",
                         "没有可用的LLM配置，请联系管理员配置AI服务"
                     );
+                    await executionContext.MarkFailureAsync("没有可用的LLM配置");
                     return;
                 }
 
                 _logger.LogInformation("[{ExecutionId}] Found {ConfigCount} available LLM configurations for review {ReviewRequestId}", 
-                    executionId, availableConfigs.Count(), reviewRequestId);
+                    executionContext.ExecutionId, availableConfigs.Count(), reviewRequestId);
+
+                // 更新进度: 更新状态
+                await executionContext.UpdateProgressAsync(30, "更新评审状态");
 
                 // 原子性地更新状态为 AIReviewing（防止并发处理）
                 var statusUpdated = await TryUpdateReviewStatusAsync(reviewRequestId, ReviewState.Pending, ReviewState.AIReviewing);
                 if (!statusUpdated)
                 {
                     _logger.LogWarning("[{ExecutionId}] Review {ReviewRequestId} status update failed, another process may be handling it", 
-                        executionId, reviewRequestId);
+                        executionContext.ExecutionId, reviewRequestId);
+                    await executionContext.MarkSuccessAsync("评审已被其他进程处理");
                     return;
                 }
                 
@@ -128,13 +137,19 @@ namespace AIReview.Infrastructure.BackgroundJobs
                     "AI正在分析您的代码..."
                 );
 
+                // 更新进度: 构建差异
+                await executionContext.UpdateProgressAsync(40, "构建代码差异");
+
                 // 构建代码差异（优先使用Git，回退到基本信息）
                 string diff = await BuildDiffAsync(reviewDto);
+
+                // 更新进度: 语言识别
+                await executionContext.UpdateProgressAsync(50, "识别编程语言和项目类型");
 
                 // 语言自动识别 + 上下文构建
                 var detectedLanguage = DetectLanguageFromDiff(diff) ?? "general";
                 _logger.LogInformation("[{ExecutionId}] Detected language: {Language} for review {ReviewRequestId}", 
-                    executionId, detectedLanguage, reviewRequestId);
+                    executionContext.ExecutionId, detectedLanguage, reviewRequestId);
 
                 var baseContext = new Core.Interfaces.ReviewContext
                 {
@@ -142,8 +157,15 @@ namespace AIReview.Infrastructure.BackgroundJobs
                 };
                 var context = await _contextBuilder.BuildContextAsync(diff, baseContext);
 
-                // 执行AI评审
+                // 更新进度: AI分析
+                await executionContext.UpdateProgressAsync(60, "AI正在分析代码...");
+
+                // 执行AI评审 - 这是最耗时的操作,可能需要延长超时
+                await executionContext.ExtendTimeoutAsync(TimeSpan.FromMinutes(10));
                 var aiResult = await _aiReviewer.ReviewCodeAsync(diff, context);
+
+                // 更新进度: 保存结果
+                await executionContext.UpdateProgressAsync(80, "保存分析结果");
 
                 // 保存AI评审结果（包括AI生成的评论）
                 await _reviewService.SaveAIReviewResultAsync(reviewRequestId, aiResult);
@@ -159,15 +181,28 @@ namespace AIReview.Infrastructure.BackgroundJobs
                     $"AI评审已完成，发现了 {aiResult.Comments.Count} 条建议，等待人工复核"
                 );
 
+                // 更新进度: 完成
+                await executionContext.UpdateProgressAsync(100, "评审完成");
+
                 var duration = DateTime.UtcNow - startTime;
                 _logger.LogInformation("[{ExecutionId}] AI review completed for request {ReviewRequestId}, {CommentCount} comments generated, duration: {Duration}ms",
-                    executionId, reviewRequestId, aiResult.Comments.Count, duration.TotalMilliseconds);
+                    executionContext.ExecutionId, reviewRequestId, aiResult.Comments.Count, duration.TotalMilliseconds);
+                
+                // 标记成功
+                await executionContext.MarkSuccessAsync(new { 
+                    ReviewRequestId = reviewRequestId, 
+                    CommentsCount = aiResult.Comments.Count,
+                    Score = aiResult.OverallScore 
+                });
             }
             catch (Exception ex)
             {
                 var duration = DateTime.UtcNow - startTime;
                 _logger.LogError(ex, "[{ExecutionId}] Error processing AI review for request {ReviewRequestId}, duration: {Duration}ms", 
-                    executionId, reviewRequestId, duration.TotalMilliseconds);
+                    executionContext.ExecutionId, reviewRequestId, duration.TotalMilliseconds);
+
+                // 标记失败
+                await executionContext.MarkFailureAsync(ex.Message, ex);
 
                 // 更新状态为失败
                 try
@@ -190,10 +225,11 @@ namespace AIReview.Infrastructure.BackgroundJobs
                 catch (Exception updateEx)
                 {
                     _logger.LogError(updateEx, "[{ExecutionId}] Failed to update review request status to failed for {ReviewRequestId}", 
-                        executionId, reviewRequestId);
+                        executionContext.ExecutionId, reviewRequestId);
                 }
+                
+                throw; // 重新抛出异常让Hangfire知道任务失败
             }
-            finally { }
         }
 
         [Queue("ai-review")]

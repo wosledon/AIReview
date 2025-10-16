@@ -171,7 +171,8 @@ public class ImprovementSuggestionService : IImprovementSuggestionService
         try
         {
             var codeToAnalyze = string.Join("\n", fileDiff.AddedContent.Concat(fileDiff.DeletedContent));
-            var response = await _llmService.GenerateAnalysisAsync(prompt, codeToAnalyze);
+            // 使用自动分块分析,当代码量超过限制时会自动分块处理
+            var response = await _llmService.AnalyzeWithAutoChunkingAsync(prompt, codeToAnalyze);
             var aiSuggestions = ParseFileSuggestions(response);
             
             return aiSuggestions.Select(ai => new ImprovementSuggestion
@@ -209,7 +210,8 @@ public class ImprovementSuggestionService : IImprovementSuggestionService
         
         try
         {
-            var response = await _llmService.GenerateAnalysisAsync(prompt, fullDiff);
+            // 使用自动分块分析,当代码量超过限制时会自动分块处理
+            var response = await _llmService.AnalyzeWithAutoChunkingAsync(prompt, fullDiff);
             var aiSuggestions = ParseOverallSuggestions(response);
             
             return aiSuggestions.Select(ai => new ImprovementSuggestion
