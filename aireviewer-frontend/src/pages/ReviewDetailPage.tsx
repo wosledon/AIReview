@@ -19,7 +19,7 @@ import {
 import { reviewService } from '../services/review.service';
 import { analysisService } from '../services/analysis.service';
 import { useNotifications } from '../hooks/useNotifications';
-import { DiffViewer } from '../components/DiffViewer';
+import { LazyDiffViewer } from '../components/LazyDiffViewer';
 import { ReviewState, ReviewCommentSeverity, ReviewCommentCategory } from '../types/review';
 import type { Review, ReviewComment, AddCommentRequest, RejectReviewRequest } from '../types/review';
 import type { AnalysisData, RiskAssessment, ImprovementSuggestion, PullRequestChangeSummary } from '../types/analysis';
@@ -966,10 +966,10 @@ const DiffTab = ({ review, targetFileAndLine }: DiffTabProps) => {
   const { addNotification } = useNotifications();
   const queryClient = useQueryClient();
   
-  // 使用真实的API数据
-  const { data: diffData, isLoading: isDiffLoading, error: diffError } = useQuery({
-    queryKey: ['review-diff', review.id],
-    queryFn: () => reviewService.getReviewDiff(review.id),
+  // 使用轻量级文件列表API（替代完整diff）
+  const { data: fileListData, isLoading: isFileListLoading, error: fileListError } = useQuery({
+    queryKey: ['review-diff-files', review.id],
+    queryFn: () => reviewService.getReviewDiffFileList(review.id),
   });
 
   const addLineComment = useMutation({
@@ -1048,29 +1048,29 @@ const DiffTab = ({ review, targetFileAndLine }: DiffTabProps) => {
     }
   };
 
-  if (isDiffLoading) {
+  if (isFileListLoading) {
     return (
       <div className="flex items-center justify-center h-64 dark:bg-gray-900/50 rounded-lg fade-in">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">正在加载代码差异...</p>
+          <p className="text-gray-600 dark:text-gray-400">正在加载文件列表...</p>
         </div>
       </div>
     );
   }
 
-  if (diffError) {
+  if (fileListError) {
     return (
       <div className="card dark:bg-gray-900 dark:border-gray-800 text-center py-8 fade-in">
         <ExclamationTriangleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">加载失败</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-2">无法加载代码差异信息</p>
+        <p className="text-gray-600 dark:text-gray-400 mb-2">无法加载文件列表</p>
         <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
-          {diffError instanceof Error ? diffError.message : '未知错误'}
+          {fileListError instanceof Error ? fileListError.message : '未知错误'}
         </p>
         <button 
           className="btn btn-primary transition-all hover:scale-105"
-          onClick={() => queryClient.invalidateQueries({ queryKey: ['review-diff', review.id] })}
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['review-diff-files', review.id] })}
         >
           重试
         </button>
@@ -1078,7 +1078,7 @@ const DiffTab = ({ review, targetFileAndLine }: DiffTabProps) => {
     );
   }
 
-  if (!diffData || !diffData.files || diffData.files.length === 0) {
+  if (!fileListData || !fileListData.files || fileListData.files.length === 0) {
     return (
       <div className="card dark:bg-gray-900 dark:border-gray-800 text-center py-8 fade-in">
         <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -1091,15 +1091,23 @@ const DiffTab = ({ review, targetFileAndLine }: DiffTabProps) => {
     <div className="space-y-6 fade-in">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">代码变更</h3>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          {review.branch} ← {review.baseBranch}
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {fileListData.totalFiles} 个文件 · 
+            <span className="text-green-600"> +{fileListData.totalAddedLines}</span> · 
+            <span className="text-red-600"> -{fileListData.totalDeletedLines}</span>
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {review.branch} ← {review.baseBranch}
+          </div>
         </div>
       </div>
 
       <div className="h-[70vh] md:h-[78vh] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors">
-        <DiffViewer
-          files={diffData.files}
-          comments={diffData.comments}
+        <LazyDiffViewer
+          reviewId={review.id}
+          fileList={fileListData.files}
+          comments={fileListData.comments}
           onAddComment={handleAddComment}
           onDeleteComment={handleDeleteComment}
           language="auto"

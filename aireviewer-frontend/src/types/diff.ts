@@ -3,6 +3,32 @@ export interface DiffResponse {
   comments: CodeComment[];
 }
 
+// 新增：轻量级文件列表响应
+export interface DiffFileListResponse {
+  files: DiffFileMetadata[];
+  comments: CodeComment[];
+  totalFiles: number;
+  totalAddedLines: number;
+  totalDeletedLines: number;
+}
+
+// 新增：文件元数据（不包含diff内容）
+export interface DiffFileMetadata {
+  oldPath: string;
+  newPath: string;
+  type: 'add' | 'delete' | 'modify' | 'rename';
+  addedLines: number;
+  deletedLines: number;
+  totalChanges: number; // hunk数量
+}
+
+// 新增：单个文件的完整diff响应
+export interface DiffFileDetailResponse {
+  file: DiffFile;
+  comments: CodeComment[];
+}
+
+
 export interface DiffFile {
   oldPath: string;
   newPath: string;

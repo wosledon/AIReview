@@ -11,7 +11,7 @@ import type {
   ReviewQueryParameters,
   PagedResult 
 } from '../types/review';
-import type { DiffResponse } from '../types/diff';
+import type { DiffResponse, DiffFileListResponse, DiffFileDetailResponse } from '../types/diff';
 
 export class ReviewService {
   async getReviews(params?: ReviewQueryParameters): Promise<PagedResult<Review>> {
@@ -121,6 +121,20 @@ export class ReviewService {
 
   async getReviewDiff(reviewId: number): Promise<DiffResponse> {
     const response = await apiClient.get<{ success: boolean; data: DiffResponse }>(`/reviews/${reviewId}/diff`);
+    return response.data;
+  }
+
+  // 新增：获取文件列表（轻量级）
+  async getReviewDiffFileList(reviewId: number): Promise<DiffFileListResponse> {
+    const response = await apiClient.get<{ success: boolean; data: DiffFileListResponse }>(`/reviews/${reviewId}/diff/files`);
+    return response.data;
+  }
+
+  // 新增：按需加载单个文件的diff
+  async getReviewDiffFile(reviewId: number, filePath: string): Promise<DiffFileDetailResponse> {
+    // URL encode the file path
+    const encodedPath = encodeURIComponent(filePath);
+    const response = await apiClient.get<{ success: boolean; data: DiffFileDetailResponse }>(`/reviews/${reviewId}/diff/files/${encodedPath}`);
     return response.data;
   }
 }

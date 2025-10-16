@@ -7,6 +7,41 @@ public class DiffResponseDto
 }
 
 /// <summary>
+/// 轻量级文件列表DTO - 只包含文件元数据，不包含diff内容
+/// </summary>
+public class DiffFileListDto
+{
+    public List<DiffFileMetadataDto> Files { get; set; } = new();
+    public List<CodeCommentDto> Comments { get; set; } = new();
+    public int TotalFiles { get; set; }
+    public int TotalAddedLines { get; set; }
+    public int TotalDeletedLines { get; set; }
+}
+
+/// <summary>
+/// 文件元数据DTO - 不包含具体的diff内容
+/// </summary>
+public class DiffFileMetadataDto
+{
+    public string OldPath { get; set; } = "";
+    public string NewPath { get; set; } = "";
+    public string Type { get; set; } = ""; // add, delete, modify, rename
+    public int AddedLines { get; set; }
+    public int DeletedLines { get; set; }
+    public int TotalChanges { get; set; } // hunk数量
+}
+
+/// <summary>
+/// 单个文件的完整diff内容DTO
+/// </summary>
+public class DiffFileDetailDto
+{
+    public DiffFileDto File { get; set; } = new();
+    public List<CodeCommentDto> Comments { get; set; } = new(); // 该文件相关的评论
+}
+
+
+/// <summary>
 /// 文件差异DTO - 用于分析服务
 /// </summary>
 public class FileDiffDto
