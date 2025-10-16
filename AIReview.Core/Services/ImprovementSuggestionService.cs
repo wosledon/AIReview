@@ -35,6 +35,9 @@ public class ImprovementSuggestionService : IImprovementSuggestionService
         if (reviewRequest == null)
             throw new ArgumentException($"Review request with id {reviewRequestId} not found");
 
+        if (reviewRequest.Project == null)
+            throw new InvalidOperationException($"Project not found for review request {reviewRequestId}");
+
         _logger.LogInformation("Generating improvement suggestions for review {ReviewId}", reviewRequestId);
 
         try
@@ -307,29 +310,91 @@ public class ImprovementSuggestionService : IImprovementSuggestionService
     {
         try
         {
-            // 预处理：去除 markdown 代码块包裹
+            // 预处理：清理围栏、BOM，并从文本中提取首个完整 JSON 片段
             var cleanResponse = CleanJsonResponse(response);
-            var jsonArray = JsonSerializer.Deserialize<JsonElement[]>(cleanResponse);
-            return jsonArray?.Select(json => new AISuggestion
+
+            string? jsonPayload = ExtractFirstJsonPayload(cleanResponse);
+            if (string.IsNullOrWhiteSpace(jsonPayload))
             {
-                StartLine = json.TryGetProperty("startLine", out var startLine) ? startLine.GetInt32() : (int?)null,
-                EndLine = json.TryGetProperty("endLine", out var endLine) ? endLine.GetInt32() : (int?)null,
-                Type = Enum.Parse<ImprovementType>(json.GetProperty("type").GetString()!),
-                Priority = Enum.Parse<ImprovementPriority>(json.GetProperty("priority").GetString()!),
-                Title = json.GetProperty("title").GetString()!,
-                Description = json.GetProperty("description").GetString()!,
-                OriginalCode = json.TryGetProperty("originalCode", out var original) ? original.GetString() : null,
-                SuggestedCode = json.TryGetProperty("suggestedCode", out var suggested) ? suggested.GetString() : null,
-                Reasoning = json.TryGetProperty("reasoning", out var reasoning) ? reasoning.GetString() : null,
-                ExpectedBenefits = json.TryGetProperty("expectedBenefits", out var benefits) ? benefits.GetString() : null,
-                ImplementationComplexity = json.GetProperty("implementationComplexity").GetInt32(),
-                ImpactAssessment = json.TryGetProperty("impactAssessment", out var impact) ? impact.GetString() : null,
-                ConfidenceScore = json.GetProperty("confidenceScore").GetDouble()
-            }).ToList() ?? new List<AISuggestion>();
+                _logger.LogWarning("AI suggestions response does not contain JSON payload. First 200 chars: {Snippet}",
+                    TruncateForLog(cleanResponse, 200));
+                return new List<AISuggestion>();
+            }
+
+            // 支持数组或对象包裹（包含 suggestions 字段）
+            List<JsonElement> items;
+            try
+            {
+                var asArray = JsonSerializer.Deserialize<JsonElement[]>(jsonPayload);
+                if (asArray != null)
+                {
+                    items = asArray.ToList();
+                }
+                else
+                {
+                    items = new List<JsonElement>();
+                }
+            }
+            catch
+            {
+                // 尝试对象形式
+                var obj = JsonSerializer.Deserialize<JsonElement>(jsonPayload);
+                if (obj.ValueKind == JsonValueKind.Object && TryGetPropertyCaseInsensitive(obj, "suggestions", out var suggestionsEl) && suggestionsEl.ValueKind == JsonValueKind.Array)
+                {
+                    items = suggestionsEl.EnumerateArray().ToList();
+                }
+                else if (obj.ValueKind == JsonValueKind.Array)
+                {
+                    items = obj.EnumerateArray().ToList();
+                }
+                else
+                {
+                    items = new List<JsonElement>();
+                }
+            }
+
+            var parsed = new List<AISuggestion>();
+            foreach (var json in items)
+            {
+                // 宽松解析，属性名大小写不敏感，缺失则给默认
+                TryGetPropertyCaseInsensitive(json, "startLine", out var startLineEl);
+                TryGetPropertyCaseInsensitive(json, "endLine", out var endLineEl);
+                TryGetPropertyCaseInsensitive(json, "type", out var typeEl);
+                TryGetPropertyCaseInsensitive(json, "priority", out var priorityEl);
+                TryGetPropertyCaseInsensitive(json, "title", out var titleEl);
+                TryGetPropertyCaseInsensitive(json, "description", out var descriptionEl);
+                TryGetPropertyCaseInsensitive(json, "originalCode", out var originalEl);
+                TryGetPropertyCaseInsensitive(json, "suggestedCode", out var suggestedEl);
+                TryGetPropertyCaseInsensitive(json, "reasoning", out var reasoningEl);
+                TryGetPropertyCaseInsensitive(json, "expectedBenefits", out var benefitsEl);
+                TryGetPropertyCaseInsensitive(json, "implementationComplexity", out var complexityEl);
+                TryGetPropertyCaseInsensitive(json, "impactAssessment", out var impactEl);
+                TryGetPropertyCaseInsensitive(json, "confidenceScore", out var confidenceEl);
+
+                var item = new AISuggestion
+                {
+                    StartLine = GetIntOrNull(startLineEl),
+                    EndLine = GetIntOrNull(endLineEl),
+                    Type = GetEnumOrDefault(typeEl, ImprovementType.BestPractices),
+                    Priority = GetEnumOrDefault(priorityEl, ImprovementPriority.Medium),
+                    Title = GetStringOrDefault(titleEl, "AI 改进建议"),
+                    Description = GetStringOrDefault(descriptionEl, "模型未提供详细描述。"),
+                    OriginalCode = GetOptionalString(originalEl),
+                    SuggestedCode = GetOptionalString(suggestedEl),
+                    Reasoning = GetOptionalString(reasoningEl),
+                    ExpectedBenefits = GetOptionalString(benefitsEl),
+                    ImplementationComplexity = ClampToRange(GetIntOrDefault(complexityEl, 3), 1, 10),
+                    ImpactAssessment = GetOptionalString(impactEl),
+                    ConfidenceScore = ClampToRange(GetDoubleOrDefault(confidenceEl, 0.5), 0, 1)
+                };
+                parsed.Add(item);
+            }
+
+            return parsed;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to parse AI suggestions response");
+            _logger.LogWarning(ex, "Failed to parse AI suggestions response. Raw snippet: {Snippet}", TruncateForLog(response, 200));
             return new List<AISuggestion>();
         }
     }
@@ -426,7 +491,8 @@ public class ImprovementSuggestionService : IImprovementSuggestionService
         if (string.IsNullOrWhiteSpace(response))
             return response;
 
-        var trimmed = response.Trim();
+        // 移除 UTF-8 BOM（如存在）
+        var trimmed = response.TrimStart('\uFEFF').Trim();
 
         // 处理 ```json ... ``` 格式
         if (trimmed.StartsWith("```json"))
@@ -450,6 +516,166 @@ public class ImprovementSuggestionService : IImprovementSuggestionService
         }
 
         return trimmed;
+    }
+
+    // 从文本中提取第一个完整的 JSON 片段（数组或对象），用于处理中文前缀/后缀包裹
+    private string? ExtractFirstJsonPayload(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        int idxArray = text.IndexOf('[');
+        int idxObj = text.IndexOf('{');
+        int start = -1;
+        char open = '\0';
+        char close = '\0';
+
+        if (idxArray >= 0 && (idxObj < 0 || idxArray < idxObj))
+        {
+            start = idxArray; open = '['; close = ']';
+        }
+        else if (idxObj >= 0)
+        {
+            start = idxObj; open = '{'; close = '}';
+        }
+
+        if (start < 0) return null;
+
+        int depth = 0;
+        bool inString = false;
+        bool escape = false;
+        for (int i = start; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (escape)
+            {
+                escape = false; continue;
+            }
+            if (c == '\\') { if (inString) escape = true; continue; }
+            if (c == '"') { inString = !inString; continue; }
+
+            if (!inString)
+            {
+                if (c == open) depth++;
+                else if (c == close)
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        return text.Substring(start, i - start + 1);
+                    }
+                }
+            }
+        }
+        // 未找到闭合，返回从起始到末尾（容错）
+        return text.Substring(start);
+    }
+
+    private static bool TryGetPropertyCaseInsensitive(JsonElement element, string name, out JsonElement value)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            value = default; return false;
+        }
+        foreach (var prop in element.EnumerateObject())
+        {
+            if (string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                value = prop.Value; return true;
+            }
+        }
+        value = default; return false;
+    }
+
+    private static string GetStringOrDefault(JsonElement el, string defaultValue)
+    {
+        try
+        {
+            return el.ValueKind == JsonValueKind.String ? el.GetString() ?? defaultValue : defaultValue;
+        }
+        catch { return defaultValue; }
+    }
+
+    private static string? GetOptionalString(JsonElement el)
+    {
+        try
+        {
+            return el.ValueKind == JsonValueKind.String ? el.GetString() : null;
+        }
+        catch { return null; }
+    }
+
+    private static int? GetIntOrNull(JsonElement el)
+    {
+        try
+        {
+            if (el.ValueKind == JsonValueKind.Number) return el.GetInt32();
+            if (el.ValueKind == JsonValueKind.String && int.TryParse(el.GetString(), out var v)) return v;
+            return null;
+        }
+        catch { return null; }
+    }
+
+    private static int GetIntOrDefault(JsonElement el, int defaultValue)
+    {
+        var v = GetIntOrNull(el);
+        return v ?? defaultValue;
+    }
+
+    private static double GetDoubleOrDefault(JsonElement el, double defaultValue)
+    {
+        try
+        {
+            if (el.ValueKind == JsonValueKind.Number) return el.GetDouble();
+            if (el.ValueKind == JsonValueKind.String && double.TryParse(el.GetString(), out var v)) return v;
+            return defaultValue;
+        }
+        catch { return defaultValue; }
+    }
+
+    private static TEnum GetEnumOrDefault<TEnum>(JsonElement el, TEnum defaultValue) where TEnum : struct
+    {
+        try
+        {
+            if (el.ValueKind == JsonValueKind.String)
+            {
+                var s = el.GetString();
+                if (!string.IsNullOrWhiteSpace(s) && Enum.TryParse<TEnum>(s, ignoreCase: true, out var parsed))
+                {
+                    return parsed;
+                }
+            }
+            else if (el.ValueKind == JsonValueKind.Number)
+            {
+                // 支持用数字枚举值
+                var i = el.GetInt32();
+                if (Enum.IsDefined(typeof(TEnum), i))
+                {
+                    return (TEnum)Enum.ToObject(typeof(TEnum), i);
+                }
+            }
+        }
+        catch { }
+        return defaultValue;
+    }
+
+    private static int ClampToRange(int value, int min, int max)
+    {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
+    private static double ClampToRange(double value, double min, double max)
+    {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
+    private static string TruncateForLog(string text, int maxLen)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        return text.Length <= maxLen ? text : text.Substring(0, maxLen);
     }
 
     private class AISuggestion

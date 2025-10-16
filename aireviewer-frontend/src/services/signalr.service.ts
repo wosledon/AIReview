@@ -32,7 +32,7 @@ class SignalRService {
     }
 
     this.connection = new HubConnectionBuilder()
-      .withUrl('http://localhost:5000/hubs/notifications', {
+      .withUrl('http://10.60.33.81:5000/hubs/notifications', {
         accessTokenFactory: () => token,
       })
       .withAutomaticReconnect()

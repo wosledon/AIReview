@@ -34,6 +34,9 @@ public class RiskAssessmentService : IRiskAssessmentService
         if (reviewRequest == null)
             throw new ArgumentException($"Review request with id {reviewRequestId} not found");
 
+        if (reviewRequest.Project == null)
+            throw new InvalidOperationException($"Project not found for review request {reviewRequestId}");
+
         _logger.LogInformation("Generating risk assessment for review {ReviewId}", reviewRequestId);
 
         try

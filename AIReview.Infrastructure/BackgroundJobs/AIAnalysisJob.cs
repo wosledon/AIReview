@@ -287,15 +287,16 @@ namespace AIReview.Infrastructure.BackgroundJobs
                     "综合分析已开始"
                 );
 
-                // 并行执行所有分析
-                var tasks = new List<Task>
-                {
-                    _riskAssessmentService.GenerateRiskAssessmentAsync(reviewRequestId),
-                    _improvementSuggestionService.GenerateImprovementSuggestionsAsync(reviewRequestId),
-                    _pullRequestAnalysisService.GenerateChangeSummaryAsync(reviewRequestId)
-                };
-
-                await Task.WhenAll(tasks);
+                // 顺序执行所有分析（避免 DbContext 并发问题）
+                // 注意：不能并行执行，因为它们共享同一个 DbContext 实例
+                _logger.LogInformation("Starting risk assessment for comprehensive analysis");
+                await _riskAssessmentService.GenerateRiskAssessmentAsync(reviewRequestId);
+                
+                _logger.LogInformation("Starting improvement suggestions for comprehensive analysis");
+                await _improvementSuggestionService.GenerateImprovementSuggestionsAsync(reviewRequestId);
+                
+                _logger.LogInformation("Starting PR summary for comprehensive analysis");
+                await _pullRequestAnalysisService.GenerateChangeSummaryAsync(reviewRequestId);
 
                 // 发送完成通知
                 await _notificationService.SendReviewStatusUpdateAsync(

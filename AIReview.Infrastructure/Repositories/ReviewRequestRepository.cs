@@ -107,12 +107,14 @@ public class ReviewRequestRepository : Repository<ReviewRequest>, IReviewRequest
     public async Task<ReviewRequest?> GetReviewWithCommentsAsync(int reviewId)
     {
         return await _dbSet
+            .Include(r => r.Comments)
             .FirstOrDefaultAsync(r => r.Id == reviewId);
     }
 
     public async Task<ReviewRequest?> GetReviewWithProjectAsync(int reviewId)
     {
         return await _dbSet
+            .Include(r => r.Project)
             .FirstOrDefaultAsync(r => r.Id == reviewId);
     }
 

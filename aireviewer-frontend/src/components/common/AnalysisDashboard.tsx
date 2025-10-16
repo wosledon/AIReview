@@ -51,7 +51,7 @@ export const AnalysisDashboard = ({ analysisData, className = '' }: AnalysisDash
   const dashboardMetrics = [
     {
       label: '综合风险评分',
-      value: metrics.overallRiskScore,
+      value: metrics.overallRiskScore.toFixed(2),
       color: (metrics.overallRiskScore > 80 ? 'red' : metrics.overallRiskScore > 60 ? 'orange' : 'green') as 'red' | 'orange' | 'green'
     },
     {

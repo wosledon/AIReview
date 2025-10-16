@@ -41,6 +41,9 @@ public class PullRequestAnalysisService : IPullRequestAnalysisService
         if (reviewRequest == null)
             throw new ArgumentException($"Review request with id {reviewRequestId} not found");
 
+        if (reviewRequest.Project == null)
+            throw new InvalidOperationException($"Project not found for review request {reviewRequestId}");
+
         _logger.LogInformation("Generating PR change summary for review {ReviewId}", reviewRequestId);
 
         try
@@ -281,30 +284,77 @@ PR信息:
             var cleanResponse = CleanJsonResponse(response);
             var jsonResponse = JsonSerializer.Deserialize<JsonElement>(cleanResponse);
             
+                // 辅助方法：安全获取字符串属性
+                string GetStringOrDefault(string propertyName, string defaultValue = "")
+                {
+                    try
+                    {
+                        if (jsonResponse.TryGetProperty(propertyName, out var prop))
+                        {
+                            var value = prop.GetString();
+                            return string.IsNullOrWhiteSpace(value) ? defaultValue : value;
+                        }
+                    }
+                    catch { }
+                    return defaultValue;
+                }
+
+                // 辅助方法：安全解析枚举
+                T GetEnumOrDefault<T>(string propertyName, T defaultValue) where T : struct, Enum
+                {
+                    try
+                    {
+                        if (jsonResponse.TryGetProperty(propertyName, out var prop))
+                        {
+                            var value = prop.GetString();
+                            if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse<T>(value, true, out var result))
+                            {
+                                return result;
+                            }
+                        }
+                    }
+                    catch { }
+                    return defaultValue;
+                }
+
+                // 辅助方法：安全获取数字
+                double GetDoubleOrDefault(string propertyName, double defaultValue = 0.5)
+                {
+                    try
+                    {
+                        if (jsonResponse.TryGetProperty(propertyName, out var prop))
+                        {
+                            return prop.GetDouble();
+                        }
+                    }
+                    catch { }
+                    return defaultValue;
+                }
+
             return new AIChangeAnalysis
             {
-                ChangeType = Enum.Parse<ChangeType>(jsonResponse.GetProperty("changeType").GetString()!),
-                Summary = jsonResponse.GetProperty("summary").GetString()!,
-                DetailedDescription = jsonResponse.GetProperty("detailedDescription").GetString(),
-                KeyChanges = jsonResponse.GetProperty("keyChanges").GetString(),
-                ImpactAnalysis = jsonResponse.GetProperty("impactAnalysis").GetString(),
-                BusinessImpact = Enum.Parse<BusinessImpact>(jsonResponse.GetProperty("businessImpact").GetString()!),
-                TechnicalImpact = Enum.Parse<TechnicalImpact>(jsonResponse.GetProperty("technicalImpact").GetString()!),
-                BreakingChangeRisk = Enum.Parse<BreakingChangeRisk>(jsonResponse.GetProperty("breakingChangeRisk").GetString()!),
-                TestingRecommendations = jsonResponse.GetProperty("testingRecommendations").GetString(),
-                DeploymentConsiderations = jsonResponse.GetProperty("deploymentConsiderations").GetString(),
-                DependencyChanges = jsonResponse.GetProperty("dependencyChanges").GetString(),
-                PerformanceImpact = jsonResponse.GetProperty("performanceImpact").GetString(),
-                SecurityImpact = jsonResponse.GetProperty("securityImpact").GetString(),
-                BackwardCompatibility = jsonResponse.GetProperty("backwardCompatibility").GetString(),
-                DocumentationRequirements = jsonResponse.GetProperty("documentationRequirements").GetString(),
-                ConfidenceScore = jsonResponse.GetProperty("confidenceScore").GetDouble(),
+                    ChangeType = GetEnumOrDefault<ChangeType>("changeType", ChangeType.Feature),
+                    Summary = GetStringOrDefault("summary", "AI分析生成的变更摘要"),
+                    DetailedDescription = GetStringOrDefault("detailedDescription", "AI分析生成的详细描述"),
+                    KeyChanges = GetStringOrDefault("keyChanges"),
+                    ImpactAnalysis = GetStringOrDefault("impactAnalysis"),
+                    BusinessImpact = GetEnumOrDefault<BusinessImpact>("businessImpact", BusinessImpact.Medium),
+                    TechnicalImpact = GetEnumOrDefault<TechnicalImpact>("technicalImpact", TechnicalImpact.Medium),
+                    BreakingChangeRisk = GetEnumOrDefault<BreakingChangeRisk>("breakingChangeRisk", BreakingChangeRisk.Low),
+                    TestingRecommendations = GetStringOrDefault("testingRecommendations"),
+                    DeploymentConsiderations = GetStringOrDefault("deploymentConsiderations"),
+                    DependencyChanges = GetStringOrDefault("dependencyChanges"),
+                    PerformanceImpact = GetStringOrDefault("performanceImpact"),
+                    SecurityImpact = GetStringOrDefault("securityImpact"),
+                    BackwardCompatibility = GetStringOrDefault("backwardCompatibility"),
+                    DocumentationRequirements = GetStringOrDefault("documentationRequirements"),
+                    ConfidenceScore = GetDoubleOrDefault("confidenceScore", 0.5),
                 ModelVersion = "gpt-4" // 应该从LLM服务获取
             };
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to parse AI change analysis response");
+                _logger.LogWarning(ex, "Failed to parse AI change analysis response: {Response}", response?.Substring(0, Math.Min(200, response?.Length ?? 0)));
             return GetFallbackChangeAnalysis(new List<FileDiffDto>());
         }
     }
@@ -343,18 +393,39 @@ PR信息:
     private AIChangeAnalysis GetFallbackChangeAnalysis(List<FileDiffDto> parsedDiff)
     {
         var changeType = DetermineChangeTypeFromFiles(parsedDiff);
+            var filesCount = parsedDiff.Count;
+            var addedLines = parsedDiff.Sum(f => f.AddedLines);
+            var deletedLines = parsedDiff.Sum(f => f.DeletedLines);
         
         return new AIChangeAnalysis
         {
             ChangeType = changeType,
-            Summary = "代码变更摘要分析中，请稍后查看详细结果",
-            DetailedDescription = "由于AI分析服务暂时不可用，请进行人工代码审查",
+                Summary = $"本次PR涉及 {filesCount} 个文件的变更，新增 {addedLines} 行，删除 {deletedLines} 行代码。主要变更类型为{changeType}。",
+                DetailedDescription = $@"代码变更概览：
+    - 修改文件数: {filesCount}
+    - 新增代码行: {addedLines}
+    - 删除代码行: {deletedLines}
+    - 变更类型: {changeType}
+
+    注意：由于AI分析服务暂时不可用，以上为基于代码统计的基本分析。建议进行详细的人工代码审查。",
+                KeyChanges = string.Join("\n", parsedDiff.Take(10).Select(f => 
+                    $"• {f.FilePath}: +{f.AddedLines}/-{f.DeletedLines} 行" + (f.IsNewFile ? " (新文件)" : ""))),
+                ImpactAnalysis = "需要进行人工影响分析评估",
             BusinessImpact = BusinessImpact.Medium,
             TechnicalImpact = TechnicalImpact.Medium,
             BreakingChangeRisk = BreakingChangeRisk.Low,
-            TestingRecommendations = "建议进行完整的回归测试",
-            ConfidenceScore = 0.1,
-            ModelVersion = "fallback"
+                TestingRecommendations = @"建议的测试范围：
+    1. 对修改的文件进行单元测试
+    2. 执行相关模块的集成测试
+    3. 进行完整的回归测试
+    4. 验证核心业务流程",
+                DeploymentConsiderations = "建议在测试环境充分验证后再部署到生产环境",
+                PerformanceImpact = "需要进行性能测试评估",
+                SecurityImpact = "需要进行安全影响评估",
+                BackwardCompatibility = "需要验证向后兼容性",
+                DocumentationRequirements = "建议更新相关技术文档和用户文档",
+                ConfidenceScore = 0.3,
+                ModelVersion = "fallback-v1.0"
         };
     }
 

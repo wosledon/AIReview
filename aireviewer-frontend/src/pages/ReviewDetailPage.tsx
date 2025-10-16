@@ -1331,7 +1331,7 @@ const RiskAssessmentSection = ({ riskAssessment, onGenerate, isGenerating }: Ris
   const riskMetrics = [
     {
       label: '总体风险评分',
-      value: riskAssessment.overallRiskScore,
+      value: riskAssessment.overallRiskScore.toFixed(2),
       color: (riskAssessment.overallRiskScore > 80 ? 'red' : riskAssessment.overallRiskScore > 60 ? 'orange' : 'green') as 'red' | 'orange' | 'green'
     },
     {
@@ -1645,99 +1645,212 @@ const PullRequestSummarySection = ({ summary, onGenerate, isGenerating }: PullRe
     );
   }
 
-  // 影响分析数据（如有需要可解析 impactAnalysis 字段）
-  const summaryMetrics = [
-    { label: '置信度', value: summary.confidenceScore !== undefined ? `${Math.round(summary.confidenceScore * 100)}%` : '未知', color: 'blue' as const },
-    { label: '变更类型', value: summary.changeType, color: 'orange' as const },
-    { label: '变更统计', value: summary.changeStatistics ? summary.changeStatistics.modifiedFiles : 0, color: 'green' as const }
+  // 解析变更统计信息
+  let changeStats = null;
+  if (summary.changeStatistics) {
+    try {
+      changeStats = typeof summary.changeStatistics === 'string' 
+        ? JSON.parse(summary.changeStatistics) 
+        : summary.changeStatistics;
+    } catch (e) {
+      console.error('Failed to parse change statistics:', e);
+    }
+  }
+
+  // 摘要指标
+  const summaryMetrics: Array<{
+    label: string;
+    value: string | number;
+    color?: 'green' | 'yellow' | 'orange' | 'red' | 'blue' | 'gray';
+  }> = [
+    { label: '变更类型', value: summary.changeType, color: 'orange' },
+    { label: '业务影响', value: summary.businessImpact, color: 'blue' },
+    { label: '技术影响', value: summary.technicalImpact, color: 'blue' },
+    { label: '破坏性风险', value: summary.breakingChangeRisk, color: summary.breakingChangeRisk === 'High' || summary.breakingChangeRisk === 'Critical' ? 'red' : 'green' },
+    { 
+      label: 'AI 置信度', 
+      value: summary.confidenceScore !== undefined ? `${Math.round(summary.confidenceScore * 100)}%` : '未知', 
+      color: 'blue'
+    },
   ];
+
+  // 如果有变更统计，添加到指标中
+  if (changeStats) {
+    summaryMetrics.push(
+      { label: '修改文件数', value: changeStats.modifiedFiles || 0, color: 'blue' },
+      { label: '新增行数', value: `+${changeStats.addedLines || 0}`, color: 'green' },
+      { label: '删除行数', value: `-${changeStats.deletedLines || 0}`, color: 'red' }
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* 摘要指标 */}
       <AnalysisCard title="摘要概览">
-        <MetricGrid metrics={summaryMetrics} columns={3} />
+        <MetricGrid metrics={summaryMetrics} columns={summaryMetrics.length > 6 ? 4 : 3} />
       </AnalysisCard>
 
       {/* 整体摘要 */}
-      <AnalysisCard title="整体摘要">
-        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-          {summary.summary}
+      <AnalysisCard title="整体摘要" collapsible defaultExpanded={true}>
+        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+          {summary.summary || '暂无摘要'}
         </p>
       </AnalysisCard>
+
+      {/* 详细描述 */}
+      {summary.detailedDescription && (
+        <AnalysisCard title="详细描述" collapsible defaultExpanded={true}>
+          <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+            {summary.detailedDescription}
+          </div>
+        </AnalysisCard>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 关键变更 */}
         <AnalysisCard title="关键变更" collapsible defaultExpanded={true}>
           {summary.keyChanges ? (
-            <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.keyChanges}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">{summary.keyChanges}</div>
           ) : (
-            <div className="text-sm text-gray-400">无关键变更</div>
+            <div className="text-sm text-gray-400 italic">无关键变更信息</div>
           )}
         </AnalysisCard>
 
         {/* 影响分析 */}
-        <AnalysisCard title="影响分析">
-          <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.impactAnalysis || '无影响分析'}</div>
+        <AnalysisCard title="影响分析" collapsible defaultExpanded={true}>
+          {summary.impactAnalysis ? (
+            <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">{summary.impactAnalysis}</div>
+          ) : (
+            <div className="text-sm text-gray-400 italic">无影响分析</div>
+          )}
         </AnalysisCard>
       </div>
 
-      {/* 影响分析和风险评估 */}
-      {/* 其他信息展示（如有） */}
-
       {/* 破坏性变更风险 */}
-      {summary.breakingChangeRisk && summary.breakingChangeRisk !== 'None' && (
+      {summary.breakingChangeRisk && summary.breakingChangeRisk !== 'None' && summary.breakingChangeRisk !== 'Low' && (
         <AnalysisCard 
-          title="破坏性变更风险" 
+          title="⚠️ 破坏性变更风险" 
           className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/10"
         >
-          <div className="flex items-start space-x-2 mb-3">
-            <ExclamationTriangleIcon className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-orange-700 dark:text-orange-400 font-medium">
-              风险等级：{summary.breakingChangeRisk}
-            </p>
+          <div className="flex items-start space-x-3">
+            <ExclamationTriangleIcon className="h-6 w-6 text-orange-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-orange-700 dark:text-orange-400 font-medium mb-2">
+                风险等级：{summary.breakingChangeRisk}
+              </p>
+              {summary.backwardCompatibility && (
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  向后兼容性：{summary.backwardCompatibility}
+                </p>
+              )}
+            </div>
           </div>
         </AnalysisCard>
       )}
 
-      {/* 受影响组件（如有） */}
-
-      {/* 测试和部署建议 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {summary.testingRecommendations && (
-          <AnalysisCard title="测试建议" collapsible defaultExpanded={false}>
-            <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.testingRecommendations}</div>
-          </AnalysisCard>
-        )}
-
-        {summary.deploymentConsiderations && (
-          <AnalysisCard title="部署注意事项" collapsible defaultExpanded={false}>
-            <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.deploymentConsiderations}</div>
-          </AnalysisCard>
-        )}
-      </div>
+      {/* 依赖变更 */}
+      {summary.dependencyChanges && (
+        <AnalysisCard title="依赖变更" collapsible defaultExpanded={true}>
+          <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+            {summary.dependencyChanges}
+          </div>
+        </AnalysisCard>
+      )}
 
       {/* 性能和安全影响 */}
       {(summary.performanceImpact || summary.securityImpact) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {summary.performanceImpact && (
-            <AnalysisCard title="性能影响" collapsible defaultExpanded={false}>
-              <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.performanceImpact}</div>
+            <AnalysisCard title="性能影响" collapsible defaultExpanded={true}>
+              <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+                {summary.performanceImpact}
+              </div>
             </AnalysisCard>
           )}
 
           {summary.securityImpact && (
-            <AnalysisCard title="安全影响" collapsible defaultExpanded={false}>
-              <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{summary.securityImpact}</div>
+            <AnalysisCard title="🔒 安全影响" collapsible defaultExpanded={true}>
+              <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+                {summary.securityImpact}
+              </div>
             </AnalysisCard>
           )}
         </div>
       )}
 
+      {/* 测试和部署建议 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {summary.testingRecommendations && (
+          <AnalysisCard title="测试建议" collapsible defaultExpanded={true}>
+            <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+              {summary.testingRecommendations}
+            </div>
+          </AnalysisCard>
+        )}
+
+        {summary.deploymentConsiderations && (
+          <AnalysisCard title="部署注意事项" collapsible defaultExpanded={true}>
+            <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+              {summary.deploymentConsiderations}
+            </div>
+          </AnalysisCard>
+        )}
+      </div>
+
+      {/* 文档要求 */}
+      {summary.documentationRequirements && (
+        <AnalysisCard title="文档要求" collapsible defaultExpanded={false}>
+          <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+            {summary.documentationRequirements}
+          </div>
+        </AnalysisCard>
+      )}
+
+      {/* 向后兼容性 */}
+      {summary.backwardCompatibility && !summary.breakingChangeRisk && (
+        <AnalysisCard title="向后兼容性" collapsible defaultExpanded={false}>
+          <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+            {summary.backwardCompatibility}
+          </div>
+        </AnalysisCard>
+      )}
+
+      {/* 变更统计详情 */}
+      {changeStats && (
+        <AnalysisCard title="变更统计详情" collapsible defaultExpanded={false}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {changeStats.modifiedFiles || 0}
+              </div>
+              <div className="text-gray-500 dark:text-gray-400 mt-1">修改文件</div>
+            </div>
+            <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                +{changeStats.addedLines || 0}
+              </div>
+              <div className="text-gray-500 dark:text-gray-400 mt-1">新增行</div>
+            </div>
+            <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded">
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                -{changeStats.deletedLines || 0}
+              </div>
+              <div className="text-gray-500 dark:text-gray-400 mt-1">删除行</div>
+            </div>
+            <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {(changeStats.addedLines || 0) + (changeStats.deletedLines || 0)}
+              </div>
+              <div className="text-gray-500 dark:text-gray-400 mt-1">总变更</div>
+            </div>
+          </div>
+        </AnalysisCard>
+      )}
+
       {/* AI 模型信息 */}
       {summary.aiModelVersion && (
         <div className="text-xs text-gray-500 dark:text-gray-400 text-center bg-gray-50 dark:bg-gray-900 p-2 rounded">
-          AI 模型版本: {summary.aiModelVersion}
+          AI 模型版本: {summary.aiModelVersion} | 生成时间: {new Date(summary.createdAt).toLocaleString('zh-CN')}
         </div>
       )}
     </div>
