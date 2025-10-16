@@ -22,12 +22,17 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import LLMConfigurationPage from './pages/admin/LLMConfigurationPage';
 import './App.css';
 
-// Create a client
+// Create a client with optimized settings
+// 性能优化：限制缓存大小，防止内存泄漏
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 3 * 60 * 1000, // 3分钟（降低默认缓存时间）
+      gcTime: 5 * 60 * 1000, // 5分钟（原cacheTime，降低内存占用）
       retry: 1,
+      // 性能优化：限制并发请求数
+      refetchOnWindowFocus: false, // 关闭窗口聚焦时自动刷新
+      refetchOnReconnect: false, // 关闭重新连接时自动刷新
     },
   },
 });

@@ -12,11 +12,11 @@ import { useCodeHighlight } from '../hooks/useCodeHighlight';
 import type { DiffFile, DiffChange, CodeComment, DiffViewerProps } from '../types/diff';
 
 // 性能配置常量
-const INITIAL_LINES_TO_SHOW = 50; // 极限优化：减少到50行
-const LINES_TO_LOAD_MORE = 30; // 每次加载30行
-const LARGE_DIFF_THRESHOLD = 100; // 降低大文件阈值到100
-const HIGHLIGHT_DEBOUNCE_MS = 100; // 增加延迟到100ms
-const FILE_SWITCH_DEBOUNCE_MS = 150; // 文件切换延迟
+const INITIAL_LINES_TO_SHOW = 100; // 回调到100行（50行太少影响用户体验）
+const LINES_TO_LOAD_MORE = 50; // 每次加载50行
+const LARGE_DIFF_THRESHOLD = 200; // 提高到200行
+const HIGHLIGHT_DEBOUNCE_MS = 50; // 减少到50ms，提升响应速度
+const FILE_SWITCH_CLEANUP_DELAY_MS = 100; // 文件切换后快速清理（从500ms降低到100ms）
 
 interface FileTreeProps {
   files: DiffFile[];
@@ -323,72 +323,89 @@ export function FileViewer({ file, comments, onAddComment, onDeleteComment, lang
   const isLargeDiff = totalLines > LARGE_DIFF_THRESHOLD;
   const hasMoreToShow = visibleLines < totalLines;
   
-  // 只在激活时才渲染内容（延迟150ms避免快速切换时的浪费）
+  // 激活状态切换：立即渲染，快速清理
   useEffect(() => {
     if (isActive) {
-      const timer = setTimeout(() => {
-        setIsRendered(true);
-      }, FILE_SWITCH_DEBOUNCE_MS);
-      return () => clearTimeout(timer);
+      // 立即渲染，不延迟
+      setIsRendered(true);
     } else {
-      // 文件失去激活状态时，延迟卸载内容以节省内存
+      // 文件失去激活状态时，快速清理内存（100ms）
       const timer = setTimeout(() => {
         setIsRendered(false);
-        setHighlightedLines(new Map()); // 清空缓存
+        setHighlightedLines(new Map()); // 立即清空高亮缓存
         setVisibleLines(INITIAL_LINES_TO_SHOW); // 重置行数
-      }, 500); // 500ms后卸载
+        setCommentingLine(null); // 清空评论状态
+      }, FILE_SWITCH_CLEANUP_DELAY_MS);
       return () => clearTimeout(timer);
     }
   }, [isActive]);
   
-  // 延迟高亮：只高亮可见行，使用requestIdleCallback
-  const performHighlighting = useCallback(() => {
-    // 只有在渲染时才执行高亮
-    if (!isRendered) return;
-    
-    const newHighlightedLines = new Map<number, string>();
-    let lineCount = 0;
-    const lang = detectLanguageFromPath(file.newPath || file.oldPath, language);
-    
-    for (const hunk of file.hunks) {
-      if (lineCount >= visibleLines) break;
-      
-      for (const change of hunk.changes) {
-        if (lineCount >= visibleLines) break;
-        
-        const lineNumber = change.newLineNumber || change.oldLineNumber || 0;
-        // 对于normal行（未修改），跳过高亮以节省性能
-        if (change.type === 'normal') {
-          newHighlightedLines.set(lineNumber, escapeHtml(change.content));
-        } else {
-          const highlighted = highlightCode(change.content, lang);
-          newHighlightedLines.set(lineNumber, highlighted);
-        }
-        lineCount++;
-      }
-    }
-    
-    setHighlightedLines(newHighlightedLines);
-  }, [file, visibleLines, language, highlightCode, isRendered]);
-
+  // 使用useEffect管理高亮任务的生命周期
+  // 修复无限循环：直接在useEffect中执行高亮，避免依赖performHighlighting
   useEffect(() => {
     if (!isRendered) return; // 未渲染时不执行高亮
     
+    let timerId: number | undefined;
+    let idleCallbackId: number | undefined;
+    
+    // 清理函数：取消所有待执行的任务
+    const cleanup = () => {
+      if (timerId !== undefined) clearTimeout(timerId);
+      if (idleCallbackId !== undefined && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleCallbackId);
+      }
+    };
+    
+    // 高亮函数：直接在useEffect内部定义，避免依赖循环
+    const doHighlighting = () => {
+      const newHighlightedLines = new Map<number, string>();
+      let lineCount = 0;
+      const lang = detectLanguageFromPath(file.newPath || file.oldPath, language);
+      
+      for (const hunk of file.hunks) {
+        if (lineCount >= visibleLines) break;
+        
+        for (const change of hunk.changes) {
+          if (lineCount >= visibleLines) break;
+          
+          const lineNumber = change.newLineNumber || change.oldLineNumber || 0;
+          
+          // 性能优化：只高亮被修改的行（insert/delete），normal行直接转义
+          if (change.type === 'normal') {
+            newHighlightedLines.set(lineNumber, escapeHtml(change.content));
+          } else {
+            // 对于修改行，进行语法高亮
+            const highlighted = highlightCode(change.content, lang);
+            newHighlightedLines.set(lineNumber, highlighted);
+          }
+          lineCount++;
+        }
+      }
+      
+      // 批量更新state，避免多次渲染
+      setHighlightedLines(newHighlightedLines);
+    };
+    
     if (isLargeDiff) {
-      // 对于大文件，延迟高亮
-      const timer = setTimeout(() => {
+      // 对于大文件，延迟高亮并使用空闲时间
+      timerId = window.setTimeout(() => {
         if ('requestIdleCallback' in window) {
-          requestIdleCallback(() => performHighlighting());
+          idleCallbackId = window.requestIdleCallback(() => {
+            doHighlighting();
+          });
         } else {
-          performHighlighting();
+          doHighlighting();
         }
       }, HIGHLIGHT_DEBOUNCE_MS);
-      return () => clearTimeout(timer);
     } else {
       // 小文件立即高亮
-      performHighlighting();
+      doHighlighting();
     }
-  }, [isLargeDiff, performHighlighting, isRendered]);
+    
+    // 组件卸载或依赖变化时，取消所有待执行任务
+    return cleanup;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, visibleLines, language, isRendered, isLargeDiff]); // 移除highlightCode避免无限循环
 
   // 简单的HTML转义
   const escapeHtml = (text: string) => {

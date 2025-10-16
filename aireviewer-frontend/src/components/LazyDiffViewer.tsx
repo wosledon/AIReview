@@ -1,8 +1,9 @@
 import { useState, useEffect, memo, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { reviewService } from '../services/review.service';
 import type { DiffFileMetadata, CodeComment } from '../types/diff';
 import { FileViewer } from './DiffViewer';
+import { useMemoryMonitor } from '../hooks/usePerformanceMonitor'; // 可选：用于调试
 
 interface LazyDiffViewerProps {
   reviewId: number;
@@ -14,8 +15,15 @@ interface LazyDiffViewerProps {
   targetFileAndLine?: { filePath: string; lineNumber: number } | null;
 }
 
+// 性能配置：最多缓存的文件数量
+const MAX_CACHED_FILES = 3;
+
 /**
  * 懒加载Diff查看器 - 只在用户选择文件时才加载该文件的diff内容
+ * 性能优化：
+ * 1. 按需加载文件内容
+ * 2. 限制缓存数量（最多3个文件）
+ * 3. 自动清理旧缓存
  */
 export const LazyDiffViewer = memo(function LazyDiffViewer({
   reviewId,
@@ -26,9 +34,14 @@ export const LazyDiffViewer = memo(function LazyDiffViewer({
   language = 'javascript',
   targetFileAndLine
 }: LazyDiffViewerProps) {
+  const queryClient = useQueryClient();
   const [selectedFile, setSelectedFile] = useState<string | null>(
     fileList.length > 0 ? (fileList[0].newPath || fileList[0].oldPath) : null
   );
+  const [fileHistory, setFileHistory] = useState<string[]>([]); // 追踪查看历史
+
+  // 性能监控（开发环境，可选）
+  useMemoryMonitor('LazyDiffViewer', import.meta.env.DEV);
 
   // 当targetFileAndLine改变时，自动切换到目标文件
   useEffect(() => {
@@ -37,17 +50,38 @@ export const LazyDiffViewer = memo(function LazyDiffViewer({
     }
   }, [targetFileAndLine]);
 
+  // 清理超出限制的缓存
+  useEffect(() => {
+    if (fileHistory.length > MAX_CACHED_FILES) {
+      const filesToRemove = fileHistory.slice(0, fileHistory.length - MAX_CACHED_FILES);
+      filesToRemove.forEach(filePath => {
+        queryClient.removeQueries({ 
+          queryKey: ['review-diff-file', reviewId, filePath],
+          exact: true 
+        });
+      });
+      setFileHistory(prev => prev.slice(-MAX_CACHED_FILES));
+    }
+  }, [fileHistory, queryClient, reviewId]);
+
   // 按需加载选中文件的diff内容
+  // 性能优化：限制缓存数量，只保留最近3个文件，避免内存泄漏
   const { data: fileDetailData, isLoading: isFileLoading } = useQuery({
     queryKey: ['review-diff-file', reviewId, selectedFile],
     queryFn: () => selectedFile ? reviewService.getReviewDiffFile(reviewId, selectedFile) : null,
     enabled: !!selectedFile,
-    staleTime: 5 * 60 * 1000, // 5分钟缓存
-    gcTime: 10 * 60 * 1000, // 10分钟保留（新版本用gcTime替代cacheTime）
+    staleTime: 2 * 60 * 1000, // 2分钟缓存（进一步降低）
+    gcTime: 3 * 60 * 1000, // 3分钟保留（进一步减少）
   });
 
   const handleSelectFile = useCallback((filePath: string) => {
     setSelectedFile(filePath);
+    
+    // 更新文件查看历史
+    setFileHistory(prev => {
+      const newHistory = prev.filter(f => f !== filePath); // 移除重复
+      return [...newHistory, filePath]; // 添加到末尾
+    });
   }, []);
 
   // 过滤出当前文件的评论
