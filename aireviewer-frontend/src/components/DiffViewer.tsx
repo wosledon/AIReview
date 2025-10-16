@@ -12,11 +12,14 @@ import { useCodeHighlight } from '../hooks/useCodeHighlight';
 import type { DiffFile, DiffChange, CodeComment, DiffViewerProps } from '../types/diff';
 
 // 性能配置常量
-const INITIAL_LINES_TO_SHOW = 100; // 回调到100行（50行太少影响用户体验）
+const INITIAL_LINES_TO_SHOW = 100; // 默认显示100行
+const INITIAL_LINES_FOR_HUGE_FILE = 50; // 超大文件（500行+）只显示50行
 const LINES_TO_LOAD_MORE = 50; // 每次加载50行
-const LARGE_DIFF_THRESHOLD = 200; // 提高到200行
-const HIGHLIGHT_DEBOUNCE_MS = 50; // 减少到50ms，提升响应速度
-const FILE_SWITCH_CLEANUP_DELAY_MS = 100; // 文件切换后快速清理（从500ms降低到100ms）
+const LARGE_DIFF_THRESHOLD = 200; // 200行算大文件
+const HUGE_DIFF_THRESHOLD = 500; // 500行算超大文件
+const HIGHLIGHT_DEBOUNCE_MS = 50; // 高亮延迟
+const FILE_SWITCH_CLEANUP_DELAY_MS = 100; // 快速清理
+const CHUNK_SIZE = 20; // 分块渲染：每批20行
 
 interface FileTreeProps {
   files: DiffFile[];
@@ -311,17 +314,23 @@ export interface FileViewerProps {
 export function FileViewer({ file, comments, onAddComment, onDeleteComment, language, isActive }: FileViewerProps) {
   const { highlightCode } = useCodeHighlight();
   const [commentingLine, setCommentingLine] = useState<number | null>(null);
-  const [visibleLines, setVisibleLines] = useState(INITIAL_LINES_TO_SHOW);
-  const [highlightedLines, setHighlightedLines] = useState<Map<number, string>>(new Map());
-  const [isRendered, setIsRendered] = useState(false); // 新增：延迟渲染标记
   
   // 计算总行数
   const totalLines = useMemo(() => {
     return file.hunks.reduce((total, hunk) => total + hunk.changes.length, 0);
   }, [file.hunks]);
+  
+  // 根据文件大小动态设置初始行数
+  const initialLines = totalLines > HUGE_DIFF_THRESHOLD ? INITIAL_LINES_FOR_HUGE_FILE : INITIAL_LINES_TO_SHOW;
+  const [visibleLines, setVisibleLines] = useState(initialLines);
+  const [renderedLines, setRenderedLines] = useState(initialLines); // 实际渲染的行数（用于分块DOM渲染）
+  const [isExpanding, setIsExpanding] = useState(false); // 是否正在展开
+  const [highlightedLines, setHighlightedLines] = useState<Map<number, string>>(new Map());
+  const [isRendered, setIsRendered] = useState(false); // 新增：延迟渲染标记
 
   const isLargeDiff = totalLines > LARGE_DIFF_THRESHOLD;
-  const hasMoreToShow = visibleLines < totalLines;
+  const isHugeDiff = totalLines > HUGE_DIFF_THRESHOLD; // 超大文件标记
+  const hasMoreToShow = renderedLines < totalLines; // 使用renderedLines判断
   
   // 激活状态切换：立即渲染，快速清理
   useEffect(() => {
@@ -333,57 +342,99 @@ export function FileViewer({ file, comments, onAddComment, onDeleteComment, lang
       const timer = setTimeout(() => {
         setIsRendered(false);
         setHighlightedLines(new Map()); // 立即清空高亮缓存
-        setVisibleLines(INITIAL_LINES_TO_SHOW); // 重置行数
+        setVisibleLines(initialLines); // 重置行数到初始值
+        setRenderedLines(initialLines); // 重置渲染行数
+        setIsExpanding(false); // 重置展开状态
         setCommentingLine(null); // 清空评论状态
       }, FILE_SWITCH_CLEANUP_DELAY_MS);
       return () => clearTimeout(timer);
     }
-  }, [isActive]);
+  }, [isActive, initialLines]);
   
   // 使用useEffect管理高亮任务的生命周期
   // 修复无限循环：直接在useEffect中执行高亮，避免依赖performHighlighting
+  // 性能优化：超大文件使用分块渲染，避免阻塞主线程
   useEffect(() => {
     if (!isRendered) return; // 未渲染时不执行高亮
     
     let timerId: number | undefined;
     let idleCallbackId: number | undefined;
+    let isCancelled = false; // 取消标记
     
     // 清理函数：取消所有待执行的任务
     const cleanup = () => {
+      isCancelled = true;
       if (timerId !== undefined) clearTimeout(timerId);
       if (idleCallbackId !== undefined && 'cancelIdleCallback' in window) {
         window.cancelIdleCallback(idleCallbackId);
       }
     };
     
-    // 高亮函数：直接在useEffect内部定义，避免依赖循环
-    const doHighlighting = () => {
+    // 分块高亮函数：将大任务拆分成小任务，避免阻塞
+    const doChunkedHighlighting = async () => {
       const newHighlightedLines = new Map<number, string>();
       let lineCount = 0;
       const lang = detectLanguageFromPath(file.newPath || file.oldPath, language);
+      const allChanges: Array<{ change: DiffChange }> = [];
       
+      // 收集所有要处理的行
       for (const hunk of file.hunks) {
         if (lineCount >= visibleLines) break;
-        
         for (const change of hunk.changes) {
           if (lineCount >= visibleLines) break;
-          
-          const lineNumber = change.newLineNumber || change.oldLineNumber || 0;
-          
-          // 性能优化：只高亮被修改的行（insert/delete），normal行直接转义
-          if (change.type === 'normal') {
-            newHighlightedLines.set(lineNumber, escapeHtml(change.content));
-          } else {
-            // 对于修改行，进行语法高亮
-            const highlighted = highlightCode(change.content, lang);
-            newHighlightedLines.set(lineNumber, highlighted);
-          }
+          allChanges.push({ change });
           lineCount++;
         }
       }
       
-      // 批量更新state，避免多次渲染
-      setHighlightedLines(newHighlightedLines);
+      // 分块处理：超大文件时，每批只处理CHUNK_SIZE行
+      if (isHugeDiff) {
+        // 分块渲染模式
+        for (let i = 0; i < allChanges.length; i += CHUNK_SIZE) {
+          if (isCancelled) return; // 检查是否已取消
+          
+          const chunk = allChanges.slice(i, i + CHUNK_SIZE);
+          
+          // 处理当前批次
+          await new Promise<void>(resolve => {
+            requestAnimationFrame(() => {
+              for (const { change } of chunk) {
+                const lineNumber = change.newLineNumber || change.oldLineNumber || 0;
+                
+                if (change.type === 'normal') {
+                  newHighlightedLines.set(lineNumber, escapeHtml(change.content));
+                } else {
+                  const highlighted = highlightCode(change.content, lang);
+                  newHighlightedLines.set(lineNumber, highlighted);
+                }
+              }
+              resolve();
+            });
+          });
+          
+          // 每批次后更新UI，让用户看到进度
+          if ((i + CHUNK_SIZE) % (CHUNK_SIZE * 3) === 0) {
+            setHighlightedLines(new Map(newHighlightedLines));
+          }
+        }
+      } else {
+        // 小文件直接处理
+        for (const { change } of allChanges) {
+          const lineNumber = change.newLineNumber || change.oldLineNumber || 0;
+          
+          if (change.type === 'normal') {
+            newHighlightedLines.set(lineNumber, escapeHtml(change.content));
+          } else {
+            const highlighted = highlightCode(change.content, lang);
+            newHighlightedLines.set(lineNumber, highlighted);
+          }
+        }
+      }
+      
+      // 最终批量更新
+      if (!isCancelled) {
+        setHighlightedLines(newHighlightedLines);
+      }
     };
     
     if (isLargeDiff) {
@@ -391,21 +442,21 @@ export function FileViewer({ file, comments, onAddComment, onDeleteComment, lang
       timerId = window.setTimeout(() => {
         if ('requestIdleCallback' in window) {
           idleCallbackId = window.requestIdleCallback(() => {
-            doHighlighting();
+            doChunkedHighlighting();
           });
         } else {
-          doHighlighting();
+          doChunkedHighlighting();
         }
       }, HIGHLIGHT_DEBOUNCE_MS);
     } else {
       // 小文件立即高亮
-      doHighlighting();
+      doChunkedHighlighting();
     }
     
     // 组件卸载或依赖变化时，取消所有待执行任务
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, visibleLines, language, isRendered, isLargeDiff]); // 移除highlightCode避免无限循环
+  }, [file, visibleLines, language, isRendered, isLargeDiff, isHugeDiff]); // 移除highlightCode避免无限循环
 
   // 简单的HTML转义
   const escapeHtml = (text: string) => {
@@ -465,12 +516,42 @@ export function FileViewer({ file, comments, onAddComment, onDeleteComment, lang
   }, []);
 
   const handleLoadMore = useCallback(() => {
-    setVisibleLines(prev => Math.min(prev + LINES_TO_LOAD_MORE, totalLines));
-  }, [totalLines]);
+    const newVisibleLines = Math.min(visibleLines + LINES_TO_LOAD_MORE, totalLines);
+    setVisibleLines(newVisibleLines);
+    // 同步更新渲染行数
+    setRenderedLines(newVisibleLines);
+  }, [visibleLines, totalLines]);
 
   const handleShowAll = useCallback(() => {
-    setVisibleLines(totalLines);
-  }, [totalLines]);
+    if (isHugeDiff) {
+      // 超大文件：分块渲染DOM，避免一次性渲染导致卡顿
+      setIsExpanding(true);
+      setVisibleLines(totalLines);
+      
+      // 使用requestAnimationFrame分批渲染
+      let currentRendered = renderedLines;
+      const batchSize = LINES_TO_LOAD_MORE * 2; // 每批渲染100行
+      
+      const renderNextBatch = () => {
+        if (currentRendered >= totalLines) {
+          setIsExpanding(false);
+          return;
+        }
+        
+        currentRendered = Math.min(currentRendered + batchSize, totalLines);
+        setRenderedLines(currentRendered);
+        
+        // 继续下一批
+        requestAnimationFrame(renderNextBatch);
+      };
+      
+      requestAnimationFrame(renderNextBatch);
+    } else {
+      // 小文件：直接展开
+      setVisibleLines(totalLines);
+      setRenderedLines(totalLines);
+    }
+  }, [isHugeDiff, totalLines, renderedLines]);
 
   // 如果未渲染，显示加载占位符
   if (!isRendered) {
@@ -499,7 +580,12 @@ export function FileViewer({ file, comments, onAddComment, onDeleteComment, lang
             {file.oldPath !== file.newPath && (
               <span>重命名: {file.oldPath} → {file.newPath}</span>
             )}
-            {isLargeDiff && (
+            {isHugeDiff && (
+              <span className="text-red-600 font-medium">
+                🔥 超大文件 ({totalLines} 行) - 分块渲染中
+              </span>
+            )}
+            {isLargeDiff && !isHugeDiff && (
               <span className="text-orange-600 font-medium">
                 ⚠️ 大文件 ({totalLines} 行变更)
               </span>
@@ -508,6 +594,16 @@ export function FileViewer({ file, comments, onAddComment, onDeleteComment, lang
           {isLargeDiff && hasMoreToShow && (
             <div className="mt-2 text-xs text-gray-500">
               正在显示前 {visibleLines} / {totalLines} 行
+              {isExpanding && renderedLines < visibleLines && (
+                <span className="ml-2 text-blue-600 animate-pulse">
+                  • 渲染进度: {renderedLines} / {visibleLines} 行
+                </span>
+              )}
+              {isHugeDiff && highlightedLines.size < visibleLines && !isExpanding && (
+                <span className="ml-2 text-blue-600">
+                  • 高亮进度: {highlightedLines.size} / {visibleLines} 行
+                </span>
+              )}
             </div>
           )}
         </div> {/* 闭合 sticky header */}
@@ -520,15 +616,15 @@ export function FileViewer({ file, comments, onAddComment, onDeleteComment, lang
             linesBefore += file.hunks[i].changes.length;
           }
           
-          // 如果这个hunk的所有行都在可见范围之外，跳过
-          if (linesBefore >= visibleLines) {
+          // 使用renderedLines而不是visibleLines来控制实际渲染的DOM
+          if (linesBefore >= renderedLines) {
             return null;
           }
 
           // 计算这个hunk中要显示的行数
           const linesToShowInThisHunk = Math.min(
             hunk.changes.length,
-            visibleLines - linesBefore
+            renderedLines - linesBefore
           );
 
           return (
