@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 
+// 性能监控工具库 - 包含组件、Hooks 和工具函数
+
 interface PerformanceMonitorProps {
   componentName: string;
   enabled?: boolean;
@@ -8,7 +10,7 @@ interface PerformanceMonitorProps {
 /**
  * 性能监控组件 - 用于开发环境监控组件渲染性能
  */
-export function PerformanceMonitor({ componentName, enabled = import.meta.env.DEV }: PerformanceMonitorProps) {
+export function PerformanceMonitor({ componentName, enabled = false }: PerformanceMonitorProps) {
   const renderCount = useRef(0);
   const lastRenderTime = useRef(Date.now());
 
@@ -51,7 +53,7 @@ export async function measureTimeAsync<T>(name: string, fn: () => Promise<T>): P
 /**
  * Hook: 监控组件挂载和卸载时间
  */
-export function useComponentLifecycle(componentName: string, enabled = import.meta.env.DEV) {
+export function useComponentLifecycle(componentName: string, enabled = false) {
   const mountTime = useRef(0);
 
   useEffect(() => {
@@ -70,7 +72,7 @@ export function useComponentLifecycle(componentName: string, enabled = import.me
 /**
  * Hook: 监控特定值变化的频率
  */
-export function useValueChangeMonitor<T>(name: string, value: T, enabled = import.meta.env.DEV) {
+export function useValueChangeMonitor<T>(name: string, value: T, enabled = false) {
   const changeCount = useRef(0);
   const lastChangeTime = useRef(Date.now());
   const previousValue = useRef<T>(value);
