@@ -641,7 +641,7 @@ const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     评审标题
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -665,7 +665,7 @@ const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
                 {reviews.map((review: Review) => (
                   <tr key={review.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center justify-center">
+                      <div className="flex items-left">
                         <div className="flex-shrink-0">
                           {getStatusIcon(review.status)}
                         </div>

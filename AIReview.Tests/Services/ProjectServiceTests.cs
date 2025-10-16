@@ -29,7 +29,16 @@ namespace AIReview.Tests.Services
 
             _context = new ApplicationDbContext(options);
             _loggerMock = new Mock<ILogger<ProjectService>>();
-            _userManagerMock = new Mock<UserManager<ApplicationUser>>(Mock.Of<IUserStore<ApplicationUser>>(), null, null, null, null, null, null, null, null);
+            var userStore = new Mock<IUserStore<ApplicationUser>>();
+            var identityOptions = Mock.Of<Microsoft.Extensions.Options.IOptions<IdentityOptions>>();
+            var passwordHasher = Mock.Of<IPasswordHasher<ApplicationUser>>();
+            var userValidators = new List<IUserValidator<ApplicationUser>> { new Mock<IUserValidator<ApplicationUser>>().Object };
+            var passwordValidators = new List<IPasswordValidator<ApplicationUser>> { new Mock<IPasswordValidator<ApplicationUser>>().Object };
+            var keyNormalizer = Mock.Of<ILookupNormalizer>();
+            var errors = new IdentityErrorDescriber();
+            var services = new Mock<IServiceProvider>().Object;
+            var logger = new Mock<ILogger<UserManager<ApplicationUser>>>().Object;
+            _userManagerMock = new Mock<UserManager<ApplicationUser>>(userStore.Object, identityOptions, passwordHasher, userValidators, passwordValidators, keyNormalizer, errors, services, logger);
             _gitServiceMock = new Mock<IGitService>();
             var unitOfWork = new UnitOfWork(_context);
             _projectService = new ProjectService(unitOfWork, _userManagerMock.Object, _gitServiceMock.Object, _loggerMock.Object);

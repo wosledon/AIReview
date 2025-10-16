@@ -7,16 +7,13 @@ namespace AIReview.Infrastructure.Repositories;
 
 public class ImprovementSuggestionRepository : Repository<ImprovementSuggestion>, IImprovementSuggestionRepository
 {
-    private readonly ApplicationDbContext _context;
-
     public ImprovementSuggestionRepository(ApplicationDbContext context) : base(context)
     {
-        _context = context;
     }
 
     public async Task<List<ImprovementSuggestion>> GetByReviewRequestIdAsync(int reviewRequestId)
     {
-        return await _context.ImprovementSuggestions
+    return await _context.ImprovementSuggestions
             .Where(s => s.ReviewRequestId == reviewRequestId)
             .OrderBy(s => s.Priority)
             .ThenByDescending(s => s.CreatedAt)
@@ -25,20 +22,16 @@ public class ImprovementSuggestionRepository : Repository<ImprovementSuggestion>
 
     public async Task<List<ImprovementSuggestion>> GetByIdsAsync(List<int> ids)
     {
-        return await _context.ImprovementSuggestions
+    return await _context.ImprovementSuggestions
             .Where(s => ids.Contains(s.Id))
             .ToListAsync();
     }
 
     public async Task DeleteByReviewRequestIdAsync(int reviewRequestId)
     {
-        var suggestions = await _context.ImprovementSuggestions
+        // 使用数据库级批量删除，避免 EF 并发检查与不必要的加载
+        await _context.ImprovementSuggestions
             .Where(s => s.ReviewRequestId == reviewRequestId)
-            .ToListAsync();
-
-        if (suggestions.Any())
-        {
-            _context.ImprovementSuggestions.RemoveRange(suggestions);
-        }
+            .ExecuteDeleteAsync();
     }
 }

@@ -43,6 +43,16 @@ namespace AIReview.Tests.Services
 
         private void SeedTestData()
         {
+            // 创建测试用户
+            var testUser = new ApplicationUser
+            {
+                Id = _testUserId,
+                UserName = "testuser@test.com",
+                Email = "testuser@test.com",
+                DisplayName = "Test User"
+            };
+            _context.Users.Add(testUser);
+            
             var project = new Project
             {
                 Name = "Test Project",

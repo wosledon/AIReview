@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { 
   ChatBubbleLeftIcon, 
   PlusIcon, 
   XMarkIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import { useCodeHighlight } from '../hooks/useCodeHighlight';
 import type { DiffFile, DiffChange, CodeComment, DiffViewerProps } from '../types/diff';
+
+// 性能配置常量
+const INITIAL_LINES_TO_SHOW = 200; // 初始显示的行数
+const LINES_TO_LOAD_MORE = 100; // 每次加载更多时增加的行数
+const LARGE_DIFF_THRESHOLD = 300; // 超过此行数视为大diff
 
 interface FileTreeProps {
   files: DiffFile[];
@@ -33,23 +39,28 @@ function FileTree({ files, selectedFile, onSelectFile }: FileTreeProps) {
   };
 
   return (
-    <div className="w-80 bg-gray-50 border-r border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-900 mb-3">文件变更 ({files.length})</h3>
-      <div className="space-y-1">
-        {files.map((file, index) => (
-          <button
-            key={`${file.oldPath}-${file.newPath}-${index}`}
-            onClick={() => onSelectFile(file.newPath || file.oldPath)}
-            className={`w-full text-left p-2 rounded-md text-sm flex items-center space-x-2 hover:bg-gray-100 ${
-              selectedFile === (file.newPath || file.oldPath) 
-                ? 'bg-blue-100 text-blue-800' 
-                : 'text-gray-700'
-            }`}
-          >
-            {getFileIcon(file.type)}
-            <span className="truncate">{file.newPath || file.oldPath}</span>
-          </button>
-        ))}
+    <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
+      <div className="p-4 border-b border-gray-200 flex-shrink-0">
+        <h3 className="text-sm font-semibold text-gray-900">文件变更 ({files.length})</h3>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-1">
+          {files.map((file, index) => (
+            <button
+              key={`${file.oldPath}-${file.newPath}-${index}`}
+              onClick={() => onSelectFile(file.newPath || file.oldPath)}
+              className={`w-full text-left p-2 rounded-md text-sm flex items-center space-x-2 hover:bg-gray-100 transition-colors ${
+                selectedFile === (file.newPath || file.oldPath) 
+                  ? 'bg-blue-100 text-blue-800' 
+                  : 'text-gray-700'
+              }`}
+              title={file.newPath || file.oldPath}
+            >
+              {getFileIcon(file.type)}
+              <span className="truncate flex-1">{file.newPath || file.oldPath}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -281,6 +292,15 @@ interface FileViewerProps {
 function FileViewer({ file, comments, onAddComment, onDeleteComment, language }: FileViewerProps) {
   const { highlightCode } = useCodeHighlight();
   const [commentingLine, setCommentingLine] = useState<number | null>(null);
+  const [visibleLines, setVisibleLines] = useState(INITIAL_LINES_TO_SHOW);
+  
+  // 计算总行数
+  const totalLines = useMemo(() => {
+    return file.hunks.reduce((total, hunk) => total + hunk.changes.length, 0);
+  }, [file.hunks]);
+
+  const isLargeDiff = totalLines > LARGE_DIFF_THRESHOLD;
+  const hasMoreToShow = visibleLines < totalLines;
   
   const detectLanguageFromPath = (path: string, fallback: string) => {
     if (fallback && fallback !== 'auto') return fallback;
@@ -310,31 +330,39 @@ function FileViewer({ file, comments, onAddComment, onDeleteComment, language }:
     return 'javascript';
   };
 
-  const getCommentsForLine = (lineNumber: number): CodeComment[] => {
+  const getCommentsForLine = useCallback((lineNumber: number): CodeComment[] => {
     return comments.filter(comment => 
       comment.filePath === (file.newPath || file.oldPath) && 
       comment.lineNumber === lineNumber
     );
-  };
+  }, [comments, file.newPath, file.oldPath]);
 
-  const handleAddComment = (lineNumber: number) => {
+  const handleAddComment = useCallback((lineNumber: number) => {
     setCommentingLine(lineNumber);
-  };
+  }, []);
 
-  const handleSaveComment = (content: string) => {
+  const handleSaveComment = useCallback((content: string) => {
     if (commentingLine && onAddComment) {
       onAddComment(file.newPath || file.oldPath, commentingLine, content);
     }
     setCommentingLine(null);
-  };
+  }, [commentingLine, onAddComment, file.newPath, file.oldPath]);
 
-  const handleCancelComment = () => {
+  const handleCancelComment = useCallback(() => {
     setCommentingLine(null);
-  };
+  }, []);
+
+  const handleLoadMore = useCallback(() => {
+    setVisibleLines(prev => Math.min(prev + LINES_TO_LOAD_MORE, totalLines));
+  }, [totalLines]);
+
+  const handleShowAll = useCallback(() => {
+    setVisibleLines(totalLines);
+  }, [totalLines]);
 
   return (
     <div className="flex-1 overflow-auto">
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
+      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
         <h2 className="text-lg font-semibold text-gray-900">
           {file.newPath || file.oldPath}
         </h2>
@@ -344,40 +372,98 @@ function FileViewer({ file, comments, onAddComment, onDeleteComment, language }:
           {file.oldPath !== file.newPath && (
             <span>重命名: {file.oldPath} → {file.newPath}</span>
           )}
+          {isLargeDiff && (
+            <span className="text-orange-600 font-medium">
+              ⚠️ 大文件 ({totalLines} 行变更)
+            </span>
+          )}
         </div>
+        {isLargeDiff && hasMoreToShow && (
+          <div className="mt-2 text-xs text-gray-500">
+            正在显示前 {visibleLines} / {totalLines} 行
+          </div>
+        )}
       </div>
       
       <div className="divide-y divide-gray-200">
-        {file.hunks.map((hunk, hunkIndex) => (
-          <div key={hunkIndex}>
-            <div className="bg-gray-100 px-4 py-2 text-sm font-mono text-gray-600">
-              @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
-            </div>
-            {hunk.changes.map((change, changeIndex) => {
-              const lineNumber = change.newLineNumber || change.oldLineNumber || 0;
-              const lineComments = getCommentsForLine(lineNumber);
-              const lang = detectLanguageFromPath(file.newPath || file.oldPath, language);
-              const highlightedContent = highlightCode(change.content, lang);
+        {file.hunks.map((hunk, hunkIndex) => {
+          // 计算当前hunk之前已经显示的行数
+          let linesBefore = 0;
+          for (let i = 0; i < hunkIndex; i++) {
+            linesBefore += file.hunks[i].changes.length;
+          }
+          
+          // 如果这个hunk的所有行都在可见范围之外，跳过
+          if (linesBefore >= visibleLines) {
+            return null;
+          }
 
-              return (
-                <DiffLine
-                  key={`${hunkIndex}-${changeIndex}`}
-                  change={change}
-                  lineNumber={lineNumber}
-                  comments={lineComments}
-                  onAddComment={handleAddComment}
-                  onDeleteComment={onDeleteComment}
-                  highlightedContent={highlightedContent}
-                  showAddComment={!!onAddComment && change.type !== 'delete'}
-                  showCommentInput={commentingLine === lineNumber}
-                  onSaveComment={handleSaveComment}
-                  onCancelComment={handleCancelComment}
-                />
-              );
-            })}
-          </div>
-        ))}
+          // 计算这个hunk中要显示的行数
+          const linesToShowInThisHunk = Math.min(
+            hunk.changes.length,
+            visibleLines - linesBefore
+          );
+
+          return (
+            <div key={hunkIndex}>
+              <div className="bg-gray-100 px-4 py-2 text-sm font-mono text-gray-600">
+                @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
+              </div>
+              {hunk.changes.slice(0, linesToShowInThisHunk).map((change, changeIndex) => {
+                const lineNumber = change.newLineNumber || change.oldLineNumber || 0;
+                const lineComments = getCommentsForLine(lineNumber);
+                const lang = detectLanguageFromPath(file.newPath || file.oldPath, language);
+                const highlightedContent = highlightCode(change.content, lang);
+
+                return (
+                  <DiffLine
+                    key={`${hunkIndex}-${changeIndex}`}
+                    change={change}
+                    lineNumber={lineNumber}
+                    comments={lineComments}
+                    onAddComment={handleAddComment}
+                    onDeleteComment={onDeleteComment}
+                    highlightedContent={highlightedContent}
+                    showAddComment={!!onAddComment && change.type !== 'delete'}
+                    showCommentInput={commentingLine === lineNumber}
+                    onSaveComment={handleSaveComment}
+                    onCancelComment={handleCancelComment}
+                  />
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
+      
+      {/* 加载更多按钮 */}
+      {hasMoreToShow && (
+        <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent p-6 text-center border-t border-gray-200">
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              已显示 {visibleLines} / {totalLines} 行变更
+            </p>
+            <div className="flex items-center justify-center space-x-3">
+              <button
+                onClick={handleLoadMore}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              >
+                <ChevronDownIcon className="h-4 w-4 mr-2" />
+                加载更多 ({LINES_TO_LOAD_MORE} 行)
+              </button>
+              <button
+                onClick={handleShowAll}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              >
+                显示全部 ({totalLines - visibleLines} 行)
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              💡 提示：大文件分批加载可以提升浏览器性能
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

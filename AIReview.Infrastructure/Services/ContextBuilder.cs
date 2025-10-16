@@ -12,7 +12,7 @@ public class ContextBuilder : IContextBuilder
         _logger = logger;
     }
 
-    public async Task<ReviewContext> BuildContextAsync(string diff, ReviewContext baseContext)
+    public Task<ReviewContext> BuildContextAsync(string diff, ReviewContext baseContext)
     {
         try
         {
@@ -27,7 +27,7 @@ public class ContextBuilder : IContextBuilder
             _logger.LogDebug("Context built for language: {Language}, type: {ProjectType}", 
                 context.Language, context.ProjectType);
 
-            return context;
+            return Task.FromResult(context);
         }
         catch (Exception ex)
         {

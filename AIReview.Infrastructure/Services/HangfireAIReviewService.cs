@@ -1,4 +1,5 @@
 using Hangfire;
+using Hangfire.Storage;
 using AIReview.Core.Interfaces;
 using AIReview.Infrastructure.BackgroundJobs;
 using Microsoft.Extensions.Logging;
@@ -14,17 +15,17 @@ namespace AIReview.Infrastructure.Services
             _logger = logger;
         }
 
-        public async Task<string> EnqueueReviewAsync(int reviewRequestId)
+        public Task<string> EnqueueReviewAsync(int reviewRequestId)
         {
             try
             {
-                var jobId = BackgroundJob.Enqueue<AIReviewJob>(job => 
-                    job.ProcessReviewAsync(reviewRequestId));
+                using var _ = JobStorage.Current.GetConnection().AcquireDistributedLock($"enqueue:ai:review:{reviewRequestId}", TimeSpan.FromMilliseconds(500));
+                var jobId = BackgroundJob.Enqueue<AIReviewJob>(job => job.ProcessReviewAsync(reviewRequestId));
                 
                 _logger.LogInformation("Enqueued AI review job {JobId} for review request {ReviewRequestId}", 
                     jobId, reviewRequestId);
                 
-                return jobId;
+                return Task.FromResult(jobId);
             }
             catch (Exception ex)
             {
@@ -33,17 +34,18 @@ namespace AIReview.Infrastructure.Services
             }
         }
 
-        public async Task<string> EnqueueBulkReviewAsync(List<int> reviewRequestIds)
+        public Task<string> EnqueueBulkReviewAsync(List<int> reviewRequestIds)
         {
             try
             {
-                var jobId = BackgroundJob.Enqueue<AIReviewJob>(job => 
-                    job.ProcessBulkReviewAsync(reviewRequestIds));
+                var key = $"enqueue:ai:review:bulk:{string.Join('-', reviewRequestIds.OrderBy(i => i))}";
+                using var _ = JobStorage.Current.GetConnection().AcquireDistributedLock(key, TimeSpan.FromMilliseconds(500));
+                var jobId = BackgroundJob.Enqueue<AIReviewJob>(job => job.ProcessBulkReviewAsync(reviewRequestIds));
                 
                 _logger.LogInformation("Enqueued bulk AI review job {JobId} for {Count} review requests", 
                     jobId, reviewRequestIds.Count);
                 
-                return jobId;
+                return Task.FromResult(jobId);
             }
             catch (Exception ex)
             {

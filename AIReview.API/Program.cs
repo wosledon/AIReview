@@ -8,6 +8,7 @@ using Serilog.Events;
 using System.Text;
 using Hangfire;
 using Hangfire.SQLite;
+using Hangfire.Redis.StackExchange;
 using Prometheus;
 using AIReview.Core.Entities;
 using AIReview.Core.Interfaces;
@@ -139,22 +140,110 @@ builder.Services.AddAuthorization();
 
 // 配置缓存
 builder.Services.AddMemoryCache();
-builder.Services.AddStackExchangeRedisCache(options =>
+
+// 尝试配置 Redis 缓存，失败则仅使用内存缓存
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+var redisAvailableForCache = false;
+if (!string.IsNullOrWhiteSpace(redisConnectionString))
 {
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    try
+    {
+        // 快速测试 Redis 连接
+        var testConfig = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString);
+        testConfig.AbortOnConnectFail = false;
+        testConfig.ConnectTimeout = 1500;
+        testConfig.SyncTimeout = 1500;
+        testConfig.ConnectRetry = 1;
+        
+        using var testConn = StackExchange.Redis.ConnectionMultiplexer.Connect(testConfig);
+        if (testConn.IsConnected)
+        {
+            redisAvailableForCache = true;
+            builder.Services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnectionString + ",abortConnect=false,connectTimeout=5000,syncTimeout=5000";
+            });
+            Console.WriteLine("✓ Redis distributed cache configured successfully");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠ Redis cache unavailable, using memory cache only: {ex.Message}");
+    }
+}
+
+if (!redisAvailableForCache)
+{
+    Console.WriteLine("ℹ Using in-memory cache (Redis not available)");
+}
+
+// 配置Hangfire（优先使用 Redis 实现分布式；Redis 不可用时降级到 SQLite）
+var useRedisForHangfire = false;
+if (!string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    try
+    {
+        // 测试 Redis 连接（快速失败，避免阻塞启动）
+        var redisConfig = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString);
+        redisConfig.AbortOnConnectFail = false;
+        redisConfig.ConnectTimeout = 2000;
+        redisConfig.SyncTimeout = 2000;
+        redisConfig.ConnectRetry = 1;
+        
+        using var testConnection = StackExchange.Redis.ConnectionMultiplexer.Connect(redisConfig);
+        if (testConnection.IsConnected)
+        {
+            useRedisForHangfire = true;
+            Console.WriteLine("✓ Redis available for Hangfire distributed storage");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠ Redis unavailable for Hangfire, falling back to SQLite: {ex.Message}");
+    }
+}
+
+builder.Services.AddHangfire(configuration =>
+{
+    configuration
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings();
+
+    if (useRedisForHangfire)
+    {
+        var redisConfig = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString!);
+        redisConfig.AbortOnConnectFail = false;
+        redisConfig.ConnectTimeout = 5000;
+        redisConfig.SyncTimeout = 5000;
+        
+        configuration.UseRedisStorage(redisConfig.ToString(), new RedisStorageOptions
+        {
+            Db = 5,
+            Prefix = "hangfire:aireview:"
+        });
+        Console.WriteLine("✓ Hangfire configured with Redis storage (distributed mode)");
+    }
+    else
+    {
+        // 降级：使用 SQLite 本地存储
+        var sqliteConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+        configuration.UseSQLiteStorage(sqliteConnection);
+        Console.WriteLine("✓ Hangfire configured with SQLite storage (single-instance mode)");
+    }
 });
 
-// 配置Hangfire
-builder.Services.AddHangfire(configuration => configuration
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UseSQLiteStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 // 启动 Hangfire Server 并监听 ai-review 和 ai-analysis 队列
+// 配置合理的 Worker 数量，避免过度并发导致重复任务
 builder.Services.AddHangfireServer(options =>
 {
     options.Queues = new[] { "ai-review", "ai-analysis" };
+    // 限制 Worker 数量为 2，配合 DisableConcurrentExecution 特性避免重复执行
+    // AI 分析任务通常是 I/O 密集型，不需要太多并发
+    options.WorkerCount = 2;
+    
+    // 设置合理的轮询间隔，减少数据库压力
+    options.SchedulePollingInterval = TimeSpan.FromSeconds(15);
 });
 
 // 注册应用服务

@@ -450,9 +450,9 @@ public class ReviewService : IReviewService
         };
     }
 
-    private async Task<ReviewDto> MapToReviewDtoAsync(ReviewRequest review)
+    private Task<ReviewDto> MapToReviewDtoAsync(ReviewRequest review)
     {
-        return new ReviewDto
+        return Task.FromResult(new ReviewDto
         {
             Id = review.Id,
             ProjectId = review.ProjectId,
@@ -467,7 +467,7 @@ public class ReviewService : IReviewService
             PullRequestNumber = review.PullRequestNumber,
             CreatedAt = review.CreatedAt,
             UpdatedAt = review.UpdatedAt
-        };
+        });
     }
 
     private ReviewCommentDto MapToCommentDto(ReviewComment comment)

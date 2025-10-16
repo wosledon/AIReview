@@ -36,12 +36,17 @@ namespace AIReview.API.Controllers
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(model?.Email) || string.IsNullOrWhiteSpace(model?.Password))
+                {
+                    return BadRequest(new { message = "Email and password are required" });
+                }
+
                 var user = new ApplicationUser
                 {
-                    UserName = model.Email,
-                    Email = model.Email,
-                    DisplayName = model.DisplayName,
-                    Avatar = model.Avatar
+                    UserName = model.Email ?? string.Empty,
+                    Email = model.Email ?? string.Empty,
+                    DisplayName = model.DisplayName ?? string.Empty,
+                    Avatar = model.Avatar ?? string.Empty
                 };
 
                 var result = await _userManager.CreateAsync(user, model.Password);
@@ -57,9 +62,9 @@ namespace AIReview.API.Controllers
                         User = new UserDto
                         {
                             Id = user.Id,
-                            Email = user.Email,
-                            DisplayName = user.DisplayName,
-                            Avatar = user.Avatar
+                            Email = user.Email ?? string.Empty,
+                            DisplayName = user.DisplayName ?? string.Empty,
+                            Avatar = user.Avatar ?? string.Empty
                         }
                     });
                 }
@@ -78,6 +83,11 @@ namespace AIReview.API.Controllers
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(model?.Email) || string.IsNullOrWhiteSpace(model?.Password))
+                {
+                    return BadRequest(new { message = "Email and password are required" });
+                }
+
                 var user = await _userManager.FindByEmailAsync(model.Email);
                 if (user == null)
                 {
@@ -97,9 +107,9 @@ namespace AIReview.API.Controllers
                         User = new UserDto
                         {
                             Id = user.Id,
-                            Email = user.Email,
-                            DisplayName = user.DisplayName,
-                            Avatar = user.Avatar
+                            Email = user.Email ?? string.Empty,
+                            DisplayName = user.DisplayName ?? string.Empty,
+                            Avatar = user.Avatar ?? string.Empty
                         }
                     });
                 }
@@ -162,9 +172,9 @@ namespace AIReview.API.Controllers
                 return Ok(new UserDto
                 {
                     Id = user.Id,
-                    Email = user.Email,
-                    DisplayName = user.DisplayName,
-                    Avatar = user.Avatar
+                    Email = user.Email ?? string.Empty,
+                    DisplayName = user.DisplayName ?? string.Empty,
+                    Avatar = user.Avatar ?? string.Empty
                 });
             }
             catch (Exception ex)
@@ -178,13 +188,17 @@ namespace AIReview.API.Controllers
         {
             var jwtSection = _configuration.GetSection("Jwt");
             var secretKey = jwtSection["Secret"];
+            if (string.IsNullOrWhiteSpace(secretKey))
+            {
+                throw new InvalidOperationException("JWT Secret is not configured");
+            }
             var key = Encoding.ASCII.GetBytes(secretKey);
 
             var claims = new List<Claim>
             {
-                new(ClaimTypes.NameIdentifier, user.Id),
-                new(ClaimTypes.Name, user.UserName),
-                new(ClaimTypes.Email, user.Email),
+                new(ClaimTypes.NameIdentifier, user.Id ?? string.Empty),
+                new(ClaimTypes.Name, user.UserName ?? string.Empty),
+                new(ClaimTypes.Email, user.Email ?? string.Empty),
                 new("display_name", user.DisplayName ?? string.Empty)
             };
 

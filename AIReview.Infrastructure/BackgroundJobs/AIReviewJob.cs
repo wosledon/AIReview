@@ -1,4 +1,5 @@
 using Hangfire;
+using Hangfire.Storage;
 using AIReview.Core.Interfaces;
 using AIReview.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
@@ -19,9 +20,19 @@ namespace AIReview.Infrastructure.BackgroundJobs
         private readonly IMultiLLMService _multiLLMService;
         private readonly Core.Services.ProjectGitMigrationService _projectGitMigrationService;
 
-        // 用于防止重复任务的静态集合
-        private static readonly HashSet<int> _processingTasks = new HashSet<int>();
-        private static readonly object _lockObject = new object();
+        // 使用分布式锁，替代进程内静态集合，支持多实例
+        private IDisposable? TryAcquireDistributedLock(string resource, TimeSpan timeout)
+        {
+            try
+            {
+                var conn = JobStorage.Current.GetConnection();
+                return conn.AcquireDistributedLock(resource, timeout);
+            }
+            catch (DistributedLockTimeoutException)
+            {
+                return null;
+            }
+        }
         private readonly ILogger<AIReviewJob> _logger;
 
         public AIReviewJob(
@@ -45,23 +56,18 @@ namespace AIReview.Infrastructure.BackgroundJobs
         }
 
         [Queue("ai-review")]
-        [DisableConcurrentExecution(timeoutInSeconds: 300)] // 防止同一个任务并发执行
         [AutomaticRetry(Attempts = 2, LogEvents = true, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public async Task ProcessReviewAsync(int reviewRequestId)
         {
             var startTime = DateTime.UtcNow;
             var executionId = Guid.NewGuid().ToString("N")[..8]; // 生成执行ID用于跟踪
             
-            // 防止重复处理相同的任务
-            lock (_lockObject)
+            // 分布式去重：同一评审仅允许一个处理流程
+            using var distLock = TryAcquireDistributedLock($"lock:ai:review:{reviewRequestId}", TimeSpan.FromSeconds(1));
+            if (distLock == null)
             {
-                if (_processingTasks.Contains(reviewRequestId))
-                {
-                    _logger.LogWarning("[{ExecutionId}] Review request {ReviewRequestId} is already being processed by another instance",
-                        executionId, reviewRequestId);
-                    return;
-                }
-                _processingTasks.Add(reviewRequestId);
+                _logger.LogWarning("[{ExecutionId}] Skip review {ReviewRequestId}: another instance is running", executionId, reviewRequestId);
+                return;
             }
             
             try
@@ -187,14 +193,7 @@ namespace AIReview.Infrastructure.BackgroundJobs
                         executionId, reviewRequestId);
                 }
             }
-            finally
-            {
-                // 清除处理中的任务标记
-                lock (_lockObject)
-                {
-                    _processingTasks.Remove(reviewRequestId);
-                }
-            }
+            finally { }
         }
 
         [Queue("ai-review")]

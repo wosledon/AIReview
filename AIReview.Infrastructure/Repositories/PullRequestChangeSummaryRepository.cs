@@ -7,11 +7,8 @@ namespace AIReview.Infrastructure.Repositories;
 
 public class PullRequestChangeSummaryRepository : Repository<PullRequestChangeSummary>, IPullRequestChangeSummaryRepository
 {
-    private readonly ApplicationDbContext _context;
-
     public PullRequestChangeSummaryRepository(ApplicationDbContext context) : base(context)
     {
-        _context = context;
     }
 
     public async Task<PullRequestChangeSummary?> GetByReviewRequestIdAsync(int reviewRequestId)

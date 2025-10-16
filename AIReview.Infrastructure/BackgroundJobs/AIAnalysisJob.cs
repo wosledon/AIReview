@@ -1,4 +1,6 @@
 using Hangfire;
+using Hangfire.Storage;
+using Hangfire.Server;
 using AIReview.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 using AIReview.Shared.DTOs;
@@ -14,9 +16,19 @@ namespace AIReview.Infrastructure.BackgroundJobs
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<AIAnalysisJob> _logger;
 
-        // 用于防止重复任务的静态集合
-        private static readonly HashSet<string> _processingTasks = new HashSet<string>();
-        private static readonly object _lockObject = new object();
+        // 通过 Hangfire 分布式锁来防止相同 ReviewId 的同类任务并发执行（支持分布式）
+        private IDisposable? TryAcquireDistributedLock(string resource, TimeSpan timeout)
+        {
+            try
+            {
+                var conn = JobStorage.Current.GetConnection();
+                return conn.AcquireDistributedLock(resource, timeout);
+            }
+            catch (DistributedLockTimeoutException)
+            {
+                return null;
+            }
+        }
 
         public AIAnalysisJob(
             IRiskAssessmentService riskAssessmentService,
@@ -49,20 +61,17 @@ namespace AIReview.Infrastructure.BackgroundJobs
         }
 
         [Queue("ai-analysis")]
-        [DisableConcurrentExecution(timeoutInSeconds: 300)]
         [AutomaticRetry(Attempts = 2, LogEvents = true, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+        [DisableConcurrentExecution(timeoutInSeconds: 1800)] // 30分钟超时
         public async Task ProcessRiskAssessmentAsync(int reviewRequestId)
         {
-            var taskKey = $"risk_{reviewRequestId}";
-            
-            lock (_lockObject)
+            // 分布式互斥：同一评审的风险评估只允许一个在执行
+            var lockKey = $"lock:ai:analysis:risk:{reviewRequestId}";
+            using var distLock = TryAcquireDistributedLock(lockKey, TimeSpan.FromSeconds(1));
+            if (distLock == null)
             {
-                if (_processingTasks.Contains(taskKey))
-                {
-                    _logger.LogWarning("Risk assessment task for review {ReviewRequestId} is already processing", reviewRequestId);
-                    return;
-                }
-                _processingTasks.Add(taskKey);
+                _logger.LogWarning("Skip risk assessment for review {ReviewRequestId}: another instance is running", reviewRequestId);
+                return;
             }
 
             try
@@ -108,30 +117,20 @@ namespace AIReview.Infrastructure.BackgroundJobs
                 
                 throw;
             }
-            finally
-            {
-                lock (_lockObject)
-                {
-                    _processingTasks.Remove(taskKey);
-                }
-            }
+            finally { }
         }
 
         [Queue("ai-analysis")]
-        [DisableConcurrentExecution(timeoutInSeconds: 300)]
         [AutomaticRetry(Attempts = 2, LogEvents = true, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+        [DisableConcurrentExecution(timeoutInSeconds: 1800)] // 30分钟超时
         public async Task ProcessImprovementSuggestionsAsync(int reviewRequestId)
         {
-            var taskKey = $"suggestions_{reviewRequestId}";
-            
-            lock (_lockObject)
+            var lockKey = $"lock:ai:analysis:suggestions:{reviewRequestId}";
+            using var distLock = TryAcquireDistributedLock(lockKey, TimeSpan.FromSeconds(1));
+            if (distLock == null)
             {
-                if (_processingTasks.Contains(taskKey))
-                {
-                    _logger.LogWarning("Improvement suggestions task for review {ReviewRequestId} is already processing", reviewRequestId);
-                    return;
-                }
-                _processingTasks.Add(taskKey);
+                _logger.LogWarning("Skip improvement suggestions for review {ReviewRequestId}: another instance is running", reviewRequestId);
+                return;
             }
 
             try
@@ -177,30 +176,20 @@ namespace AIReview.Infrastructure.BackgroundJobs
                 
                 throw;
             }
-            finally
-            {
-                lock (_lockObject)
-                {
-                    _processingTasks.Remove(taskKey);
-                }
-            }
+            finally { }
         }
 
         [Queue("ai-analysis")]
-        [DisableConcurrentExecution(timeoutInSeconds: 300)]
         [AutomaticRetry(Attempts = 2, LogEvents = true, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+        [DisableConcurrentExecution(timeoutInSeconds: 1800)] // 30分钟超时
         public async Task ProcessPullRequestSummaryAsync(int reviewRequestId)
         {
-            var taskKey = $"summary_{reviewRequestId}";
-            
-            lock (_lockObject)
+            var lockKey = $"lock:ai:analysis:summary:{reviewRequestId}";
+            using var distLock = TryAcquireDistributedLock(lockKey, TimeSpan.FromSeconds(1));
+            if (distLock == null)
             {
-                if (_processingTasks.Contains(taskKey))
-                {
-                    _logger.LogWarning("PR summary task for review {ReviewRequestId} is already processing", reviewRequestId);
-                    return;
-                }
-                _processingTasks.Add(taskKey);
+                _logger.LogWarning("Skip PR summary for review {ReviewRequestId}: another instance is running", reviewRequestId);
+                return;
             }
 
             try
@@ -246,30 +235,24 @@ namespace AIReview.Infrastructure.BackgroundJobs
                 
                 throw;
             }
-            finally
-            {
-                lock (_lockObject)
-                {
-                    _processingTasks.Remove(taskKey);
-                }
-            }
+            finally { }
         }
 
+        /// <summary>
+        /// 处理综合分析任务（风险评估 + 改进建议 + PR摘要）
+        /// 使用 DisableConcurrentExecution 确保同一 reviewRequestId 的任务不会并发执行
+        /// </summary>
         [Queue("ai-analysis")]
-        [DisableConcurrentExecution(timeoutInSeconds: 600)] // 综合分析可能需要更长时间
         [AutomaticRetry(Attempts = 2, LogEvents = true, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+        [DisableConcurrentExecution(timeoutInSeconds: 3600)] // 1小时超时，防止同一任务并发
         public async Task ProcessComprehensiveAnalysisAsync(int reviewRequestId)
         {
-            var taskKey = $"comprehensive_{reviewRequestId}";
-            
-            lock (_lockObject)
+            var lockKey = $"lock:ai:analysis:comprehensive:{reviewRequestId}";
+            using var distLock = TryAcquireDistributedLock(lockKey, TimeSpan.FromSeconds(2));
+            if (distLock == null)
             {
-                if (_processingTasks.Contains(taskKey))
-                {
-                    _logger.LogWarning("Comprehensive analysis task for review {ReviewRequestId} is already processing", reviewRequestId);
-                    return;
-                }
-                _processingTasks.Add(taskKey);
+                _logger.LogWarning("Skip comprehensive analysis for review {ReviewRequestId}: another instance is running", reviewRequestId);
+                return;
             }
 
             try
@@ -293,7 +276,19 @@ namespace AIReview.Infrastructure.BackgroundJobs
                 await _riskAssessmentService.GenerateRiskAssessmentAsync(reviewRequestId);
                 
                 _logger.LogInformation("Starting improvement suggestions for comprehensive analysis");
-                await _improvementSuggestionService.GenerateImprovementSuggestionsAsync(reviewRequestId);
+                // 与独立的建议任务使用同一把分布式锁，避免并发导致的删除/插入冲突
+                var suggestLockKey = $"lock:ai:analysis:suggestions:{reviewRequestId}";
+                using (var suggestLock = TryAcquireDistributedLock(suggestLockKey, TimeSpan.FromSeconds(2)))
+                {
+                    if (suggestLock == null)
+                    {
+                        _logger.LogWarning("Skip improvement suggestions inside comprehensive for review {ReviewRequestId}: another suggestions instance is running", reviewRequestId);
+                    }
+                    else
+                    {
+                        await _improvementSuggestionService.GenerateImprovementSuggestionsAsync(reviewRequestId);
+                    }
+                }
                 
                 _logger.LogInformation("Starting PR summary for comprehensive analysis");
                 await _pullRequestAnalysisService.GenerateChangeSummaryAsync(reviewRequestId);
@@ -323,13 +318,7 @@ namespace AIReview.Infrastructure.BackgroundJobs
                 
                 throw;
             }
-            finally
-            {
-                lock (_lockObject)
-                {
-                    _processingTasks.Remove(taskKey);
-                }
-            }
+            finally { }
         }
     }
 }
