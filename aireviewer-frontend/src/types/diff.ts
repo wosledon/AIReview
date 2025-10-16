@@ -45,4 +45,5 @@ export interface DiffViewerProps {
   language?: string;
   showLineNumbers?: boolean;
   splitView?: boolean;
+  targetFileAndLine?: { filePath: string; lineNumber: number } | null;
 }

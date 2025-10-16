@@ -39,6 +39,9 @@ export const ReviewDetailPage = () => {
   const [showAddComment, setShowAddComment] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  
+  // 状态用于跳转到特定文件和行
+  const [targetFileAndLine, setTargetFileAndLine] = useState<{ filePath: string; lineNumber: number } | null>(null);
 
   const reviewId = parseInt(id!, 10);
 
@@ -143,6 +146,22 @@ export const ReviewDetailPage = () => {
   const handleStartAIReview = () => {
     // TODO: 实现 AI 评审开始逻辑
     console.log('Starting AI review for', reviewId);
+  };
+
+  // 跳转到代码变更并定位到特定行
+  const handleJumpToCode = (filePath: string, lineNumber: number) => {
+    setTargetFileAndLine({ filePath, lineNumber });
+    setActiveTab('diff');
+    // 给DiffViewer一点时间渲染，然后滚动到目标位置
+    setTimeout(() => {
+      const element = document.getElementById(`line-${lineNumber}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // 添加高亮效果
+        element.classList.add('highlight-flash');
+        setTimeout(() => element.classList.remove('highlight-flash'), 2000);
+      }
+    }, 100);
   };
 
   if (isReviewLoading) {
@@ -368,9 +387,10 @@ export const ReviewDetailPage = () => {
             onShowAddComment={setShowAddComment}
             onAddComment={(comment) => addCommentMutation.mutate(comment)}
             isAddingComment={addCommentMutation.isPending}
+            onJumpToCode={handleJumpToCode}
           />
         )}
-        {activeTab === 'diff' && <DiffTab review={review} />}
+        {activeTab === 'diff' && <DiffTab review={review} targetFileAndLine={targetFileAndLine} />}
         {activeTab === 'analysis' && <AnalysisTab review={review} />}
       </div>
     </div>
@@ -630,9 +650,10 @@ interface CommentsTabProps {
   onShowAddComment: (show: boolean) => void;
   onAddComment: (comment: AddCommentRequest) => void;
   isAddingComment: boolean;
+  onJumpToCode?: (filePath: string, lineNumber: number) => void;
 }
 
-const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, onAddComment, isAddingComment }: CommentsTabProps) => {
+const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, onAddComment, isAddingComment, onJumpToCode }: CommentsTabProps) => {
   const [newComment, setNewComment] = useState<{
     content: string;
     severity: ReviewCommentSeverity;
@@ -837,7 +858,7 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
               className="animate-fade-in" 
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <CommentCard comment={comment} />
+              <CommentCard comment={comment} onJumpToCode={onJumpToCode} />
             </div>
           ))}
         </div>
@@ -848,9 +869,10 @@ const CommentsTab = ({ comments, isLoading, showAddComment, onShowAddComment, on
 
 interface CommentCardProps {
   comment: ReviewComment;
+  onJumpToCode?: (filePath: string, lineNumber: number) => void;
 }
 
-const CommentCard = ({ comment }: CommentCardProps) => {
+const CommentCard = ({ comment, onJumpToCode }: CommentCardProps) => {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case ReviewCommentSeverity.Critical:
@@ -900,10 +922,25 @@ const CommentCard = ({ comment }: CommentCardProps) => {
           </div>
           
           {comment.filePath && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              📁 {comment.filePath}
-              {comment.lineNumber && `:${comment.lineNumber}`}
-            </div>
+            <button
+              onClick={() => onJumpToCode && comment.lineNumber && onJumpToCode(comment.filePath!, comment.lineNumber)}
+              disabled={!onJumpToCode || !comment.lineNumber}
+              className={`text-xs mb-2 flex items-center space-x-1 group ${
+                onJumpToCode && comment.lineNumber
+                  ? 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer'
+                  : 'text-gray-500 dark:text-gray-400 cursor-default'
+              }`}
+              title={onJumpToCode && comment.lineNumber ? '点击跳转到代码位置' : undefined}
+            >
+              <DocumentTextIcon className="h-4 w-4" />
+              <span className="font-mono">
+                {comment.filePath}
+                {comment.lineNumber && `:${comment.lineNumber}`}
+              </span>
+              {onJumpToCode && comment.lineNumber && (
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+              )}
+            </button>
           )}
           
           <p className="text-sm text-gray-900 dark:text-gray-100 mb-3">{comment.content}</p>
@@ -922,9 +959,10 @@ const CommentCard = ({ comment }: CommentCardProps) => {
 
 interface DiffTabProps {
   review: Review;
+  targetFileAndLine?: { filePath: string; lineNumber: number } | null;
 }
 
-const DiffTab = ({ review }: DiffTabProps) => {
+const DiffTab = ({ review, targetFileAndLine }: DiffTabProps) => {
   const { addNotification } = useNotifications();
   const queryClient = useQueryClient();
   
@@ -1065,6 +1103,7 @@ const DiffTab = ({ review }: DiffTabProps) => {
           onAddComment={handleAddComment}
           onDeleteComment={handleDeleteComment}
           language="auto"
+          targetFileAndLine={targetFileAndLine}
         />
       </div>
     </div>

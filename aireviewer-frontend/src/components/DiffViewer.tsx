@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { 
   ChatBubbleLeftIcon, 
   PlusIcon, 
@@ -221,8 +221,8 @@ function DiffLine({
   };
 
   return (
-    <div>
-      <div className={`group flex items-center ${getLineClass()}`}>
+    <div id={`line-${lineNumber}`}>
+      <div className={`group flex items-center transition-all duration-300 ${getLineClass()}`}>
         <div className="flex-shrink-0 w-16 px-2 py-1 text-xs text-gray-500 border-r border-gray-200 bg-gray-50">
           {change.oldLineNumber && (
             <span className="block text-right">{change.oldLineNumber}</span>
@@ -473,11 +473,31 @@ export function DiffViewer({
   comments = [], 
   onAddComment, 
   onDeleteComment, 
-  language = 'javascript' 
+  language = 'javascript',
+  targetFileAndLine
 }: DiffViewerProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(
     files.length > 0 ? (files[0].newPath || files[0].oldPath) : null
   );
+
+  // 当targetFileAndLine改变时，自动切换到目标文件并滚动到目标行
+  useEffect(() => {
+    if (targetFileAndLine) {
+      const { filePath, lineNumber } = targetFileAndLine;
+      // 切换到目标文件
+      setSelectedFile(filePath);
+      // 延迟滚动，确保DOM已渲染
+      setTimeout(() => {
+        const element = document.getElementById(`line-${lineNumber}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // 添加高亮效果
+          element.classList.add('highlight-flash');
+          setTimeout(() => element.classList.remove('highlight-flash'), 2000);
+        }
+      }, 300);
+    }
+  }, [targetFileAndLine]);
 
   const selectedFileData = files.find(f => 
     (f.newPath || f.oldPath) === selectedFile

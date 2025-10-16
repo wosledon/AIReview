@@ -33,3 +33,20 @@
     @apply bg-white rounded-lg shadow border border-gray-200 p-6;
   }
 }
+
+@layer utilities {
+  /* 高亮闪烁动画 - 用于代码行跳转时的视觉反馈 */
+  @keyframes highlightFlash {
+    0%, 100% {
+      background-color: transparent;
+    }
+    50% {
+      background-color: rgb(250, 204, 21, 0.3); /* yellow-400 with opacity */
+    }
+  }
+  
+  .highlight-flash {
+    animation: highlightFlash 2s ease-in-out;
+  }
+}
+
