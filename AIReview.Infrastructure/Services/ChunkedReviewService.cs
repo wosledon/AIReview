@@ -3,6 +3,9 @@ using System.Text.Json;
 using AIReview.Core.Entities;
 using AIReview.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
+using System.Threading;
 
 namespace AIReview.Infrastructure.Services;
 
@@ -16,6 +19,7 @@ public class ChunkedReviewService
     private readonly ILLMConfigurationService _configurationService;
     private readonly ILLMProviderFactory _providerFactory;
     private readonly ILogger<ChunkedReviewService> _logger;
+    private readonly ChunkedReviewOptions _options;
     
     // Token估算:粗略估计每4个字符约等于1个token(对于代码)
     private const int CHARS_PER_TOKEN = 4;
@@ -29,11 +33,13 @@ public class ChunkedReviewService
     public ChunkedReviewService(
         ILLMConfigurationService configurationService,
         ILLMProviderFactory providerFactory,
-        ILogger<ChunkedReviewService> logger)
+        ILogger<ChunkedReviewService> logger,
+        IOptions<ChunkedReviewOptions> options)
     {
         _configurationService = configurationService;
         _providerFactory = providerFactory;
         _logger = logger;
+        _options = options?.Value ?? new ChunkedReviewOptions();
     }
 
     /// <summary>
@@ -130,8 +136,9 @@ public class ChunkedReviewService
             chunks.Count, isReview ? "评审" : "分析");
 
         // 2. 并行处理每个块(限制并发数避免API限流)
-        var chunkResults = new List<ChunkReviewResult>();
-        var semaphore = new SemaphoreSlim(3); // 最多3个并发请求
+    var chunkResults = new List<ChunkReviewResult>();
+    var maxConcurrency = Math.Max(1, _options.MaxConcurrency);
+    var semaphore = new SemaphoreSlim(maxConcurrency); // 可配置并发
         
         var tasks = chunks.Select(async (chunk, index) =>
         {
@@ -146,20 +153,29 @@ public class ChunkedReviewService
                     "{ProcessType}第 {Index}/{Total} 个文件块: {FileName} ({Size} 字符)",
                     isReview ? "评审" : "分析", index + 1, chunks.Count, chunk.FileName, chunk.Content.Length);
                 
-                // 获取配置并调用LLM
+                // 预取配置，减少重复调用；为每个分块请求提供超时与重试
                 var configuration = await GetConfigurationAsync(configurationId);
                 if (configuration == null)
                 {
                     throw new InvalidOperationException("没有可用的LLM配置");
                 }
-                
-                var provider = _providerFactory.CreateProvider(configuration);
+
                 var prompt = isReview 
                     ? BuildReviewPrompt(chunk.Content, chunkPromptOrContext)
                     : BuildAnalysisPrompt(chunkPromptOrContext, chunk.Content);
-                
-                var result = await provider.GenerateAsync(prompt);
-                
+
+                var result = await ExecuteWithRetryAsync(async (ct) =>
+                {
+                    var provider = _providerFactory.CreateProvider(configuration);
+                    // provider 层不一定支持 CancellationToken，这里只控制我们侧的超时
+                    return await provider.GenerateAsync(prompt);
+                },
+                _options.MaxRetries,
+                TimeSpan.FromMilliseconds(Math.Max(100, _options.InitialRetryDelayMs)),
+                TimeSpan.FromSeconds(Math.Max(5, _options.PerChunkTimeoutSeconds)),
+                isReview ? "评审" : "分析",
+                chunk.FileName);
+
                 return new ChunkReviewResult
                 {
                     FileName = chunk.FileName,
@@ -311,36 +327,54 @@ public class ChunkedReviewService
 
                 try
                 {
-                    // 尝试解析JSON结果
-                    var json = JsonDocument.Parse(chunk.ReviewResult);
+                    // 预处理: 从返回文本中提取有效JSON（去除 ```json 代码块、前后非JSON内容等）
+                    var raw = chunk.ReviewResult ?? string.Empty;
+                    if (!TryExtractJsonObject(raw, out var jsonText))
+                    {
+                        throw new JsonException("未能从返回内容中提取有效JSON");
+                    }
+
+                    using var json = JsonDocument.Parse(jsonText);
                     var root = json.RootElement;
 
-                    // 提取comments
-                    if (root.TryGetProperty("comments", out var comments))
+                    // 提取comments（兼容根是数组或对象内的 comments 数组）
+                    IEnumerable<JsonElement> commentArray = Enumerable.Empty<JsonElement>();
+                    if (root.ValueKind == JsonValueKind.Array)
                     {
-                        foreach (var comment in comments.EnumerateArray())
+                        commentArray = root.EnumerateArray();
+                    }
+                    else if (root.TryGetProperty("comments", out var commentsProp) && commentsProp.ValueKind == JsonValueKind.Array)
+                    {
+                        commentArray = commentsProp.EnumerateArray();
+                    }
+
+                    foreach (var comment in commentArray)
+                    {
+                        var commentObj = JsonSerializer.Deserialize<Dictionary<string, object>>(comment.GetRawText());
+                        if (commentObj != null)
                         {
-                            // 为每个comment添加文件名前缀
-                            var commentObj = JsonSerializer.Deserialize<Dictionary<string, object>>(
-                                comment.GetRawText());
-                            if (commentObj != null)
-                            {
-                                commentObj["file"] = chunk.FileName;
-                                allComments.Add(commentObj);
-                            }
+                            commentObj["file"] = chunk.FileName;
+                            allComments.Add(commentObj);
                         }
                     }
 
-                    // 提取score
-                    if (root.TryGetProperty("overall_score", out var score))
+                    // 提取score（可选）
+                    if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("overall_score", out var scoreEl))
                     {
-                        allScores.Add(score.GetInt32());
+                        if (scoreEl.ValueKind == JsonValueKind.Number && scoreEl.TryGetInt32(out var s))
+                        {
+                            allScores.Add(s);
+                        }
                     }
 
-                    // 提取summary
-                    if (root.TryGetProperty("summary", out var summary))
+                    // 提取summary（可选）
+                    if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("summary", out var summaryEl))
                     {
-                        allSummaries.Add($"📄 {chunk.FileName}: {summary.GetString()}");
+                        var summaryStr = summaryEl.ToString();
+                        if (!string.IsNullOrWhiteSpace(summaryStr))
+                        {
+                            allSummaries.Add($"📄 {chunk.FileName}: {summaryStr}");
+                        }
                     }
                 }
                 catch (JsonException ex)
@@ -453,7 +487,9 @@ public class ChunkedReviewService
 
 ## 输出要求
 
-请提供结构化的审查结果，使用JSON格式输出。";
+请仅输出严格的 JSON（UTF-8，无任何 Markdown 代码块、无注释、无多余文本）。
+禁止输出 ```json 或 ``` 包裹。禁止在 JSON 前后添加说明文字。
+";
     }
 
     /// <summary>
@@ -472,13 +508,137 @@ public class ChunkedReviewService
 
 ## 输出要求
 
-1. 请提供结构化的分析结果
-2. 使用JSON格式输出(如任务要求)
+1. 仅输出严格的 JSON（UTF-8），不得包含 Markdown 代码块、注释或多余文本
+2. 遵循任务要求中的字段结构
 3. 确保分析深入、全面、准确
 4. 提供具体的数据和证据支持你的结论
 5. 如果发现问题，请提供可行的解决方案
 
-请开始分析...";
+请直接输出 JSON。";
+    }
+
+    /// <summary>
+    /// 从原始文本中提取可解析的 JSON（支持 ```json 代码块、对象或数组根、以及前后噪音）
+    /// </summary>
+    private static bool TryExtractJsonObject(string raw, out string jsonText)
+    {
+        jsonText = string.Empty;
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+
+        var text = raw.Trim();
+
+        // 1) 处理 Markdown 代码块 ```json ... ``` 或 ``` ... ```
+    var fenceMatch = Regex.Match(text, @"```(?:json)?\s*\n([\s\S]*?)```", RegexOptions.IgnoreCase);
+        if (fenceMatch.Success && fenceMatch.Groups.Count > 1)
+        {
+            text = fenceMatch.Groups[1].Value.Trim();
+        }
+
+        // 2) 尝试直接解析（完整 JSON）
+        if (IsValidJson(text))
+        {
+            jsonText = text;
+            return true;
+        }
+
+        // 3) 在文本中查找首个平衡的 JSON 对象 {...}
+        if (TryExtractBalancedJson(text, '{', '}', out var objJson) && IsValidJson(objJson))
+        {
+            jsonText = objJson;
+            return true;
+        }
+
+        // 4) 在文本中查找首个平衡的 JSON 数组 [...]
+        if (TryExtractBalancedJson(text, '[', ']', out var arrJson) && IsValidJson(arrJson))
+        {
+            jsonText = arrJson;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsValidJson(string s)
+    {
+        try
+        {
+            using var _ = JsonDocument.Parse(s);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TryExtractBalancedJson(string text, char open, char close, out string json)
+    {
+        json = string.Empty;
+        int start = 0;
+        while (true)
+        {
+            int idx = text.IndexOf(open, start);
+            if (idx < 0) return false;
+
+            int end = FindBalancedEnd(text, idx, open, close);
+            if (end > idx)
+            {
+                json = text.Substring(idx, end - idx + 1).Trim();
+                return true;
+            }
+
+            start = idx + 1;
+        }
+    }
+
+    private static int FindBalancedEnd(string text, int startIndex, char open, char close)
+    {
+        int depth = 0;
+        bool inString = false;
+        bool escape = false;
+
+        for (int i = startIndex; i < text.Length; i++)
+        {
+            char c = text[i];
+
+            if (inString)
+            {
+                if (escape)
+                {
+                    escape = false;
+                }
+                else if (c == '\\')
+                {
+                    escape = true;
+                }
+                else if (c == '"')
+                {
+                    inString = false;
+                }
+                continue;
+            }
+
+            if (c == '"')
+            {
+                inString = true;
+                continue;
+            }
+
+            if (c == open)
+            {
+                depth++;
+            }
+            else if (c == close)
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
     }
 
     // 内部类
@@ -495,5 +655,43 @@ public class ChunkedReviewService
         public string ReviewResult { get; set; } = "";
         public int Order { get; set; }
         public bool HasError { get; set; }
+    }
+
+    /// <summary>
+    /// 为分块请求增加重试与超时控制（简单指数退避）
+    /// </summary>
+    private async Task<string> ExecuteWithRetryAsync(
+        Func<CancellationToken, Task<string>> action,
+        int maxRetries,
+        TimeSpan initialDelay,
+        TimeSpan timeout,
+        string processType,
+        string fileName)
+    {
+        var attempt = 0;
+        var delay = initialDelay;
+
+        while (true)
+        {
+            attempt++;
+            using var cts = new CancellationTokenSource(timeout);
+            try
+            {
+                return await action(cts.Token);
+            }
+            catch (Exception ex)
+            {
+                if (attempt > maxRetries + 1)
+                {
+                    _logger.LogError(ex, "{ProcessType}分块重试耗尽: {FileName} (尝试{Attempt})", processType, fileName, attempt - 1);
+                    throw;
+                }
+
+                // 对常见的可重试错误打印警告并延迟
+                _logger.LogWarning(ex, "{ProcessType}分块失败: {FileName} (第{Attempt}次)，{DelayMs}ms后重试", processType, fileName, attempt, (int)delay.TotalMilliseconds);
+                await Task.Delay(delay);
+                delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 4000));
+            }
+        }
     }
 }

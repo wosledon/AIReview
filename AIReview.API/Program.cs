@@ -19,6 +19,7 @@ using AIReview.Infrastructure.Services;
 using AIReview.Infrastructure.BackgroundJobs;
 using AIReview.API.Hubs;
 using AIReview.API.Services;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -311,6 +312,9 @@ builder.Services.AddScoped<IMultiLLMService, MultiLLMService>();
 builder.Services.AddScoped<IContextBuilder, ContextBuilder>();
 builder.Services.AddScoped<ChunkedReviewService>(); // 分块评审服务
 builder.Services.AddScoped<IAIReviewer, AIReviewer>();
+
+// 绑定分块评审/分析的选项（可在 appsettings.json 的 ChunkedReview 节点配置）
+builder.Services.Configure<ChunkedReviewOptions>(builder.Configuration.GetSection("ChunkedReview"));
 
 // 注册后台任务服务
 builder.Services.AddScoped<IAIReviewService, HangfireAIReviewService>();

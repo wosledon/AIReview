@@ -113,28 +113,29 @@ public class MultiLLMService : IMultiLLMService
 - 错误处理和日志记录
 - 测试覆盖率考虑
 
-## 输出格式要求
+## 输出格式要求（严格）
 
-请严格按照以下JSON格式返回结果：
+仅输出严格的 JSON（UTF-8），不得包含 Markdown 代码块（如 ```json 或 ```）、注释或任何额外文字。输出的 JSON 顶层必须是对象。
 
+建议的字段结构如下（示例，仅供理解，用于说明字段含义；不要在输出中包含注释或示例说明）：
 ```json
 {{
-  ""summary"": ""总体评价，简要描述本次变更的质量和主要发现"",
-  ""overallScore"": 85,
-  ""issues"": [
-    {{
-      ""severity"": ""high|medium|low"",
-      ""category"": ""security|performance|style|bug|design|maintainability"",
-      ""filePath"": ""从Git diff中提取的完整文件路径"",
-      ""line"": 行号(整数),
-      ""message"": ""问题描述，要具体明确"",
-      ""suggestion"": ""具体的改进建议或修复方案""
-    }}
-  ],
-  ""recommendations"": [
-    ""总体性的改进建议1"",
-    ""总体性的改进建议2""
-  ]
+    ""summary"": ""总体评价，简要描述本次变更的质量和主要发现"",
+    ""overallScore"": 85,
+    ""issues"": [
+        {{
+            ""severity"": ""high|medium|low"",
+            ""category"": ""security|performance|style|bug|design|maintainability"",
+            ""filePath"": ""从Git diff中提取的完整文件路径"",
+            ""line"": 123,
+            ""message"": ""问题描述，要具体明确"",
+            ""suggestion"": ""具体的改进建议或修复方案""
+        }}
+    ],
+    ""recommendations"": [
+        ""总体性的改进建议1"",
+        ""总体性的改进建议2""
+    ]
 }}
 ```
 
@@ -163,9 +164,9 @@ public class MultiLLMService : IMultiLLMService
    - 60-74: 中等，有明显问题需要修复
    - 0-59: 较差，有严重问题
 
-5. 只返回JSON，不要添加任何其他说明文字
-6. 确保JSON格式正确，可以被解析器正确解析
-7. 如果没有发现问题，issues数组可以为空，但要提供建设性的recommendations";
+5. 只返回 JSON，不要添加任何其他说明文字或 Markdown 代码块
+6. 确保 JSON 语法正确（双引号、无尾逗号），可以被解析器正确解析
+7. 如果没有发现问题，issues 数组可以为空，但请给出建设性的 recommendations";
     }
 
     public async Task<string> GenerateAnalysisAsync(string prompt, string code, int? configurationId = null)
@@ -219,15 +220,15 @@ public class MultiLLMService : IMultiLLMService
 {code}
 ```
 
-## 输出要求
+## 输出要求（严格）
 
-1. 请提供结构化的分析结果
-2. 使用JSON格式输出(如任务要求)
-3. 确保分析深入、全面、准确
-4. 提供具体的数据和证据支持你的结论
-5. 如果发现问题，请提供可行的解决方案
+1. 仅输出严格的 JSON（UTF-8），不得包含 Markdown 代码块（如 ```json 或 ```）、注释或任何额外文字
+2. 顶层结构与任务约定保持一致（通常为对象）；字段名使用双引号，避免尾逗号
+3. 确保分析深入、全面、准确，并给出可验证的依据
+4. 如果发现问题，请提供可行且具体的解决方案
+5. 如无问题，也需要给出改进建议数组（可为空数组）
 
-请开始分析...";
+请直接输出 JSON。";
     }
 
     public async Task<bool> TestConnectionAsync(int configurationId)
