@@ -16,6 +16,7 @@ using AIReview.Core.Services;
 using AIReview.Infrastructure;
 using AIReview.Infrastructure.Data;
 using AIReview.Infrastructure.Services;
+using AIReview.Infrastructure.Repositories;
 using AIReview.Infrastructure.BackgroundJobs;
 using AIReview.API.Hubs;
 using AIReview.API.Services;
@@ -214,6 +215,9 @@ if (!redisAvailableForCache)
     Console.WriteLine("⚠ Falling back to in-memory implementations for distributed services");
     Console.WriteLine("⚠ In-memory services only work in single-instance deployments");
     
+    // 提供 IDistributedCache 的内存实现（用于 InMemoryDistributedCacheService 依赖）
+    builder.Services.AddDistributedMemoryCache();
+    
     // 注册内存版本的分布式缓存服务
     builder.Services.AddScoped<IDistributedCacheService, InMemoryDistributedCacheService>();
     
@@ -326,6 +330,10 @@ builder.Services.AddScoped<AIAnalysisJob>();
 
 // 注册通知服务
 builder.Services.AddScoped<AIReview.Core.Interfaces.INotificationService, NotificationService>();
+
+// 注册 Token 使用跟踪服务
+builder.Services.AddScoped<ITokenUsageRepository, TokenUsageRepository>();
+builder.Services.AddScoped<ITokenUsageService, AIReview.Core.Services.TokenUsageService>();
 
 // 配置SignalR
 builder.Services.AddSignalR(options =>

@@ -143,9 +143,31 @@ export const ReviewDetailPage = () => {
     rejectReviewMutation.mutate({ reason: rejectReason.trim() || undefined });
   };
 
+  const startAIReviewMutation = useMutation({
+    mutationFn: () => reviewService.startAIReview(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['review', reviewId] });
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      addNotification({
+        type: 'review_status',
+        message: 'AI 评审已启动',
+        timestamp: new Date().toISOString(),
+        reviewId: String(reviewId)
+      });
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof Error ? error.message : '启动 AI 评审失败';
+      addNotification({
+        type: 'review_status',
+        message: msg,
+        timestamp: new Date().toISOString(),
+        reviewId: String(reviewId)
+      });
+    }
+  });
+
   const handleStartAIReview = () => {
-    // TODO: 实现 AI 评审开始逻辑
-    console.log('Starting AI review for', reviewId);
+    startAIReviewMutation.mutate();
   };
 
   // 跳转到代码变更并定位到特定行
@@ -312,9 +334,10 @@ export const ReviewDetailPage = () => {
             <button 
               className="btn btn-primary inline-flex items-center space-x-1 transition-all hover:scale-105"
               onClick={handleStartAIReview}
+              disabled={startAIReviewMutation.isPending}
             >
               <CpuChipIcon className="h-5 w-5 mr-2" />
-              开始AI评审
+              {startAIReviewMutation.isPending ? 'AI 评审启动中...' : '开始AI评审'}
             </button>
           )}
           {review.status === ReviewState.HumanReview && (

@@ -3,6 +3,7 @@ using System;
 using AIReview.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AIReview.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251017084254_AddTokenUsageTracking")]
+    partial class AddTokenUsageTracking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
@@ -894,7 +897,7 @@ namespace AIReview.Infrastructure.Migrations
                     b.Property<bool>("IsSuccessful")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("LLMConfigurationId")
+                    b.Property<int>("LLMConfigurationId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Model")
@@ -1243,7 +1246,9 @@ namespace AIReview.Infrastructure.Migrations
                 {
                     b.HasOne("AIReview.Core.Entities.LLMConfiguration", "LLMConfiguration")
                         .WithMany()
-                        .HasForeignKey("LLMConfigurationId");
+                        .HasForeignKey("LLMConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("AIReview.Core.Entities.Project", "Project")
                         .WithMany()

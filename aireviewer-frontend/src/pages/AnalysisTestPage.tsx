@@ -5,28 +5,26 @@ import { RiskDonutChart, ImpactBarChart, FileHeatmap, TrendLine } from '../compo
 import { LoadingSpinner, LoadingCard, EmptyState, ErrorState } from '../components/common/LoadingStates';
 import { ProgressBar, RiskLevelIndicator } from '../components/common/ProgressBar';
 import { AnalysisDashboard } from '../components/common/AnalysisDashboard';
+import type { AnalysisData } from '../types/analysis';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 
-// 模拟数据
-const mockAnalysisData = {
+// 模拟数据（符合 AnalysisData 接口）
+const mockAnalysisData: AnalysisData = {
   riskAssessment: {
     id: 1,
     reviewRequestId: 1,
-    basicRiskScore: 75,
-    aiRiskScore: 82,
-    combinedRiskScore: 78,
-    riskLevel: 'High' as const,
+    overallRiskScore: 78,
     complexityRisk: 85,
     securityRisk: 60,
     performanceRisk: 70,
     maintainabilityRisk: 75,
-    mitigationStrategies: [
-      '增加单元测试覆盖率',
-      '进行代码审查',
-      '添加错误处理机制',
-      '优化数据库查询'
-    ],
-    reasoning: '基于代码复杂度分析和潜在安全漏洞检测，该变更具有较高风险。主要风险来源于新增的数据库操作和复杂的业务逻辑。',
+    testCoverageRisk: 40,
+    changedFilesCount: 18,
+    changedLinesCount: 520,
+    riskDescription: '基于代码复杂度分析和潜在安全漏洞检测，该变更具有较高风险。',
+    mitigationSuggestions: '增加单元测试覆盖率；进行代码审查；添加错误处理机制；优化数据库查询',
+    aiModelVersion: 'GPT-4.1',
+    confidenceScore: 0.88,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -73,32 +71,35 @@ const mockAnalysisData = {
   pullRequestSummary: {
     id: 1,
     reviewRequestId: 1,
-    overallSummary: '本次PR主要实现了用户认证系统的重构，包括JWT令牌管理、密码加密优化和会话管理改进。变更涉及多个核心模块，需要仔细审查安全相关的实现。',
+    changeType: 'Security',
+    summary: '重构用户认证系统：JWT 令牌管理、密码加密优化与会话管理改进，涉及多个核心模块。',
+    detailedDescription: '此次变更对用户认证流程产生重大影响，需要关注安全性与兼容性。',
     keyChanges: [
       '重构JWT认证中间件',
       '实现密码哈希算法升级',
       '添加会话管理功能',
       '更新用户权限验证逻辑'
-    ],
-    impactAnalysis: '此次变更对用户认证流程产生重大影响，可能影响现有登录用户的会话状态。建议在部署前进行充分的兼容性测试。',
-    riskAssessment: '主要风险集中在安全性和向后兼容性方面。新的认证机制需要确保与现有系统的平滑过渡。',
-    breakingChanges: [
-      '修改了JWT payload结构',
-      '更新了密码验证接口'
-    ],
-    testingRecommendations: '建议进行全面的集成测试，特别关注用户登录、权限验证和会话管理功能。同时需要进行安全性测试以验证新的认证机制。',
-    deploymentNotes: '部署时需要清理现有用户会话，建议在低峰期进行部署并提前通知用户。',
-    affectedComponents: [
-      '认证中间件',
-      '用户服务',
-      '权限管理',
-      '会话存储',
-      'API路由'
-    ],
-    performanceImpact: '新的密码哈希算法可能略微增加CPU使用率，但在可接受范围内。JWT处理性能有所提升。',
-    securityConsiderations: '新的认证机制提高了整体安全性，但需要确保密钥管理和令牌刷新机制的正确实现。',
-    confidenceLevel: 0.88,
+    ].join('\n'),
+    impactAnalysis: '对登录流程、权限验证和会话管理有重要影响，建议进行充分的集成与回归测试。',
+    businessImpact: 'High',
+    technicalImpact: 'Medium',
+    breakingChangeRisk: 'Medium',
+    testingRecommendations: '重点测试登录、权限、会话管理与安全边界；补充安全性测试。',
+    deploymentConsiderations: '低峰期部署并清理历史会话，提前通知用户。',
+    dependencyChanges: '升级加密与认证相关依赖。',
+    performanceImpact: '密码哈希可能略微增加CPU使用率；JWT处理性能有所提升。',
+    securityImpact: '整体安全性提高，需要确保密钥管理与令牌刷新机制正确实现。',
+    backwardCompatibility: '需要确保对旧会话的平滑迁移。',
+    documentationRequirements: '更新认证流程文档与API说明。',
+    changeStatistics: {
+      addedLines: 320,
+      deletedLines: 140,
+      modifiedFiles: 18,
+      addedFiles: 3,
+      deletedFiles: 1
+    },
     aiModelVersion: 'GPT-4-Turbo',
+    confidenceScore: 0.88,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }

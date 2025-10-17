@@ -12,6 +12,9 @@ export class ApiClient {
   private token: string | null = null;
 
   constructor(config: ApiConfig) {
+    // 初始化时从 localStorage 加载 token
+    this.token = localStorage.getItem('auth_token');
+    
     this.client = axios.create({
       baseURL: config.baseURL,
       timeout: config.timeout || 10000,
@@ -93,7 +96,7 @@ export class ApiClient {
 
 // Create default API client instance
 const apiConfig: ApiConfig = {
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://localhost:5000/api/v1',
   timeout: 15000,
 };
 

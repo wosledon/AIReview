@@ -12,6 +12,7 @@ public class RiskAssessmentService : IRiskAssessmentService
     private readonly IGitService _gitService;
     private readonly IDiffParserService _diffParserService;
     private readonly IMultiLLMService _llmService;
+    private readonly ITokenUsageService _tokenUsageService;
     private readonly ILogger<RiskAssessmentService> _logger;
     private readonly IPromptService _promptService;
 
@@ -20,6 +21,7 @@ public class RiskAssessmentService : IRiskAssessmentService
         IGitService gitService,
         IDiffParserService diffParserService,
         IMultiLLMService llmService,
+        ITokenUsageService tokenUsageService,
         IPromptService promptService,
         ILogger<RiskAssessmentService> logger)
     {
@@ -27,6 +29,7 @@ public class RiskAssessmentService : IRiskAssessmentService
         _gitService = gitService;
         _diffParserService = diffParserService;
         _llmService = llmService;
+        _tokenUsageService = tokenUsageService;
         _promptService = promptService;
         _logger = logger;
     }
@@ -72,6 +75,33 @@ public class RiskAssessmentService : IRiskAssessmentService
 
             // 使用AI进行深度风险分析
             var aiAnalysis = await PerformAIRiskAnalysisAsync(reviewRequest, fileDiffs, diff);
+
+            // 记录 Token 使用（估算）
+            try
+            {
+                var config = await _llmService.GetActiveConfigurationAsync();
+                var prompt = await BuildRiskAnalysisPromptAsync(reviewRequest, fileDiffs, diff);
+                var promptTokens = _tokenUsageService.EstimateTokenCount(prompt) + _tokenUsageService.EstimateTokenCount(diff);
+                var completionTokens = _tokenUsageService.EstimateTokenCount(JsonSerializer.Serialize(aiAnalysis));
+                await _tokenUsageService.RecordUsageAsync(
+                    userId: reviewRequest.AuthorId,
+                    projectId: reviewRequest.ProjectId,
+                    reviewRequestId: reviewRequestId,
+                    llmConfigurationId: config?.Id,
+                    provider: config?.Provider ?? "Unknown",
+                    model: config?.Model ?? "Unknown",
+                    operationType: "RiskAssessment",
+                    promptTokens: promptTokens,
+                    completionTokens: completionTokens,
+                    isSuccessful: true,
+                    errorMessage: null,
+                    responseTimeMs: null,
+                    isCached: false);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "Failed to record token usage for RiskAssessment");
+            }
 
             // 创建风险评估实体
             var riskAssessment = new RiskAssessment

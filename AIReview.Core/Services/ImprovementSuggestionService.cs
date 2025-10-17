@@ -14,18 +14,21 @@ public class ImprovementSuggestionService : IImprovementSuggestionService
     private readonly IDiffParserService _diffParserService;
     private readonly IMultiLLMService _llmService;
     private readonly ILogger<ImprovementSuggestionService> _logger;
+    private readonly ITokenUsageService _tokenUsageService;
 
     public ImprovementSuggestionService(
         IUnitOfWork unitOfWork,
         IGitService gitService,
         IDiffParserService diffParserService,
         IMultiLLMService llmService,
+        ITokenUsageService tokenUsageService,
         ILogger<ImprovementSuggestionService> logger)
     {
         _unitOfWork = unitOfWork;
         _gitService = gitService;
         _diffParserService = diffParserService;
         _llmService = llmService;
+        _tokenUsageService = tokenUsageService;
         _logger = logger;
     }
 
@@ -174,6 +177,33 @@ public class ImprovementSuggestionService : IImprovementSuggestionService
             // 使用自动分块分析,当代码量超过限制时会自动分块处理
             var response = await _llmService.AnalyzeWithAutoChunkingAsync(prompt, codeToAnalyze);
             var aiSuggestions = ParseFileSuggestions(response);
+
+            // 记录 Token 使用（估算）
+            try
+            {
+                var config = await _llmService.GetActiveConfigurationAsync();
+                var promptText = BuildFileSuggestionPrompt(fileDiff, fullDiff);
+                var promptTokens = _tokenUsageService.EstimateTokenCount(promptText) + _tokenUsageService.EstimateTokenCount(string.Join("\n", fileDiff.AddedContent.Concat(fileDiff.DeletedContent)));
+                var completionTokens = _tokenUsageService.EstimateTokenCount(JsonSerializer.Serialize(aiSuggestions));
+                await _tokenUsageService.RecordUsageAsync(
+                    userId: (await _unitOfWork.ReviewRequests.GetByIdAsync(reviewRequestId))?.AuthorId ?? string.Empty,
+                    projectId: (await _unitOfWork.ReviewRequests.GetByIdAsync(reviewRequestId))?.ProjectId,
+                    reviewRequestId: reviewRequestId,
+                    llmConfigurationId: config?.Id,
+                    provider: config?.Provider ?? "Unknown",
+                    model: config?.Model ?? "Unknown",
+                    operationType: "ImprovementSuggestion.File",
+                    promptTokens: promptTokens,
+                    completionTokens: completionTokens,
+                    isSuccessful: true,
+                    errorMessage: null,
+                    responseTimeMs: null,
+                    isCached: false);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "Failed to record token usage for ImprovementSuggestion.File");
+            }
             
             return aiSuggestions.Select(ai => new ImprovementSuggestion
             {
@@ -213,6 +243,34 @@ public class ImprovementSuggestionService : IImprovementSuggestionService
             // 使用自动分块分析,当代码量超过限制时会自动分块处理
             var response = await _llmService.AnalyzeWithAutoChunkingAsync(prompt, fullDiff);
             var aiSuggestions = ParseOverallSuggestions(response);
+
+            // 记录 Token 使用（估算）
+            try
+            {
+                var config = await _llmService.GetActiveConfigurationAsync();
+                var promptText = BuildOverallSuggestionPrompt(parsedDiff, fullDiff);
+                var promptTokens = _tokenUsageService.EstimateTokenCount(promptText) + _tokenUsageService.EstimateTokenCount(fullDiff);
+                var completionTokens = _tokenUsageService.EstimateTokenCount(JsonSerializer.Serialize(aiSuggestions));
+                var review = await _unitOfWork.ReviewRequests.GetByIdAsync(reviewRequestId);
+                await _tokenUsageService.RecordUsageAsync(
+                    userId: review?.AuthorId ?? string.Empty,
+                    projectId: review?.ProjectId,
+                    reviewRequestId: reviewRequestId,
+                    llmConfigurationId: config?.Id,
+                    provider: config?.Provider ?? "Unknown",
+                    model: config?.Model ?? "Unknown",
+                    operationType: "ImprovementSuggestion.Overall",
+                    promptTokens: promptTokens,
+                    completionTokens: completionTokens,
+                    isSuccessful: true,
+                    errorMessage: null,
+                    responseTimeMs: null,
+                    isCached: false);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "Failed to record token usage for ImprovementSuggestion.Overall");
+            }
             
             return aiSuggestions.Select(ai => new ImprovementSuggestion
             {

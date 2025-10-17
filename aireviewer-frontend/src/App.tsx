@@ -21,6 +21,7 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import LLMConfigurationPage from './pages/admin/LLMConfigurationPage';
 import PromptsPage from './pages/admin/PromptsPage';
+import TokenUsagePage from './pages/TokenUsagePage';
 import './App.css';
 
 // Create a client with optimized settings
@@ -147,6 +148,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <PromptsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="usage/tokens" 
+                  element={
+                    <ProtectedRoute>
+                      <TokenUsagePage />
                     </ProtectedRoute>
                   } 
                 />

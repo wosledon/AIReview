@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using AIReview.Core.Interfaces;
+using AIReview.Core.Services;
 
 namespace AIReview.Infrastructure.Services;
 
@@ -11,6 +12,7 @@ public class AIReviewer : IAIReviewer
     private readonly IContextBuilder _contextBuilder;
     private readonly IPromptService _promptService;
     private readonly ILogger<AIReviewer> _logger;
+    private readonly ITokenUsageService _tokenUsageService;
 
     // 严重程度关键词映射
     private static readonly Dictionary<string, List<string>> SeverityKeywords = new()
@@ -31,12 +33,13 @@ public class AIReviewer : IAIReviewer
         ["maintainability"] = new() { "可维护", "复杂", "耦合", "maintainability", "complexity", "coupling" }
     };
 
-    public AIReviewer(IMultiLLMService multiLLMService, IContextBuilder contextBuilder, IPromptService promptService, ILogger<AIReviewer> logger)
+    public AIReviewer(IMultiLLMService multiLLMService, IContextBuilder contextBuilder, IPromptService promptService, ILogger<AIReviewer> logger, ITokenUsageService tokenUsageService)
     {
         _multiLLMService = multiLLMService;
         _contextBuilder = contextBuilder;
         _promptService = promptService;
         _logger = logger;
+        _tokenUsageService = tokenUsageService;
     }
 
     public async Task<AIReviewResult> ReviewCodeAsync(string diff, ReviewContext context)
@@ -67,6 +70,34 @@ public class AIReviewer : IAIReviewer
             // 解析评审结果
             var result = ParseReviewResponse(reviewResponse);
 
+            // 记录 Token 使用（基于估算）
+            try
+            {
+                var config = await _multiLLMService.GetActiveConfigurationAsync();
+                var promptTokens = EstimateTokens(diff) + EstimateTokens(template);
+                var completionTokens = EstimateTokens(reviewResponse);
+                var elapsedMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
+
+                await _tokenUsageService.RecordUsageAsync(
+                    userId: context.UserId ?? string.Empty,
+                    projectId: context.ProjectId,
+                    reviewRequestId: null,
+                    llmConfigurationId: config?.Id,
+                    provider: config?.Provider ?? "Unknown",
+                    model: config?.Model ?? "Unknown",
+                    operationType: "Review",
+                    promptTokens: promptTokens,
+                    completionTokens: completionTokens,
+                    isSuccessful: true,
+                    errorMessage: null,
+                    responseTimeMs: elapsedMs,
+                    isCached: false);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "Failed to record token usage for AI review");
+            }
+
             var duration = DateTime.UtcNow - startTime;
             _logger.LogInformation("AI code review completed. Score: {Score}, Comments: {CommentCount}, Duration: {DurationMs}ms", 
                 result.OverallScore, result.Comments.Count, duration.TotalMilliseconds);
@@ -85,6 +116,12 @@ public class AIReviewer : IAIReviewer
             _logger.LogError(ex, "AI code review failed, Duration: {DurationMs}ms", duration.TotalMilliseconds);
             throw;
         }
+    }
+
+    private int EstimateTokens(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return 0;
+        return text.Length / 4; // 近似估算
     }
 
     private string FormatContextForLLM(ReviewContext context)
@@ -110,8 +147,13 @@ public class AIReviewer : IAIReviewer
                 return ParseReviewResponseFallback(response);
             }
 
-            // 解析JSON响应
-            var jsonDoc = JsonDocument.Parse(cleanResponse);
+            // 解析JSON响应（使用宽松的选项以容忍一些格式问题）
+            var jsonOptions = new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip
+            };
+            var jsonDoc = JsonDocument.Parse(cleanResponse, jsonOptions);
             var root = jsonDoc.RootElement;
 
             var result = new AIReviewResult
@@ -136,7 +178,7 @@ public class AIReviewer : IAIReviewer
     }
 
     /// <summary>
-    /// 清理JSON响应,移除markdown代码块标记
+    /// 清理JSON响应,移除markdown代码块标记并修复常见格式问题
     /// </summary>
     private string CleanJsonResponse(string response)
     {
@@ -157,7 +199,27 @@ public class AIReviewer : IAIReviewer
             cleaned = cleaned.Substring(0, cleaned.Length - 3);
         }
         
-        return cleaned.Trim();
+        cleaned = cleaned.Trim();
+        
+        // 修复常见的 JSON 格式问题：
+        // 1. 将字符串值中的单个反斜杠替换为双反斜杠（仅在字符串值内）
+        // 2. 使用宽松的正则表达式来修复未转义的反斜杠
+        // 注意：这是一个简化的修复，可能不适用于所有边缘情况
+        try
+        {
+            // 尝试先修复明显的转义问题：在字符串值中，将 \xxx 替换为 \\xxx
+            // 使用正则表达式找到 JSON 字符串值（在引号内），并确保反斜杠正确转义
+            cleaned = Regex.Replace(cleaned, 
+                @"(""[^""]*?)(\\)([^""\\nrtbfu/""])", 
+                @"$1\\$3",
+                RegexOptions.Singleline);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to auto-fix JSON escape issues, returning original cleaned response");
+        }
+        
+        return cleaned;
     }
 
     /// <summary>

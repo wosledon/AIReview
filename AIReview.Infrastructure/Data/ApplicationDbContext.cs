@@ -29,6 +29,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<GitBranch> GitBranches { get; set; }
     public DbSet<GitCommit> GitCommits { get; set; }
     public DbSet<GitFileChange> GitFileChanges { get; set; }
+    
+    // Token使用追踪
+    public DbSet<TokenUsageRecord> TokenUsageRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

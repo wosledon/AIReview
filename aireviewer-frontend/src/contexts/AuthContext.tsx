@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { authService } from '../services/auth.service';
 import type { User, LoginRequest, RegisterRequest } from '../types/auth';
 
@@ -32,22 +33,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = !!user && authService.isAuthenticated();
 
-  useEffect(() => {
-    initializeAuth();
-    
-    // Listen for logout events from other tabs/components
-    const handleLogout = () => {
-      setUser(null);
-    };
-    
-    window.addEventListener('auth:logout', handleLogout);
-    
-    return () => {
-      window.removeEventListener('auth:logout', handleLogout);
-    };
+  const logout = useCallback(() => {
+    authService.logout();
+    setUser(null);
   }, []);
 
-  const initializeAuth = async () => {
+  const refreshUser = useCallback(async () => {
+    try {
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
+      authService.setStoredUser(currentUser);
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      logout();
+    }
+  }, [logout]);
+
+  const initializeAuth = useCallback(async () => {
     try {
       // Check if user is already authenticated
       if (authService.isAuthenticated()) {
@@ -66,57 +68,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [refreshUser]);
+
+  useEffect(() => {
+    initializeAuth();
+    
+    // Listen for logout events from other tabs/components
+    const handleLogout = () => {
+      setUser(null);
+    };
+    
+    window.addEventListener('auth:logout', handleLogout);
+    
+    return () => {
+      window.removeEventListener('auth:logout', handleLogout);
+    };
+  }, [initializeAuth]);
 
   const login = async (credentials: LoginRequest) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const response = await authService.login(credentials);
-      
       setUser(response.user);
       authService.setStoredUser(response.user);
-      
       if (response.refreshToken) {
         authService.setStoredRefreshToken(response.refreshToken);
       }
-    } catch (error) {
-      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
   const register = async (userData: RegisterRequest) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const response = await authService.register(userData);
-      
       setUser(response.user);
       authService.setStoredUser(response.user);
-      
       if (response.refreshToken) {
         authService.setStoredRefreshToken(response.refreshToken);
       }
-    } catch (error) {
-      throw error;
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-  };
-
-  const refreshUser = async () => {
-    try {
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
-      authService.setStoredUser(currentUser);
-    } catch (error) {
-      console.error('Failed to refresh user:', error);
-      logout();
     }
   };
 

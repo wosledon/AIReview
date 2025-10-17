@@ -16,6 +16,7 @@ public class PullRequestAnalysisService : IPullRequestAnalysisService
     private readonly IRiskAssessmentService _riskAssessmentService;
     private readonly IImprovementSuggestionService _improvementSuggestionService;
     private readonly ILogger<PullRequestAnalysisService> _logger;
+    private readonly ITokenUsageService _tokenUsageService;
 
     public PullRequestAnalysisService(
         IUnitOfWork unitOfWork,
@@ -24,6 +25,7 @@ public class PullRequestAnalysisService : IPullRequestAnalysisService
         IMultiLLMService llmService,
         IRiskAssessmentService riskAssessmentService,
         IImprovementSuggestionService improvementSuggestionService,
+        ITokenUsageService tokenUsageService,
         ILogger<PullRequestAnalysisService> logger)
     {
         _unitOfWork = unitOfWork;
@@ -32,6 +34,7 @@ public class PullRequestAnalysisService : IPullRequestAnalysisService
         _llmService = llmService;
         _riskAssessmentService = riskAssessmentService;
         _improvementSuggestionService = improvementSuggestionService;
+        _tokenUsageService = tokenUsageService;
         _logger = logger;
     }
 
@@ -78,6 +81,33 @@ public class PullRequestAnalysisService : IPullRequestAnalysisService
 
             // 使用AI分析变更内容和影响
             var aiAnalysis = await PerformAIChangeAnalysisAsync(fileDiffs, diffResult, reviewRequest);
+
+            // 记录 Token 使用（估算）
+            try
+            {
+                var config = await _llmService.GetActiveConfigurationAsync();
+                var prompt = BuildChangeAnalysisPrompt(fileDiffs, diffResult, reviewRequest);
+                var promptTokens = _tokenUsageService.EstimateTokenCount(prompt) + _tokenUsageService.EstimateTokenCount(diffResult);
+                var completionTokens = _tokenUsageService.EstimateTokenCount(JsonSerializer.Serialize(aiAnalysis));
+                await _tokenUsageService.RecordUsageAsync(
+                    userId: reviewRequest.AuthorId,
+                    projectId: reviewRequest.ProjectId,
+                    reviewRequestId: reviewRequestId,
+                    llmConfigurationId: config?.Id,
+                    provider: config?.Provider ?? "Unknown",
+                    model: config?.Model ?? "Unknown",
+                    operationType: "PRChangeSummary",
+                    promptTokens: promptTokens,
+                    completionTokens: completionTokens,
+                    isSuccessful: true,
+                    errorMessage: null,
+                    responseTimeMs: null,
+                    isCached: false);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "Failed to record token usage for PRChangeSummary");
+            }
 
             // 创建或更新PR变更摘要
             var changeSummary = new PullRequestChangeSummary
