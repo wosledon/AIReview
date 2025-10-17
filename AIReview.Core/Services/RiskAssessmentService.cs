@@ -13,18 +13,21 @@ public class RiskAssessmentService : IRiskAssessmentService
     private readonly IDiffParserService _diffParserService;
     private readonly IMultiLLMService _llmService;
     private readonly ILogger<RiskAssessmentService> _logger;
+    private readonly IPromptService _promptService;
 
     public RiskAssessmentService(
         IUnitOfWork unitOfWork,
         IGitService gitService,
         IDiffParserService diffParserService,
         IMultiLLMService llmService,
+        IPromptService promptService,
         ILogger<RiskAssessmentService> logger)
     {
         _unitOfWork = unitOfWork;
         _gitService = gitService;
         _diffParserService = diffParserService;
         _llmService = llmService;
+        _promptService = promptService;
         _logger = logger;
     }
 
@@ -68,7 +71,7 @@ public class RiskAssessmentService : IRiskAssessmentService
             var riskMetrics = CalculateBasicRiskMetrics(fileDiffs);
 
             // 使用AI进行深度风险分析
-            var aiAnalysis = await PerformAIRiskAnalysisAsync(fileDiffs, diff);
+            var aiAnalysis = await PerformAIRiskAnalysisAsync(reviewRequest, fileDiffs, diff);
 
             // 创建风险评估实体
             var riskAssessment = new RiskAssessment
@@ -182,9 +185,9 @@ public class RiskAssessmentService : IRiskAssessmentService
         return metrics;
     }
 
-    private async Task<AIRiskAnalysis> PerformAIRiskAnalysisAsync(List<FileDiffDto> parsedDiff, string rawDiff)
+    private async Task<AIRiskAnalysis> PerformAIRiskAnalysisAsync(ReviewRequest reviewRequest, List<FileDiffDto> parsedDiff, string rawDiff)
     {
-        var prompt = BuildRiskAnalysisPrompt(parsedDiff, rawDiff);
+        var prompt = await BuildRiskAnalysisPromptAsync(reviewRequest, parsedDiff, rawDiff);
         
         try
         {
@@ -216,32 +219,20 @@ public class RiskAssessmentService : IRiskAssessmentService
         }).ToList();
     }
 
-    private string BuildRiskAnalysisPrompt(List<FileDiffDto> parsedDiff, string rawDiff)
+    private async Task<string> BuildRiskAnalysisPromptAsync(ReviewRequest reviewRequest, List<FileDiffDto> parsedDiff, string rawDiff)
     {
-        var filesSummary = string.Join("\n", parsedDiff.Select(f => 
-            $"- {f.FilePath}: +{f.AddedLines}/-{f.DeletedLines} lines"));
+        var filesSummary = string.Join("\n", parsedDiff.Select(f => $"- {f.FilePath}: +{f.AddedLines}/-{f.DeletedLines} lines"));
+        var diffHead = rawDiff.Substring(0, Math.Min(1000, rawDiff.Length));
 
-        return $@"分析以下代码变更的风险等级，并提供详细的风险评估和缓解建议。
+        // 读取生效模板：项目优先 -> 用户默认 -> 内置
+        var effective = await _promptService.GetEffectivePromptAsync(AIReview.Shared.Enums.PromptType.RiskAnalysis, reviewRequest.AuthorId, reviewRequest.ProjectId);
+        var template = effective.Content;
 
-变更文件摘要:
-{filesSummary}
+        // 简单占位符替换
+        template = template.Replace("{{FILES_SUMMARY}}", filesSummary);
+        template = template.Replace("{{DIFF_HEAD}}", diffHead);
 
-代码差异 (前1000字符):
-{rawDiff.Substring(0, Math.Min(1000, rawDiff.Length))}
-
-请提供以下评估结果 (JSON格式):
-{{
-    ""securityRisk"": 0-100,  // 安全风险评分
-    ""performanceRisk"": 0-100, // 性能风险评分
-    ""riskDescription"": ""详细的风险描述"",
-    ""mitigationSuggestions"": ""具体的缓解建议"",
-    ""confidenceScore"": 0.0-1.0 // 评估置信度
-}}
-
-注意:
-- 重点关注安全漏洞、性能瓶颈、架构问题
-- 考虑变更对系统稳定性的影响
-- 提供具体可行的改进建议";
+        return template;
     }
 
     private AIRiskAnalysis ParseAIRiskAnalysis(string response)

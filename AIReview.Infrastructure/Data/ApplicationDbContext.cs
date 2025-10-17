@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using AIReview.Core.Entities;
 using AIReview.Shared.Enums;
+using AIReview.Core.Entities;
 
 namespace AIReview.Infrastructure.Data;
 
@@ -17,6 +17,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ReviewRequest> ReviewRequests { get; set; }
     public DbSet<ReviewComment> ReviewComments { get; set; }
     public DbSet<LLMConfiguration> LLMConfigurations { get; set; }
+    public DbSet<PromptConfiguration> PromptConfigurations { get; set; }
     
     // 新增分析功能实体
     public DbSet<RiskAssessment> RiskAssessments { get; set; }
@@ -148,6 +149,37 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             // 确保只有一个默认配置
             entity.HasIndex(e => e.IsDefault)
                 .HasFilter("IsDefault = 1")
+                .IsUnique();
+        });
+
+        // 配置 Prompt 配置实体
+        builder.Entity<PromptConfiguration>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.Content).IsRequired();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // 关系
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Project)
+                .WithMany()
+                .HasForeignKey(e => e.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 唯一约束：同一用户+类型 唯一
+            entity.HasIndex(e => new { e.UserId, e.Type })
+                .HasFilter("UserId IS NOT NULL")
+                .IsUnique();
+
+            // 唯一约束：同一项目+类型 唯一
+            entity.HasIndex(e => new { e.ProjectId, e.Type })
+                .HasFilter("ProjectId IS NOT NULL")
                 .IsUnique();
         });
 
@@ -321,7 +353,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         var entities = ChangeTracker.Entries()
             .Where(e => e.Entity is Project || e.Entity is ReviewRequest || e.Entity is ApplicationUser || 
                        e.Entity is LLMConfiguration || e.Entity is RiskAssessment || 
-                       e.Entity is ImprovementSuggestion || e.Entity is PullRequestChangeSummary)
+                       e.Entity is ImprovementSuggestion || e.Entity is PullRequestChangeSummary || e.Entity is PromptConfiguration)
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
 
         foreach (var entity in entities)
@@ -347,6 +379,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 {
                     llmConfig.CreatedAt = DateTime.UtcNow;
                     llmConfig.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (entity.Entity is PromptConfiguration promptCfg)
+                {
+                    promptCfg.CreatedAt = DateTime.UtcNow;
+                    promptCfg.UpdatedAt = DateTime.UtcNow;
                 }
                 else if (entity.Entity is RiskAssessment riskAssessment)
                 {
@@ -399,6 +436,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 else if (entity.Entity is LLMConfiguration llmConfig)
                 {
                     llmConfig.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (entity.Entity is PromptConfiguration promptCfg)
+                {
+                    promptCfg.UpdatedAt = DateTime.UtcNow;
                 }
                 else if (entity.Entity is RiskAssessment riskAssessment)
                 {

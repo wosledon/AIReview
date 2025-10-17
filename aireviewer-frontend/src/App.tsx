@@ -20,6 +20,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import LLMConfigurationPage from './pages/admin/LLMConfigurationPage';
+import PromptsPage from './pages/admin/PromptsPage';
 import './App.css';
 
 // Create a client with optimized settings
@@ -138,6 +139,22 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <LLMConfigurationPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="admin/prompts" 
+                  element={
+                    <ProtectedRoute>
+                      <PromptsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="projects/:id/prompts" 
+                  element={
+                    <ProtectedRoute>
+                      <PromptsPage />
                     </ProtectedRoute>
                   } 
                 />

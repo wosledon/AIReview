@@ -102,9 +102,11 @@ public class ChunkedReviewService
             }
             
             var provider = _providerFactory.CreateProvider(configuration);
-            var prompt = isReview 
+            // 优先尝试按模板占位符渲染（如果模板中包含 {{DIFF}} / {{FILE_NAME}} / {{CONTEXT}} 等）
+            var rendered = TryRenderTemplate(promptOrContext, code, fileName: null, isReview: isReview);
+            var prompt = rendered ?? (isReview 
                 ? BuildReviewPrompt(code, promptOrContext)
-                : BuildAnalysisPrompt(promptOrContext, code);
+                : BuildAnalysisPrompt(promptOrContext, code));
             
             return await provider.GenerateAsync(prompt);
         }
@@ -160,9 +162,11 @@ public class ChunkedReviewService
                     throw new InvalidOperationException("没有可用的LLM配置");
                 }
 
-                var prompt = isReview 
+                // 优先按模板占位符渲染（每块替换 {{DIFF}} 为当前文件块、{{FILE_NAME}} 为文件名）
+                var rendered = TryRenderTemplate(chunkPromptOrContext, chunk.Content, chunk.FileName, isReview);
+                var prompt = rendered ?? (isReview 
                     ? BuildReviewPrompt(chunk.Content, chunkPromptOrContext)
-                    : BuildAnalysisPrompt(chunkPromptOrContext, chunk.Content);
+                    : BuildAnalysisPrompt(chunkPromptOrContext, chunk.Content));
 
                 var result = await ExecuteWithRetryAsync(async (ct) =>
                 {
@@ -215,6 +219,41 @@ public class ChunkedReviewService
             chunkResults.Count);
 
         return aggregatedResult;
+    }
+
+    /// <summary>
+    /// 根据占位符渲染自定义模板；当检测到模板包含 {{DIFF}} 或 {{FILE_NAME}} 或 {{CONTEXT}} 时进行替换。
+    /// 若模板不包含这些占位符，则返回 null 以便走默认内置 Prompt 构建。
+    /// </summary>
+    private string? TryRenderTemplate(string templateOrContext, string codeOrDiff, string? fileName, bool isReview)
+    {
+        if (string.IsNullOrWhiteSpace(templateOrContext)) return null;
+
+        var containsPlaceholders = templateOrContext.Contains("{{DIFF}}", StringComparison.OrdinalIgnoreCase)
+            || templateOrContext.Contains("{{FILE_NAME}}", StringComparison.OrdinalIgnoreCase)
+            || templateOrContext.Contains("{{CONTEXT}}", StringComparison.OrdinalIgnoreCase);
+
+        if (!containsPlaceholders)
+        {
+            return null;
+        }
+
+        var rendered = templateOrContext
+            .Replace("{{DIFF}}", codeOrDiff)
+            .Replace("{{FILE_NAME}}", fileName ?? string.Empty);
+
+        // {{CONTEXT}} 在上层通常已经替换过；如仍存在则留空以避免泄漏占位符
+        rendered = rendered.Replace("{{CONTEXT}}", string.Empty);
+
+        // 确保严格 JSON 输出要求（如果模板未声明，可在此追加轻量提示）
+        // 为避免打断用户模板结构，这里仅在未包含明显 JSON 约束提示时，附加一行提示。
+        if (!rendered.Contains("仅输出严格的 JSON", StringComparison.OrdinalIgnoreCase)
+            && !rendered.Contains("Only output JSON", StringComparison.OrdinalIgnoreCase))
+        {
+            rendered += "\n\n请仅输出严格的 JSON（不要包含 Markdown 代码块或额外说明）。";
+        }
+
+        return rendered;
     }
 
     /// <summary>

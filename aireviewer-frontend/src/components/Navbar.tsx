@@ -9,7 +9,8 @@ import {
   UserIcon,
   Cog6ToothIcon,
   CpuChipIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { useUISettings } from '../hooks/useUISettings';
@@ -166,6 +167,17 @@ export const Navbar: React.FC = () => {
                             >
                               <CpuChipIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                               <span>LLM配置</span>
+                            </Link>
+                          )}
+                        </Menu.Item>
+                        <Menu.Item>
+                          {({ active }) => (
+                            <Link
+                              to="/admin/prompts"
+                              className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} flex items-center gap-2 px-4 py-2 text-sm transition-colors`}
+                            >
+                              <DocumentTextIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                              <span>Prompt 模板</span>
                             </Link>
                           )}
                         </Menu.Item>

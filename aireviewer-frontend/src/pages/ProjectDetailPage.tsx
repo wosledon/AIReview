@@ -13,19 +13,21 @@ import {
   XCircleIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  CpuChipIcon
+  CpuChipIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { projectService } from '../services/project.service';
 import { reviewService } from '../services/review.service';
 import { ReviewState } from '../types/review';
 import type { Project, ProjectMember } from '../types/project';
 import type { Review } from '../types/review';
+import PromptsPage from './admin/PromptsPage';
 
 export const ProjectDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'reviews' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'reviews' | 'prompts' | 'settings'>('overview');
 
   const projectId = parseInt(id!, 10);
 
@@ -93,6 +95,7 @@ export const ProjectDetailPage = () => {
     { id: 'overview', name: '概览', icon: EyeIcon },
     { id: 'members', name: '成员', icon: UserPlusIcon },
     { id: 'reviews', name: '评审记录', icon: ClockIcon },
+    { id: 'prompts', name: 'Prompt模板', icon: DocumentTextIcon },
     { id: 'settings', name: '设置', icon: CogIcon },
   ] as const;
 
@@ -125,6 +128,13 @@ export const ProjectDetailPage = () => {
         </div>
 
         <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setActiveTab('prompts')}
+            className="btn btn-secondary inline-flex items-center space-x-1"
+            title="Prompt 模板"
+          >
+            <DocumentTextIcon className="h-5 w-5" />
+          </button>
           <Link
             to={`/projects/${projectId}/reviews/new`}
             className="btn btn-primary inline-flex items-center space-x-1"
@@ -176,6 +186,7 @@ export const ProjectDetailPage = () => {
         )}
         {activeTab === 'members' && <MembersTab members={members || []} isLoading={isMembersLoading} />}
         {activeTab === 'reviews' && <ReviewsTab projectId={projectId} />}
+        {activeTab === 'prompts' && <PromptsPage />}
         {activeTab === 'settings' && (
           <SettingsTab 
             project={project} 

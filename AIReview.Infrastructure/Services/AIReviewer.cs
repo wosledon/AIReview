@@ -9,6 +9,7 @@ public class AIReviewer : IAIReviewer
 {
     private readonly IMultiLLMService _multiLLMService;
     private readonly IContextBuilder _contextBuilder;
+    private readonly IPromptService _promptService;
     private readonly ILogger<AIReviewer> _logger;
 
     // 严重程度关键词映射
@@ -30,10 +31,11 @@ public class AIReviewer : IAIReviewer
         ["maintainability"] = new() { "可维护", "复杂", "耦合", "maintainability", "complexity", "coupling" }
     };
 
-    public AIReviewer(IMultiLLMService multiLLMService, IContextBuilder contextBuilder, ILogger<AIReviewer> logger)
+    public AIReviewer(IMultiLLMService multiLLMService, IContextBuilder contextBuilder, IPromptService promptService, ILogger<AIReviewer> logger)
     {
         _multiLLMService = multiLLMService;
         _contextBuilder = contextBuilder;
+        _promptService = promptService;
         _logger = logger;
     }
 
@@ -47,11 +49,20 @@ public class AIReviewer : IAIReviewer
             // 构建评审上下文
             var reviewContext = await _contextBuilder.BuildContextAsync(diff, context);
 
-            // 使用 IMultiLLMService 的自动分块评审方法
-            // 如果代码量超过LLM限制,会自动按文件分块评审并汇总结果
+            // 获取生效的评审 Prompt 模板（项目优先 -> 用户 -> 内置）
+            var projectId = context.ProjectId;
+            var userId = context.UserId ?? string.Empty;
+            var effective = await _promptService.GetEffectivePromptAsync(AIReview.Shared.Enums.PromptType.Review, userId, projectId);
+
+            // 占位符替换
+            var formattedContext = FormatContextForLLM(reviewContext);
+            var template = effective.Content
+                .Replace("{{CONTEXT}}", formattedContext);
+
+            // 使用自动分块评审（模板内容作为“上下文/任务”传入 chunked 服务）
             var reviewResponse = await _multiLLMService.ReviewWithAutoChunkingAsync(
-                diff, 
-                FormatContextForLLM(reviewContext));
+                diff,
+                template);
 
             // 解析评审结果
             var result = ParseReviewResponse(reviewResponse);

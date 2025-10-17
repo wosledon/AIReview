@@ -25,6 +25,9 @@ public class ReviewContext
     public string Language { get; set; } = string.Empty;
     public string ProjectType { get; set; } = string.Empty;
     public string CodingStandards { get; set; } = string.Empty;
+    // 用于 Prompt 解析的上下文（可选）
+    public string? UserId { get; set; }
+    public int? ProjectId { get; set; }
 }
 
 public interface IAIReviewer

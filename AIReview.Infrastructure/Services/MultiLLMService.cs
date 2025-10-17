@@ -12,17 +12,20 @@ public class MultiLLMService : IMultiLLMService
     private readonly ILLMConfigurationService _configurationService;
     private readonly ILLMProviderFactory _providerFactory;
     private readonly ChunkedReviewService _chunkedReviewService;
+    private readonly IPromptService _promptService;
     private readonly ILogger<MultiLLMService> _logger;
 
     public MultiLLMService(
         ILLMConfigurationService configurationService,
         ILLMProviderFactory providerFactory,
         ChunkedReviewService chunkedReviewService,
+        IPromptService promptService,
         ILogger<MultiLLMService> logger)
     {
         _configurationService = configurationService;
         _providerFactory = providerFactory;
         _chunkedReviewService = chunkedReviewService;
+        _promptService = promptService;
         _logger = logger;
     }
 
@@ -37,7 +40,7 @@ public class MultiLLMService : IMultiLLMService
         try
         {
             var provider = _providerFactory.CreateProvider(configuration);
-            
+            // 使用内置模板（回退）以保持兼容；若上层调用需要项目/用户模板，可通过 Analyze/ReviewWithAutoChunking 路径
             var prompt = BuildReviewPrompt(code, context);
             
             _logger.LogInformation("使用 {Provider} 进行代码审查, Prompt长度: {PromptLength}", 

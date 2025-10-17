@@ -20,6 +20,7 @@ using AIReview.Infrastructure.BackgroundJobs;
 using AIReview.API.Hubs;
 using AIReview.API.Services;
 using Microsoft.Extensions.Options;
+using AIReview.Shared.Enums;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -312,6 +313,7 @@ builder.Services.AddScoped<IMultiLLMService, MultiLLMService>();
 builder.Services.AddScoped<IContextBuilder, ContextBuilder>();
 builder.Services.AddScoped<ChunkedReviewService>(); // 分块评审服务
 builder.Services.AddScoped<IAIReviewer, AIReviewer>();
+builder.Services.AddScoped<IPromptService, PromptService>();
 
 // 绑定分块评审/分析的选项（可在 appsettings.json 的 ChunkedReview 节点配置）
 builder.Services.Configure<ChunkedReviewOptions>(builder.Configuration.GetSection("ChunkedReview"));
@@ -386,10 +388,68 @@ app.MapHealthChecks("/health");
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
         context.Database.Migrate();
         Log.Information("Database migration completed");
+
+        // Seed default built-in prompt templates if none exist for all four types
+        // Insert only when the table has no entries for these types to avoid duplicates
+        var needSeed = !context.PromptConfigurations.Any(pc => pc.Type == PromptType.Review)
+                        || !context.PromptConfigurations.Any(pc => pc.Type == PromptType.RiskAnalysis)
+                        || !context.PromptConfigurations.Any(pc => pc.Type == PromptType.PullRequestSummary)
+                        || !context.PromptConfigurations.Any(pc => pc.Type == PromptType.ImprovementSuggestions);
+        if (needSeed)
+        {
+            var now = DateTime.UtcNow;
+            if (!context.PromptConfigurations.Any(pc => pc.Type == PromptType.Review))
+            {
+                context.PromptConfigurations.Add(new AIReview.Core.Entities.PromptConfiguration
+                {
+                    Type = PromptType.Review,
+                    Name = "内置-代码评审模板",
+                    Content = AIReview.Infrastructure.Services.PromptService.GetBuiltInTemplate(PromptType.Review),
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+            if (!context.PromptConfigurations.Any(pc => pc.Type == PromptType.RiskAnalysis))
+            {
+                context.PromptConfigurations.Add(new AIReview.Core.Entities.PromptConfiguration
+                {
+                    Type = PromptType.RiskAnalysis,
+                    Name = "内置-风险分析模板",
+                    Content = AIReview.Infrastructure.Services.PromptService.GetBuiltInTemplate(PromptType.RiskAnalysis),
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+            if (!context.PromptConfigurations.Any(pc => pc.Type == PromptType.PullRequestSummary))
+            {
+                context.PromptConfigurations.Add(new AIReview.Core.Entities.PromptConfiguration
+                {
+                    Type = PromptType.PullRequestSummary,
+                    Name = "内置-变更摘要模板",
+                    Content = AIReview.Infrastructure.Services.PromptService.GetBuiltInTemplate(PromptType.PullRequestSummary),
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+            if (!context.PromptConfigurations.Any(pc => pc.Type == PromptType.ImprovementSuggestions))
+            {
+                context.PromptConfigurations.Add(new AIReview.Core.Entities.PromptConfiguration
+                {
+                    Type = PromptType.ImprovementSuggestions,
+                    Name = "内置-改进建议模板",
+                    Content = AIReview.Infrastructure.Services.PromptService.GetBuiltInTemplate(PromptType.ImprovementSuggestions),
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+            await context.SaveChangesAsync();
+            logger.LogInformation("Seeded default Prompt templates (built-in) if missing");
+        }
     }
     catch (Exception ex)
     {
