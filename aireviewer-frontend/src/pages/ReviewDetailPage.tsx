@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -1130,23 +1130,23 @@ const AnalysisTab = ({ review }: AnalysisTabProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState<'dashboard' | 'risk' | 'suggestions' | 'summary'>('dashboard');
 
-  useEffect(() => {
-    const loadAnalysisData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const data = await analysisService.getAnalysisData(review.id);
-        setAnalysisData(data);
-      } catch (error) {
-        console.error('Failed to load analysis data:', error);
-        setError(error instanceof Error ? error.message : '加载分析数据失败');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadAnalysisData();
+  const loadAnalysisData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await analysisService.getAnalysisData(review.id);
+      setAnalysisData(data);
+    } catch (error) {
+      console.error('Failed to load analysis data:', error);
+      setError(error instanceof Error ? error.message : '加载分析数据失败');
+    } finally {
+      setIsLoading(false);
+    }
   }, [review.id]);
+
+  useEffect(() => {
+    loadAnalysisData();
+  }, [loadAnalysisData]);
 
   const handleGenerateAnalysis = async (type: 'risk' | 'suggestions' | 'summary') => {
     try {
@@ -1209,7 +1209,7 @@ const AnalysisTab = ({ review }: AnalysisTabProps) => {
       <ErrorState
         title="分析数据加载失败"
         description={error}
-        onRetry={() => window.location.reload()}
+        onRetry={loadAnalysisData}
       />
     );
   }
@@ -1295,10 +1295,11 @@ const AnalysisTab = ({ review }: AnalysisTabProps) => {
             )}
           </button>
           <button
-            onClick={() => window.location.reload()}
+            onClick={loadAnalysisData}
+            disabled={isLoading}
             className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
           >
-            刷新数据
+            {isLoading ? '刷新中...' : '刷新数据'}
           </button>
         </div>
       </div>

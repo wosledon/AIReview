@@ -250,17 +250,52 @@ public class RiskAssessmentService : IRiskAssessmentService
         {
             // 预处理：去除 markdown 代码块包裹
             var cleanResponse = CleanJsonResponse(response);
-            
-            var jsonResponse = JsonSerializer.Deserialize<JsonElement>(cleanResponse);
-            
+            var root = JsonSerializer.Deserialize<JsonElement>(cleanResponse);
+
+            // 如果返回的是数组，取第一个对象尝试解析
+            if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+            {
+                root = root[0];
+            }
+
+            // 兼容分块聚合结构（ChunkedReviewService 聚合的结果）
+            // 包含 overall_score / summary / metadata.chunked_review
+            if (root.ValueKind == JsonValueKind.Object &&
+                (root.TryGetProperty("overall_score", out _) ||
+                 (root.TryGetProperty("metadata", out var md) && md.ValueKind == JsonValueKind.Object && md.TryGetProperty("chunked_review", out _))))
+            {
+                var security = TryGetDouble(root, new[] { "securityRisk", "security_risk" }) ?? 30.0;
+                var performance = TryGetDouble(root, new[] { "performanceRisk", "performance_risk" }) ?? 25.0;
+                var desc = TryGetString(root, new[] { "riskDescription", "summary", "risk_description" }) ?? "来自分块分析的摘要";
+                var mitigation = TryGetString(root, new[] { "mitigationSuggestions", "recommendations", "mitigation_suggestions" }) ?? "建议进行人工复核并关注高风险项";
+                var confidence = TryGetDouble(root, new[] { "confidenceScore", "confidence_score" }) ?? 0.5;
+
+                return new AIRiskAnalysis
+                {
+                    SecurityRisk = security,
+                    PerformanceRisk = performance,
+                    RiskDescription = desc,
+                    MitigationSuggestions = mitigation,
+                    ConfidenceScore = confidence,
+                    ModelVersion = "chunked" // 可替换为真实模型
+                };
+            }
+
+            // 常规结构解析（健壮 TryGetProperty + 默认值）
+            var securityRisk = TryGetDouble(root, new[] { "securityRisk", "security_risk" }) ?? 30.0;
+            var performanceRisk = TryGetDouble(root, new[] { "performanceRisk", "performance_risk" }) ?? 25.0;
+            var riskDescription = TryGetString(root, new[] { "riskDescription", "risk_description", "summary" }) ?? "AI 未提供详细描述";
+            var mitigationSuggestions = TryGetString(root, new[] { "mitigationSuggestions", "mitigation_suggestions", "recommendations" }) ?? "建议后续进行人工审查";
+            var confidenceScore = TryGetDouble(root, new[] { "confidenceScore", "confidence_score" }) ?? 0.5;
+
             return new AIRiskAnalysis
             {
-                SecurityRisk = jsonResponse.GetProperty("securityRisk").GetDouble(),
-                PerformanceRisk = jsonResponse.GetProperty("performanceRisk").GetDouble(),
-                RiskDescription = jsonResponse.GetProperty("riskDescription").GetString(),
-                MitigationSuggestions = jsonResponse.GetProperty("mitigationSuggestions").GetString(),
-                ConfidenceScore = jsonResponse.GetProperty("confidenceScore").GetDouble(),
-                ModelVersion = "gpt-4" // 这里应该从LLM服务获取实际的模型版本
+                SecurityRisk = securityRisk,
+                PerformanceRisk = performanceRisk,
+                RiskDescription = riskDescription,
+                MitigationSuggestions = mitigationSuggestions,
+                ConfidenceScore = confidenceScore,
+                ModelVersion = "gpt-4" // TODO: 从 LLM 配置/响应中获取
             };
         }
         catch (Exception ex)
@@ -268,6 +303,43 @@ public class RiskAssessmentService : IRiskAssessmentService
             _logger.LogWarning(ex, "Failed to parse AI risk analysis response");
             return GetFallbackRiskAnalysis();
         }
+    }
+
+    private static double? TryGetDouble(JsonElement root, string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty(key, out var el))
+            {
+                if (el.ValueKind == JsonValueKind.Number)
+                {
+                    if (el.TryGetDouble(out var d)) return d;
+                }
+                else if (el.ValueKind == JsonValueKind.String)
+                {
+                    if (double.TryParse(el.GetString(), out var ds)) return ds;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static string? TryGetString(JsonElement root, string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty(key, out var el))
+            {
+                if (el.ValueKind == JsonValueKind.String) return el.GetString();
+                if (el.ValueKind == JsonValueKind.Number) return el.GetRawText();
+                if (el.ValueKind == JsonValueKind.Array || el.ValueKind == JsonValueKind.Object)
+                {
+                    // 将复杂结构序列化为简要文本
+                    return el.GetRawText();
+                }
+            }
+        }
+        return null;
     }
 
     private string CleanJsonResponse(string response)
