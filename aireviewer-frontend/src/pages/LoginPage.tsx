@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon, CodeBracketIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import type { LoginRequest } from '../types/auth';
 
 interface FormErrors {
@@ -22,6 +23,7 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const from = (location.state as { from?: Location })?.from?.pathname || '/';
 
@@ -30,16 +32,16 @@ export const LoginPage: React.FC = () => {
 
     // Email validation
     if (!formData.email) {
-      newErrors.email = '请输入邮箱地址';
+      newErrors.email = t('errors.email_required');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = '请输入有效的邮箱地址';
+      newErrors.email = t('errors.email_invalid');
     }
 
     // Password validation
     if (!formData.password) {
-      newErrors.password = '请输入密码';
+      newErrors.password = t('errors.password_required');
     } else if (formData.password.length < 6) {
-      newErrors.password = '密码至少需要6个字符';
+      newErrors.password = t('errors.password_length');
     }
 
     setErrors(newErrors);
@@ -89,20 +91,20 @@ export const LoginPage: React.FC = () => {
       // Check for specific HTTP status codes
       const status = err?.response?.status;
       if (status === 401) {
-        return '邮箱或密码错误，请检查后重试';
+        return t('errors.login_invalid_credentials');
       }
       if (status === 429) {
-        return '登录尝试过于频繁，请稍后再试';
+        return t('errors.too_many_requests');
       }
       if (status && status >= 500) {
-        return '服务器暂时不可用，请稍后再试';
+        return t('errors.server_unavailable');
       }
       if (status === 403) {
-        return '账户已被禁用，请联系管理员';
+        return t('errors.account_disabled');
       }
     }
     
-    return '登录失败，请检查网络连接或稍后重试';
+    return t('errors.login_failed_generic');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,16 +135,14 @@ export const LoginPage: React.FC = () => {
           <div className="flex justify-center">
             <CodeBracketIcon className="h-12 w-12 text-primary-600" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-            登录您的账户
-          </h2>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100">{t('auth.login.title')}</h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            还没有账户？{' '}
+            {t('auth.login.no_account')}{' '}
             <Link
               to="/register"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              立即注册
+              {t('auth.login.register_now')}
             </Link>
           </p>
         </div>
@@ -158,7 +158,7 @@ export const LoginPage: React.FC = () => {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                邮箱地址 *
+                {t('auth.login.email')} *
               </label>
               <input
                 id="email"
@@ -166,7 +166,7 @@ export const LoginPage: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 className={`input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 ${errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="请输入邮箱地址"
+                placeholder={t('auth.login.placeholder_email')}
                 value={formData.email}
                 onChange={handleInputChange}
                 disabled={isLoading}
@@ -181,7 +181,7 @@ export const LoginPage: React.FC = () => {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                密码 *
+                {t('auth.login.password')} *
               </label>
               <div className="relative">
                 <input
@@ -190,7 +190,7 @@ export const LoginPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   className={`input pr-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 ${errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="请输入密码"
+                  placeholder={t('auth.login.placeholder_password')}
                   value={formData.password}
                   onChange={handleInputChange}
                   disabled={isLoading}
@@ -226,7 +226,7 @@ export const LoginPage: React.FC = () => {
                 className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-200">
-                记住我
+                {t('auth.login.remember_me')}
               </label>
             </div>
 
@@ -235,7 +235,7 @@ export const LoginPage: React.FC = () => {
                 to="/forgot-password"
                 className="font-medium text-primary-600 hover:text-primary-500"
               >
-                忘记密码？
+                {t('auth.login.forgot_password')}
               </Link>
             </div>
           </div>
@@ -252,10 +252,10 @@ export const LoginPage: React.FC = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  登录中...
+                  {t('auth.login.submitting')}
                 </>
               ) : (
-                '登录'
+                t('auth.login.submit')
               )}
             </button>
           </div>

@@ -16,8 +16,10 @@ import {
 } from '../../services/git.service';
 import GitRepositoryForm from '../../components/git/GitRepositoryForm';
 import ConfirmDeleteModal from '../../components/common/ConfirmDeleteModal';
+import { useTranslation } from 'react-i18next';
 
 const GitRepositoriesPage: React.FC = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   
   // 状态管理
@@ -183,9 +185,9 @@ const GitRepositoriesPage: React.FC = () => {
       {/* 页面标题 */}
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-2xl font-semibold text-gray-900">Git仓库管理</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('gitRepos.title')}</h1>
           <p className="mt-2 text-sm text-gray-700">
-            管理代码仓库，支持GitHub、GitLab、Gitea等Git平台
+            {t('gitRepos.subtitle')}
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
@@ -195,7 +197,7 @@ const GitRepositoriesPage: React.FC = () => {
             className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
           >
             <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
-            添加仓库
+            {t('gitRepos.actions.add')}
           </button>
         </div>
       </div>
@@ -209,19 +211,19 @@ const GitRepositoriesPage: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      仓库信息
+                      {t('gitRepos.table.repoInfo')}
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      状态
+                      {t('gitRepos.table.status')}
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      分支数
+                      {t('gitRepos.table.branchCount')}
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      最后同步
+                      {t('gitRepos.table.lastSync')}
                     </th>
                     <th scope="col" className="relative px-6 py-3">
-                      <span className="sr-only">操作</span>
+                      <span className="sr-only">{t('gitRepos.table.actions')}</span>
                     </th>
                   </tr>
                 </thead>
@@ -242,7 +244,7 @@ const GitRepositoriesPage: React.FC = () => {
                             </div>
                             {repository.projectName && (
                               <div className="text-xs text-blue-600">
-                                项目: {repository.projectName}
+                                {t('gitRepos.labels.project')}: {repository.projectName}
                               </div>
                             )}
                           </div>
@@ -254,7 +256,7 @@ const GitRepositoriesPage: React.FC = () => {
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {repository.isActive ? '活动' : '停用'}
+                          {repository.isActive ? t('gitRepos.status.active') : t('gitRepos.status.inactive')}
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
@@ -267,7 +269,7 @@ const GitRepositoriesPage: React.FC = () => {
                         <div className="text-sm text-gray-900">
                           {repository.lastSyncAt 
                             ? new Date(repository.lastSyncAt).toLocaleString('zh-CN')
-                            : '从未同步'
+                            : t('gitRepos.status.neverSynced')
                           }
                         </div>
                       </td>
@@ -278,7 +280,7 @@ const GitRepositoriesPage: React.FC = () => {
                             onClick={() => repository.localPath ? handleSync(repository) : handleClone(repository)}
                             disabled={!repository.isActive || cloneMutation.isPending || syncMutation.isPending}
                             className="text-blue-600 hover:text-blue-900 disabled:text-gray-400"
-                            title={repository.localPath ? "同步仓库" : "克隆仓库"}
+                            title={repository.localPath ? t('gitRepos.actions.sync') : t('gitRepos.actions.clone')}
                           >
                             {repository.localPath ? (
                               <ArrowPathIcon className="h-5 w-5" />
@@ -292,7 +294,7 @@ const GitRepositoriesPage: React.FC = () => {
                             onClick={() => handleTest(repository)}
                             disabled={testMutation.isPending}
                             className="text-green-600 hover:text-green-900 disabled:text-gray-400"
-                            title="测试连接"
+                            title={t('gitRepos.actions.testConnection')}
                           >
                             <CheckCircleIcon className="h-5 w-5" />
                           </button>
@@ -301,7 +303,7 @@ const GitRepositoriesPage: React.FC = () => {
                           <button
                             onClick={() => handleEdit(repository)}
                             className="text-blue-600 hover:text-blue-900"
-                            title="编辑仓库"
+                            title={t('gitRepos.actions.edit')}
                           >
                             <PencilIcon className="h-5 w-5" />
                           </button>
@@ -310,7 +312,7 @@ const GitRepositoriesPage: React.FC = () => {
                           <button
                             onClick={() => handleDelete(repository)}
                             className="text-red-600 hover:text-red-900"
-                            title="删除仓库"
+                            title={t('gitRepos.actions.delete')}
                           >
                             <TrashIcon className="h-5 w-5" />
                           </button>
@@ -324,9 +326,9 @@ const GitRepositoriesPage: React.FC = () => {
               {repositories.length === 0 && (
                 <div className="text-center py-12">
                   <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">暂无Git仓库</h3>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">{t('gitRepos.empty.title')}</h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    开始添加你的第一个Git仓库
+                    {t('gitRepos.empty.description')}
                   </p>
                   <div className="mt-6">
                     <button
@@ -335,7 +337,7 @@ const GitRepositoriesPage: React.FC = () => {
                       className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
                     >
                       <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
-                      添加仓库
+                      {t('gitRepos.actions.add')}
                     </button>
                   </div>
                 </div>

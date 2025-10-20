@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { 
   PlusIcon, 
   MagnifyingGlassIcon,
@@ -16,6 +17,7 @@ import { ReviewState } from '../types/review';
 import type { Review, ReviewQueryParameters, PagedResult } from '../types/review';
 
 export const ReviewsPage = () => {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<ReviewQueryParameters>({
     page: 1,
     pageSize: 20
@@ -55,12 +57,12 @@ export const ReviewsPage = () => {
   const reviews = reviewsData?.items || [];
 
   const statusOptions = [
-    { value: '', label: '全部状态' },
-    { value: ReviewState.Pending, label: '待处理' },
-    { value: ReviewState.AIReviewing, label: 'AI评审中' },
-    { value: ReviewState.HumanReview, label: '人工评审' },
-    { value: ReviewState.Approved, label: '已通过' },
-    { value: ReviewState.Rejected, label: '需修改' },
+    { value: '', label: t('reviews.filter_all') },
+    { value: ReviewState.Pending, label: t('reviews.filter_pending') },
+    { value: ReviewState.AIReviewing, label: t('reviews.filter_ai_reviewing') },
+    { value: ReviewState.HumanReview, label: t('reviews.filter_human_review') },
+    { value: ReviewState.Approved, label: t('reviews.filter_approved') },
+    { value: ReviewState.Rejected, label: t('reviews.filter_rejected') },
   ];
 
   const getStatusIcon = (status: string) => {
@@ -81,15 +83,15 @@ export const ReviewsPage = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case ReviewState.Pending:
-        return '待处理';
+        return t('status.Pending');
       case ReviewState.AIReviewing:
-        return 'AI评审中';
+        return t('status.AIReviewing');
       case ReviewState.HumanReview:
-        return '人工评审';
+        return t('status.HumanReview');
       case ReviewState.Approved:
-        return '已通过';
+        return t('status.Approved');
       case ReviewState.Rejected:
-        return '需修改';
+        return t('status.Rejected');
       default:
         return status;
     }
@@ -123,13 +125,13 @@ export const ReviewsPage = () => {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">
-          <p>加载评审记录时出错</p>
+          <p>{t('reviews.loading_error')}</p>
         </div>
         <button 
           onClick={() => refetch()}
           className="btn btn-primary"
         >
-          重新加载
+          {t('projects.reload')}
         </button>
       </div>
     );
@@ -140,15 +142,15 @@ export const ReviewsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 text-left">代码评审</h1>
+          <h1 className="text-2xl font-bold text-gray-900 text-left">{t('reviews.title')}</h1>
           <p className="mt-1 text-gray-500 mt-2">
-            查看和管理所有代码评审记录
+            {t('reviews.subtitle')}
           </p>
         </div>
         <div className="mt-4 sm:mt-0">
           <Link to="/reviews/new" className="btn btn-primary inline-flex items-center space-x-1">
             <PlusIcon className="h-5 w-5 mr-2" />
-            新建评审
+            {t('reviews.create')}
           </Link>
         </div>
       </div>
@@ -161,7 +163,7 @@ export const ReviewsPage = () => {
               <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="搜索评审标题或项目名称..."
+                placeholder={t('reviews.search_placeholder')}
                 className="input pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -194,7 +196,7 @@ export const ReviewsPage = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>
-                更新中...
+                {t('reviews.updating')}
               </div>
             )}
           </div>
@@ -206,18 +208,18 @@ export const ReviewsPage = () => {
         <div className="text-center py-12">
           <CpuChipIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {searchTerm || filters.status ? '未找到匹配的评审' : '还没有评审记录'}
+            {searchTerm || filters.status ? t('reviews.no_match') : t('reviews.no_reviews')}
           </h3>
           <p className="text-gray-500 mb-6">
             {searchTerm || filters.status 
-              ? '尝试调整搜索条件或筛选器'
-              : '创建第一个评审任务开始使用AI代码评审'
+              ? t('reviews.try_adjust_filter')
+              : t('reviews.no_reviews_desc')
             }
           </p>
           {!searchTerm && !filters.status && (
             <Link to="/reviews/new" className="btn btn-primary inline-flex items-center space-x-1">
               <PlusIcon className="h-5 w-5 mr-2" />
-              创建评审
+              {t('reviews.create')}
             </Link>
           )}
         </div>
@@ -228,19 +230,19 @@ export const ReviewsPage = () => {
               <thead className="bg-gray-50 dark:bg-gray-800/50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    评审信息
+                    {t('reviews.table_info')}
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    项目
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {t('reviews.table_project')}
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    状态
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {t('reviews.table_status')}
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    创建时间
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {t('reviews.table_created')}
                   </th>
                   <th className="relative px-6 py-3">
-                    <span className="sr-only">操作</span>
+                    <span className="sr-only">{t('reviews.table_actions')}</span>
                   </th>
                 </tr>
               </thead>
@@ -263,7 +265,7 @@ export const ReviewsPage = () => {
                           </div>
                         )}
                         <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                          <span>分支: {review.branch}</span>
+                          <span>{t('reviews.branch')}: {review.branch}</span>
                           {review.pullRequestNumber && (
                             <span>PR #{review.pullRequestNumber}</span>
                           )}
@@ -272,7 +274,7 @@ export const ReviewsPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-gray-100">{review.projectName}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">by {review.authorName}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{t('reviews.by')} {review.authorName}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -290,7 +292,7 @@ export const ReviewsPage = () => {
                         to={`/reviews/${review.id}`}
                         className="text-primary-600 hover:text-primary-700"
                       >
-                        查看详情
+                        {t('reviews.view_details')}
                       </Link>
                     </td>
                   </tr>
@@ -305,7 +307,7 @@ export const ReviewsPage = () => {
       {reviewsData && reviewsData.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-500">
-            显示 {reviews.length} 条记录，共 {reviewsData.totalCount} 条
+            {t('reviews.showing', { count: reviews.length, total: reviewsData.totalCount })}
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -313,17 +315,17 @@ export const ReviewsPage = () => {
               disabled={(filters.page || 1) <= 1}
               className="btn btn-secondary disabled:opacity-50"
             >
-              上一页
+              {t('reviews.prev_page')}
             </button>
             <span className="text-sm text-gray-700">
-              第 {filters.page || 1} 页，共 {reviewsData.totalPages} 页
+              {t('reviews.page', { current: filters.page || 1, total: reviewsData.totalPages })}
             </span>
             <button
               onClick={() => setFilters(prev => ({ ...prev, page: (prev.page || 1) + 1 }))}
               disabled={(filters.page || 1) >= reviewsData.totalPages}
               className="btn btn-secondary disabled:opacity-50"
             >
-              下一页
+              {t('reviews.next_page')}
             </button>
           </div>
         </div>

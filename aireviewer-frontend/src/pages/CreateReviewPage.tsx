@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { 
   ArrowLeftIcon,
   ExclamationTriangleIcon,
@@ -13,6 +14,7 @@ import type { Project } from '../types/project';
 
 export const CreateReviewPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const params = useParams();
   
@@ -56,7 +58,7 @@ export const CreateReviewPage = () => {
     },
     onError: (error: Error) => {
       setErrors({
-        general: error.message || '创建评审失败，请稍后重试'
+        general: error.message || t('createReview.error_create_failed')
       });
     }
   });
@@ -65,15 +67,15 @@ export const CreateReviewPage = () => {
     const newErrors: typeof errors = {};
 
     if (!formData.projectId) {
-      newErrors.projectId = '请选择项目';
+      newErrors.projectId = t('createReview.project_required');
     }
 
     if (!formData.title.trim()) {
-      newErrors.title = '请输入评审标题';
+      newErrors.title = t('createReview.title_required');
     }
 
     if (!formData.branch.trim()) {
-      newErrors.branch = '请输入分支名称';
+      newErrors.branch = t('createReview.branch_required');
     }
 
     setErrors(newErrors);
@@ -110,8 +112,8 @@ export const CreateReviewPage = () => {
           <ArrowLeftIcon className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">创建代码评审</h1>
-          <p className="text-gray-500">创建新的代码评审任务，启用AI智能评审</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('createReview.title')}</h1>
+          <p className="text-gray-500">{t('createReview.subtitle')}</p>
         </div>
       </div>
 
@@ -129,7 +131,7 @@ export const CreateReviewPage = () => {
           {/* Project Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              选择项目 *
+              {t('createReview.project_label')} *
             </label>
             <select
               className={`input ${errors.projectId ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
@@ -137,7 +139,7 @@ export const CreateReviewPage = () => {
               onChange={(e) => handleInputChange('projectId', parseInt(e.target.value))}
               disabled={isProjectsLoading || createReviewMutation.isPending}
             >
-              <option value={0}>请选择项目</option>
+              <option value={0}>{t('createReview.project_placeholder')}</option>
               {projects.map((project: Project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
@@ -152,12 +154,12 @@ export const CreateReviewPage = () => {
           {/* Review Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              评审标题 *
+              {t('createReview.title_label')} *
             </label>
             <input
               type="text"
               className={`input ${errors.title ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-              placeholder="例如：修复用户登录问题"
+              placeholder={t('createReview.title_placeholder')}
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
               disabled={createReviewMutation.isPending}
@@ -170,12 +172,12 @@ export const CreateReviewPage = () => {
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              评审描述
+              {t('createReview.description_label')}
             </label>
             <textarea
               rows={4}
               className="input resize-none"
-              placeholder="详细描述这次代码评审的内容和目的（可选）"
+              placeholder={t('createReview.description_placeholder')}
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
               disabled={createReviewMutation.isPending}
@@ -186,12 +188,12 @@ export const CreateReviewPage = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                目标分支 *
+                {t('createReview.branch_label')} *
               </label>
               <input
                 type="text"
                 className={`input ${errors.branch ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="feature/user-login"
+                placeholder={t('createReview.branch_placeholder')}
                 value={formData.branch}
                 onChange={(e) => handleInputChange('branch', e.target.value)}
                 disabled={createReviewMutation.isPending}
@@ -202,12 +204,12 @@ export const CreateReviewPage = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                基础分支
+                {t('createReview.base_branch_label')}
               </label>
               <input
                 type="text"
                 className="input"
-                placeholder="main"
+                placeholder={t('createReview.base_branch_placeholder')}
                 value={formData.baseBranch}
                 onChange={(e) => handleInputChange('baseBranch', e.target.value)}
                 disabled={createReviewMutation.isPending}
@@ -218,18 +220,18 @@ export const CreateReviewPage = () => {
           {/* Pull Request Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Pull Request 编号
+              {t('createReview.pr_number_label')}
             </label>
             <input
               type="number"
               className="input"
-              placeholder="123"
+              placeholder={t('createReview.pr_number_placeholder')}
               value={formData.pullRequestNumber || ''}
               onChange={(e) => handleInputChange('pullRequestNumber', e.target.value ? parseInt(e.target.value) : undefined)}
               disabled={createReviewMutation.isPending}
             />
             <p className="mt-1 text-sm text-gray-500">
-              如果这个评审关联到具体的 Pull Request，请填写 PR 编号
+              {t('createReview.pr_number_hint')}
             </p>
           </div>
 
@@ -237,8 +239,8 @@ export const CreateReviewPage = () => {
           <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md text-sm flex items-start">
             <InformationCircleIcon className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium mb-1">关于AI评审</p>
-              <p>创建评审后，系统将自动启动AI分析，检查代码质量、安全性和最佳实践。您也可以添加人工评审意见。</p>
+              <p className="font-medium mb-1">{t('createReview.info_title')}</p>
+              <p>{t('createReview.info_content')}</p>
             </div>
           </div>
 
@@ -250,14 +252,14 @@ export const CreateReviewPage = () => {
               className="btn btn-secondary"
               disabled={createReviewMutation.isPending}
             >
-              取消
+              {t('createReview.cancel')}
             </button>
             <button
               type="submit"
               className="btn btn-primary"
               disabled={createReviewMutation.isPending}
             >
-              {createReviewMutation.isPending ? '创建中...' : '创建评审'}
+              {createReviewMutation.isPending ? t('createReview.submitting') : t('createReview.submit')}
             </button>
           </div>
         </form>

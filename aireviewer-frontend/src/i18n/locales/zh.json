@@ -1,0 +1,733 @@
+{
+  "brand": "AI Reviewer",
+  "nav": {
+    "dashboard": "仪表盘",
+    "projects": "项目",
+    "reviews": "代码评审",
+    "newProject": "新建项目",
+    "login": "登录",
+    "register": "注册"
+  },
+  "user": {
+    "account": "账号",
+    "profile": "个人资料",
+    "reviewSettings": "评审设置",
+    "llmConfig": "LLM配置",
+    "promptTemplates": "Prompt 模板",
+    "tokenUsage": "Token 使用",
+    "logout": "退出登录"
+  },
+  "ui": {
+    "theme": "主题",
+    "theme_system": "跟随系统",
+    "theme_light": "浅色",
+    "theme_dark": "深色",
+    "density": "布局密度",
+    "density_compact": "紧凑",
+    "density_comfortable": "舒展",
+    "density_full": "全宽"
+  },
+  "home": {
+    "welcome": "欢迎回来，{{name}}！",
+    "start": "开始使用 AI 评审平台来提升您的代码质量",
+    "createProject": "创建新项目",
+    "viewProjects": "查看项目",
+    "goReviews": "代码评审",
+    "myProjects": "我的项目",
+    "completedReviews": "已完成评审",
+    "pendingReviews": "待处理评审",
+    "recentActivity": "最近活动",
+    "refresh": "刷新",
+    "viewAll": "查看全部",
+    "noActivity": "暂无活动记录",
+    "createFirstProject": "创建您的第一个项目开始使用"
+  },
+  "hero": {
+    "title": "AI 代码评审平台",
+    "subtitle": "利用先进的人工智能技术，提供智能、全面、快速的评审服务，帮助团队提升质量、减少 Bug、加速交付。",
+    "cta_free": "免费开始使用",
+    "cta_login": "登录账号"
+  },
+  "features": {
+    "title": "平台特色",
+    "ai": { "title": "AI 智能评审", "desc": "基于先进的 AI 技术，自动分析代码质量、安全性和性能问题" },
+    "security": { "title": "安全检测", "desc": "全面检测代码中的安全漏洞和潜在风险" },
+    "fast": { "title": "快速响应", "desc": "几分钟内完成代码评审，大幅提升开发效率" },
+    "collab": { "title": "团队协作", "desc": "支持团队成员协作评审，统一代码质量标准" },
+    "report": { "title": "质量报告", "desc": "详细的质量分析报告，帮助团队持续改进" },
+    "multilang": { "title": "多语言支持", "desc": "支持主流编程语言的代码评审和分析" },
+    "ready": { "title": "准备开始了吗？", "desc": "立即注册，体验 AI 驱动的代码评审服务。", "cta": "立即注册" }
+  },
+  "common": {
+    "language": "语言",
+    "lang_en": "English",
+    "lang_zh": "简体中文"
+  },
+    "labels": {
+      "project": "项目",
+      "time": "时间"
+    },
+  "status": {
+    "Approved": "已通过",
+    "Rejected": "需修改",
+    "AIReviewing": "AI评审中",
+    "HumanReview": "人工评审",
+    "Pending": "待处理"
+  },
+  "auth": {
+    "login": {
+      "title": "登录您的账户",
+      "no_account": "还没有账户？",
+      "register_now": "立即注册",
+      "email": "邮箱地址",
+      "placeholder_email": "请输入邮箱地址",
+      "password": "密码",
+      "placeholder_password": "请输入密码",
+      "remember_me": "记住我",
+      "forgot_password": "忘记密码？",
+      "submitting": "登录中...",
+      "submit": "登录"
+    },
+    "forgotPassword": {
+      "title": "重置密码",
+      "subtitle": "输入您的邮箱地址，我们将发送密码重置链接给您",
+      "emailLabel": "邮箱地址",
+      "emailPlaceholder": "请输入您的邮箱地址",
+      "sendButton": "发送重置链接",
+      "sending": "发送中...",
+      "backToLogin": "返回登录",
+      "noAccount": "还没有账户？",
+      "registerNow": "立即注册",
+      "errors": {
+        "emailRequired": "请输入邮箱地址",
+        "invalidEmail": "请输入有效的邮箱地址",
+        "sendFailed": "发送重置邮件失败，请稍后重试",
+        "resendFailed": "重新发送失败，请稍后重试"
+      },
+      "success": {
+        "title": "邮件已发送",
+        "message": "我们已向 {{email}} 发送了密码重置链接。",
+        "instructions": "请检查您的邮箱，包括垃圾邮件文件夹。链接将在24小时后过期。",
+        "resendButton": "重新发送邮件",
+        "noEmailHelp": "没有收到邮件？请检查垃圾邮件文件夹或",
+        "resendLink": "重新发送"
+      }
+    },
+    "register": {
+      "title": "创建新账户",
+      "have_account": "已有账户？",
+      "login_now": "立即登录",
+      "username": "用户名",
+      "placeholder_username": "请输入用户名（字母、数字、下划线或短横线）",
+      "displayName": "显示名称",
+      "placeholder_displayName": "请输入显示名称",
+      "email": "邮箱地址",
+      "placeholder_email": "请输入邮箱地址",
+      "password": "密码",
+      "placeholder_password": "请输入密码（至少6位，包含字母和数字）",
+      "confirmPassword": "确认密码",
+      "placeholder_confirmPassword": "请再次输入密码",
+      "agree_prefix": "我同意",
+      "terms": "服务条款",
+      "and": "和",
+      "privacy": "隐私政策",
+      "submitting": "注册中...",
+      "submit": "创建账户",
+      "disclaimer": "点击“创建账户”即表示您同意我们的服务条款和隐私政策"
+    }
+  },
+  "errors": {
+    "email_required": "请输入邮箱地址",
+    "email_invalid": "请输入有效的邮箱地址",
+    "password_required": "请输入密码",
+    "password_length": "密码至少需要6个字符",
+    "login_invalid_credentials": "邮箱或密码错误，请检查后重试",
+    "too_many_requests": "登录尝试过于频繁，请稍后再试",
+    "server_unavailable": "服务器暂时不可用，请稍后再试",
+    "account_disabled": "账号已被禁用，请联系管理员",
+    "login_failed_generic": "登录失败，请检查网络连接或稍后重试",
+    "username_required": "请输入用户名",
+    "username_length": "用户名至少需要3个字符",
+    "username_charset": "用户名只能包含字母、数字、下划线和短横线",
+    "displayName_required": "请输入显示名称",
+    "displayName_length": "显示名称至少需要2个字符",
+    "register_confirmpw_required": "请确认密码",
+    "register_confirmpw_mismatch": "两次输入的密码不一致",
+    "register_conflict": "邮箱或用户名已被使用,请尝试其他的",
+    "bad_request": "请检查输入信息是否正确",
+    "register_failed_generic": "注册失败,请检查网络连接或稍后重试"
+  },
+  "projects": {
+    "title": "项目管理",
+    "subtitle": "管理您的代码项目,配置AI评审规则",
+    "create": "创建项目",
+    "search_placeholder": "搜索项目...",
+    "show_archived": "显示已归档项目",
+    "updating": "更新中...",
+    "no_projects": "还没有项目",
+    "no_match": "未找到匹配的项目",
+    "no_projects_desc": "创建您的第一个项目开始使用AI代码评审",
+    "try_adjust": "尝试调整搜索条件或创建新项目",
+    "showing": "显示 {{count}} 个项目,共 {{total}} 个",
+    "loading_error": "加载项目时出错",
+    "reload": "重新加载",
+    "active": "活跃",
+    "archived": "已归档",
+    "members": "人",
+    "project_settings": "项目设置"
+  },
+  "reviews": {
+    "title": "代码评审",
+    "subtitle": "查看和管理所有代码评审记录",
+    "create": "新建评审",
+    "search_placeholder": "搜索评审标题或项目名称...",
+    "filter_all": "全部状态",
+    "filter_pending": "待处理",
+    "filter_ai_reviewing": "AI评审中",
+    "filter_human_review": "人工评审",
+    "filter_approved": "已通过",
+    "filter_rejected": "需修改",
+    "updating": "更新中...",
+    "no_reviews": "还没有评审记录",
+    "no_match": "未找到匹配的评审",
+    "no_reviews_desc": "创建第一个评审任务开始使用AI代码评审",
+    "try_adjust_filter": "尝试调整搜索条件或筛选器",
+    "table_info": "评审信息",
+    "table_project": "项目",
+    "table_status": "状态",
+    "table_created": "创建时间",
+    "table_actions": "操作",
+    "branch": "分支",
+    "by": "by",
+    "view_details": "查看详情",
+    "showing": "显示 {{count}} 条记录,共 {{total}} 条",
+    "page": "第 {{current}} 页,共 {{total}} 页",
+    "prev_page": "上一页",
+    "next_page": "下一页",
+    "loading_error": "加载评审记录时出错"
+  },
+  "createProject": {
+    "title": "创建新项目",
+    "subtitle": "设置项目信息,开始使用AI代码评审",
+    "name_label": "项目名称",
+    "name_required": "项目名称不能为空",
+    "name_placeholder": "输入项目名称",
+    "description_label": "项目描述",
+    "description_placeholder": "简要描述项目的功能和特点(可选)",
+    "repository_label": "仓库地址",
+    "repository_placeholder": "https://github.com/username/repository",
+    "repository_invalid": "请输入有效的仓库URL",
+    "repository_hint": "支持 GitHub、GitLab、Bitbucket 等代码托管平台",
+    "language_label": "主要编程语言",
+    "language_required": "请选择编程语言",
+    "language_placeholder": "选择编程语言",
+    "language_other": "其他",
+    "error_create_failed": "创建项目失败,请稍后重试",
+    "cancel": "取消",
+    "submit": "创建项目",
+    "submitting": "创建中...",
+    "tips_title": "💡 提示",
+    "tips_1": "项目创建后,您可以邀请团队成员参与代码评审",
+    "tips_2": "AI评审引擎会根据选择的编程语言优化评审规则",
+    "tips_3": "支持配置自定义评审规则和质量标准"
+  },
+  "createReview": {
+    "title": "创建代码评审",
+    "subtitle": "创建新的代码评审任务,启用AI智能评审",
+    "project_label": "选择项目",
+    "project_placeholder": "请选择项目",
+    "project_required": "请选择项目",
+    "title_label": "评审标题",
+    "title_placeholder": "例如:修复用户登录问题",
+    "title_required": "请输入评审标题",
+    "description_label": "评审描述",
+    "description_placeholder": "详细描述这次代码评审的内容和目的(可选)",
+    "branch_label": "目标分支",
+    "branch_placeholder": "feature/user-login",
+    "branch_required": "请输入分支名称",
+    "base_branch_label": "基础分支",
+    "base_branch_placeholder": "main",
+    "pr_number_label": "Pull Request 编号",
+    "pr_number_placeholder": "123",
+    "pr_number_hint": "如果这个评审关联到具体的 Pull Request,请填写 PR 编号",
+    "info_title": "关于AI评审",
+    "info_content": "创建评审后,系统将自动启动AI分析,检查代码质量、安全性和最佳实践。您也可以添加人工评审意见。",
+    "cancel": "取消",
+    "submit": "创建评审",
+    "submitting": "创建中...",
+    "error_create_failed": "创建评审失败,请稍后重试"
+  },
+  "projectDetail": {
+    "loading_error": "加载项目详情时出错",
+    "back_to_projects": "返回项目列表",
+    "tabs": {
+      "overview": "概览",
+      "members": "成员",
+      "reviews": "评审记录",
+      "prompts": "Prompt模板",
+      "settings": "设置"
+    },
+    "overview": {
+      "title": "项目概览",
+      "description": "项目描述",
+      "repository": "仓库地址",
+      "language": "编程语言",
+      "created": "创建时间",
+      "members": "项目成员",
+      "total_reviews": "总评审数",
+      "active_reviews": "进行中评审",
+      "completed_reviews": "已完成评审",
+      "no_description": "暂无项目描述",
+      "no_repository": "未设置仓库地址",
+      "no_members": "暂无项目成员",
+      "view_all_members": "查看全部成员",
+      "create_review": "创建评审",
+      "view_reviews": "查看评审记录",
+      "recent_reviews": "最近评审",
+      "quick_actions": "快速操作"
+    },
+    "members": {
+      "title": "项目成员",
+      "subtitle": "管理项目成员和权限",
+      "add_member": "添加成员",
+      "search_placeholder": "搜索成员...",
+      "role_owner": "所有者",
+      "role_admin": "管理员",
+      "role_member": "成员",
+      "remove_member": "移除成员",
+      "confirm_remove": "确定要移除此成员吗？",
+      "no_members": "暂无项目成员",
+      "loading": "加载中..."
+    },
+    "reviews": {
+      "title": "评审记录",
+      "subtitle": "共 {{count}} 条评审记录",
+      "create_review": "创建评审",
+      "no_reviews": "暂无评审记录",
+      "table": {
+        "title": "评审标题",
+        "status": "状态",
+        "created": "创建时间",
+        "actions": "操作"
+      },
+      "view_details": "查看详情",
+      "pagination": {
+        "previous": "上一页",
+        "next": "下一页",
+        "showing": "显示第 {{start}} 到 {{end}} 条，共 {{total}} 条记录"
+      }
+    },
+    "settings": {
+      "title": "项目设置",
+      "subtitle": "配置项目的基本信息和评审规则",
+      "general": "基本信息",
+      "name_label": "项目名称",
+      "description_label": "项目描述",
+      "repository_label": "仓库地址",
+      "language_label": "编程语言",
+      "actions": "操作",
+      "save": "保存更改",
+      "saving": "保存中...",
+      "archive": "归档项目",
+      "unarchive": "取消归档",
+      "delete": "删除项目",
+      "confirm_archive": "确定要归档此项目吗？归档后项目将变为只读状态。",
+      "confirm_unarchive": "确定要取消归档此项目吗？取消归档后项目将重新变为活跃状态。",
+      "archive_success": "项目已归档",
+      "unarchive_success": "项目已取消归档",
+      "delete_success": "项目已删除",
+      "update_success": "项目信息已更新",
+      "confirm_delete_title": "确认删除项目",
+      "confirm_delete_message": "您确定要删除项目 \"{{name}}\" 吗？此操作将永久删除所有相关数据，包括评审记录、成员信息等，且无法恢复。",
+      "confirm_delete_action": "确认删除",
+      "deleting": "删除中..."
+    }
+  },
+  "reviewDetail": {
+    "loading_error": "加载评审详情时出错",
+    "back_to_reviews": "返回评审列表",
+    "tabs": {
+      "overview": "概览",
+      "comments": "评论",
+      "diff": "代码变更",
+      "analysis": "AI分析"
+    },
+    "reject": {
+      "title": "拒绝评审",
+      "reason_label": "拒绝原因 (可选)",
+      "reason_placeholder": "请说明拒绝的原因...",
+      "cancel": "取消",
+      "confirm": "确认拒绝",
+      "processing": "处理中..."
+    },
+    "notifications": {
+      "approved": "评审已通过",
+      "ai_started": "AI 评审已启动",
+      "ai_failed": "启动 AI 评审失败",
+      "approve_failed": "通过评审失败"
+    },
+    "overview": {
+      "title": "评审概览",
+      "description": "描述",
+      "branch": "分支",
+      "status": "状态",
+      "created": "创建时间",
+      "author": "创建者",
+      "project": "所属项目",
+      "actions": "操作",
+      "approve": "通过评审",
+      "reject": "拒绝评审",
+      "start_ai": "启动AI评审",
+      "approving": "通过中...",
+      "rejecting": "拒绝中...",
+      "starting_ai": "启动中...",
+      "labels": {
+        "project": "项目",
+        "branch": "分支",
+        "author": "作者"
+      }
+    },
+    "comments": {
+      "title": "评审评论",
+      "subtitle": "查看和添加评审评论",
+      "add_comment": "添加评论",
+      "no_comments": "暂无评论",
+      "comment_placeholder": "输入您的评论...",
+      "submit": "提交",
+      "submitting": "提交中...",
+      "severity": {
+        "Info": "信息",
+        "Warning": "警告",
+        "Error": "错误"
+      },
+      "category": {
+        "General": "通用",
+        "Security": "安全",
+        "Performance": "性能",
+        "Maintainability": "可维护性",
+        "Style": "风格"
+      }
+    },
+    "summary": {
+      "title": "AI评审总结",
+      "manual": "人工评审",
+      "no_reviews": "暂无评审意见"
+    },
+    "info": {
+      "title": "评审信息",
+      "status": "状态",
+      "created": "创建时间",
+      "updated": "更新时间",
+      "base_branch": "基础分支"
+    },
+    "statistics": {
+      "title": "统计信息",
+      "total_comments": "总评论数",
+      "ai_comments": "AI评论",
+      "manual_comments": "人工评论",
+      "critical_issues": "严重问题"
+    },
+    "actions": {
+      "title": "快速操作",
+      "add_comment": "添加评审意见"
+    },
+    "analysis": {
+      "title": "AI分析结果",
+      "loading": "正在分析代码...",
+      "no_analysis": "暂无分析结果",
+      "risk_assessment": "风险评估",
+      "improvement_suggestions": "改进建议",
+      "change_summary": "变更总结",
+      "metrics": "代码指标",
+      "files_analyzed": "已分析文件",
+      "total_lines": "总行数",
+      "changed_lines": "变更行数",
+      "complexity_score": "复杂度评分",
+      "test": {
+        "title": "AI 分析功能组件测试",
+        "dashboard": "分析仪表板",
+        "charts": "图表组件",
+        "loading": "加载状态",
+        "cards": "卡片组件",
+        "charts_title": "图表组件测试",
+        "cards_title": "卡片组件测试",
+        "risk_distribution": "风险分布图",
+        "impact_analysis": "影响分析图",
+        "file_heatmap": "文件热力图",
+        "risk_trend": "风险趋势",
+        "metrics_grid": "指标网格",
+        "tags_example": "标签示例",
+        "list_example": "列表项示例",
+        "progress_example": "进度条示例",
+        "basic_progress": "基础进度条",
+        "risk_indicator": "风险等级指示器",
+        "core_function": "核心功能",
+        "test_coverage": "测试覆盖",
+        "config_files": "配置文件"
+      }
+    }
+  },
+  "profile": {
+    "title": "个人资料",
+    "subtitle": "管理您的账户信息和偏好设置",
+    "sections": {
+      "basicInfo": "基本信息",
+      "security": "安全设置",
+      "notifications": "通知偏好"
+    },
+    "notifications": {
+      "profile_updated": "个人资料已更新",
+      "profile_update_success": "您的个人资料信息已成功保存",
+      "profile_update_failed": "更新失败",
+      "profile_update_error": "更新个人资料时发生错误，请重试",
+      "password_changed": "密码已更改",
+      "password_change_success": "您的密码已成功更改",
+      "password_change_failed": "密码更改失败",
+      "passwordMismatch": "密码确认不匹配",
+      "passwordMismatchContent": "请确保新密码和确认密码一致",
+      "avatarUploadError": "头像上传失败",
+      "avatarUploadErrorContent": "上传头像时发生错误，请重试",
+      "fileTooLarge": "文件过大",
+      "fileTooLargeContent": "头像文件不能超过5MB"
+    },
+    "fields": {
+      "displayName": "显示名称",
+      "githubUsername": "GitHub用户名",
+      "location": "所在地",
+      "website": "个人网站",
+      "bio": "个人简介",
+      "currentPassword": "当前密码",
+      "newPassword": "新密码",
+      "confirmPassword": "确认新密码"
+    },
+    "placeholders": {
+      "displayName": "请输入显示名称",
+      "githubUsername": "请输入GitHub用户名",
+      "location": "请输入所在地",
+      "website": "https://example.com",
+      "bio": "请输入个人简介"
+    },
+    "buttons": {
+      "editProfile": "编辑资料",
+      "cancelEdit": "取消编辑",
+      "updateProfile": "更新资料",
+      "cancel": "取消",
+      "updating": "更新中...",
+      "changePassword": "更改密码",
+      "updatePassword": "更新密码"
+    },
+    "security": {
+      "changePasswordPrompt": "点击\"更改密码\"按钮来更新您的账户密码",
+      "passwordSecurityTip": "建议定期更换密码以保障账户安全"
+    },
+    "preferences": {
+      "title": "通知偏好",
+      "emailNotifications": "邮件通知",
+      "emailNotificationsDesc": "接收重要更新的邮件通知",
+      "pushNotifications": "推送通知",
+      "pushNotificationsDesc": "接收浏览器推送通知",
+      "reviewReminders": "评审提醒",
+      "reviewRemindersDesc": "当有待处理的代码评审时提醒我",
+      "weeklyDigest": "周报摘要",
+      "weeklyDigestDesc": "每周发送项目活动摘要"
+    }
+  },
+  "reviewSettings": {
+    "title": "评审设置",
+    "subtitle": "配置 {{projectName}} 的评审规则和流程",
+    "tabs": {
+      "general": "常规设置",
+      "ai": "AI评审",
+      "notifications": "通知设置",
+      "protection": "分支保护"
+    },
+    "buttons": {
+      "save": "保存设置",
+      "saving": "保存中..."
+    },
+    "messages": {
+      "saveSuccess": "设置已保存",
+      "saveError": "保存失败，请重试"
+    },
+    "sections": {
+      "general": {
+        "title": "常规评审设置",
+        "autoAssignReviewers": "自动分配评审员",
+        "autoAssignReviewersDesc": "自动为新的评审请求分配评审员",
+        "requireMinReviewers": "最少评审员数量",
+        "requireMinReviewersDesc": "每个评审请求需要的最少评审员数量",
+        "reviewerOptions": {
+          "1": "1 人",
+          "2": "2 人",
+          "3": "3 人",
+          "4": "4 人",
+          "5": "5 人"
+        },
+        "allowSelfApproval": "允许自我批准",
+        "allowSelfApprovalDesc": "允许提交者批准自己的评审请求",
+        "enforceStyleGuide": "强制执行代码风格指南",
+        "enforceStyleGuideDesc": "要求代码符合项目的风格指南",
+        "autoMergeOnApproval": "批准后自动合并",
+        "autoMergeOnApprovalDesc": "当所有评审员批准后自动合并分支"
+      },
+      "ai": {
+        "title": "AI评审配置",
+        "aiReviewEnabled": "启用AI评审",
+        "aiReviewEnabledDesc": "使用AI自动分析代码质量和潜在问题",
+        "checkSecurity": "安全检查",
+        "checkSecurityDesc": "检测安全漏洞和潜在的安全风险",
+        "checkPerformance": "性能检查",
+        "checkPerformanceDesc": "分析代码性能问题和优化建议",
+        "checkCodeQuality": "代码质量检查",
+        "checkCodeQualityDesc": "检查代码质量、复杂度和其他质量指标",
+        "checkDocumentation": "文档检查",
+        "checkDocumentationDesc": "验证代码文档的完整性和准确性",
+        "strictnessLevel": "严格程度",
+        "strictnessLevelDesc": "设置AI评审的严格程度",
+        "strictnessLevels": {
+          "low": "宽松",
+          "medium": "中等",
+          "high": "严格"
+        }
+      },
+      "notifications": {
+        "title": "通知设置",
+        "emailNotifications": "邮件通知",
+        "emailNotificationsDesc": "通过邮件发送评审相关通知",
+        "slackNotifications": "Slack通知",
+        "slackNotificationsDesc": "通过Slack发送评审相关通知",
+        "webhookUrl": "Webhook URL",
+        "webhookUrlDesc": "用于发送自定义通知的Webhook地址",
+        "webhookUrlPlaceholder": "https://your-webhook-url.com"
+      },
+      "protection": {
+        "title": "分支保护规则",
+        "requireReviewBeforeMerge": "合并前需要评审",
+        "requireReviewBeforeMergeDesc": "要求所有更改在合并前通过评审",
+        "dismissStaleReviews": "驳回过时的评审",
+        "dismissStaleReviewsDesc": "当有新提交时驳回之前的评审",
+        "requireStatusChecks": "需要状态检查",
+        "requireStatusChecksDesc": "要求所有状态检查通过才能合并",
+        "restrictPushes": "限制推送",
+        "restrictPushesDesc": "只允许特定用户或团队推送代码"
+      }
+    }
+  },
+  "tokenUsage": {
+    "title": "Token 使用与费用",
+    "subtitle": "跟踪你的 LLM 调用次数、Token 消耗与成本构成",
+    "stats": {
+      "totalRequests": "总请求数",
+      "totalTokens": "总 Tokens",
+      "totalCost": "总费用",
+      "avgCostPerRequest": "平均费用/次"
+    },
+    "charts": {
+      "byProvider": "按 Provider/Model",
+      "byOperation": "按操作类型",
+      "dailyTrend": "每日趋势"
+    },
+    "table": {
+      "recentRecords": "最近记录",
+      "headers": {
+        "time": "时间",
+        "provider": "Provider",
+        "model": "Model",
+        "operation": "Operation",
+        "tokens": "Tokens",
+        "cost": "Cost"
+      }
+    },
+    "noData": "暂无数据",
+    "empty": "暂无记录"
+  },
+  "prompts": {
+    "title": "Prompt 模板管理",
+    "subtitle": "为 AI 评审/分析管理可配置的 Prompt 模板，支持占位符和生效来源回退。",
+    "scopes": {
+      "project": "项目",
+      "user": "用户",
+      "system": "系统"
+    },
+    "buttons": {
+      "create": "新建模板"
+    },
+    "types": {
+      "Review": "代码评审",
+      "RiskAnalysis": "风险分析",
+      "PullRequestSummary": "变更摘要",
+      "ImprovementSuggestions": "改进建议"
+    },
+    "sources": {
+      "project": "项目覆盖",
+      "user": "用户默认",
+      "built-in": "内置模板"
+    },
+    "effective": {
+      "reviewTemplate": "代码评审模板",
+      "riskTemplate": "风险分析模板",
+      "prSummaryTemplate": "变更摘要模板",
+      "improvementsTemplate": "改进建议模板"
+    }
+  },
+  "llmConfig": {
+    "title": "LLM配置管理",
+    "subtitle": "管理AI大语言模型配置，支持OpenAI、DeepSeek等多种提供商",
+    "buttons": {
+      "add": "添加配置"
+    },
+    "table": {
+      "headers": {
+        "configInfo": "配置信息",
+        "provider": "提供商",
+        "model": "模型",
+        "status": "状态",
+        "actions": "操作"
+      }
+    },
+    "empty": {
+      "title": "暂无LLM配置",
+      "description": "开始创建你的第一个LLM配置"
+    },
+    "status": {
+      "active": "活动",
+      "inactive": "停用"
+    },
+    "actions": {
+      "edit": "编辑",
+      "delete": "删除",
+      "test": "测试"
+    }
+  },
+  "gitRepos": {
+    "title": "Git仓库管理",
+    "subtitle": "管理系统中配置的Git仓库连接和同步状态",
+    "buttons": {
+      "add": "添加仓库"
+    },
+    "table": {
+      "headers": {
+        "name": "仓库名称",
+        "url": "仓库地址",
+        "status": "状态",
+        "lastSync": "最后同步",
+        "actions": "操作"
+      }
+    },
+    "status": {
+      "active": "活动",
+      "inactive": "停用",
+      "never": "从未同步"
+    },
+    "actions": {
+      "sync": "同步仓库",
+      "clone": "克隆仓库",
+      "test": "测试连接",
+      "edit": "编辑仓库",
+      "delete": "删除仓库"
+    }
+  },
+  "notifications": {
+    "showing": "显示 {{filtered}} / {{total}} 条通知"
+  }
+}

@@ -8,10 +8,12 @@ import {
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import { useNotifications } from '../hooks/useNotifications';
+import { useTranslation } from 'react-i18next';
 
 type NotificationFilter = 'all' | 'unread' | 'read' | 'review' | 'project' | 'security';
 
 export const NotificationsPage: React.FC = () => {
+  const { t } = useTranslation();
   const { notifications, removeNotification, clearAllNotifications } = useNotifications();
   const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
   const [selectedFilter, setSelectedFilter] = useState<NotificationFilter>('all');
@@ -113,7 +115,7 @@ export const NotificationsPage: React.FC = () => {
         minute: '2-digit'
       });
     } catch {
-      return '时间未知';
+      return t('notificationsPage.time.unknown');
     }
   };
 
@@ -149,12 +151,12 @@ export const NotificationsPage: React.FC = () => {
   });
 
   const filterOptions = [
-    { key: 'all', label: '全部', count: notifications.length },
-    { key: 'unread', label: '未读', count: unreadCount },
-    { key: 'read', label: '已读', count: notifications.length - unreadCount },
-    { key: 'review', label: '代码评审', count: notifications.filter(n => n.type.includes('review')).length },
-    { key: 'project', label: '项目', count: notifications.filter(n => n.type.includes('project')).length },
-    { key: 'security', label: '安全', count: notifications.filter(n => n.type.includes('security') || n.type.includes('profile')).length }
+    { key: 'all', label: t('notificationsPage.filters.all'), count: notifications.length },
+    { key: 'unread', label: t('notificationsPage.filters.unread'), count: unreadCount },
+    { key: 'read', label: t('notificationsPage.filters.read'), count: notifications.length - unreadCount },
+    { key: 'review', label: t('notificationsPage.filters.review'), count: notifications.filter(n => n.type.includes('review')).length },
+    { key: 'project', label: t('notificationsPage.filters.project'), count: notifications.filter(n => n.type.includes('project')).length },
+    { key: 'security', label: t('notificationsPage.filters.security'), count: notifications.filter(n => n.type.includes('security') || n.type.includes('profile')).length }
   ];
 
   return (
@@ -166,10 +168,10 @@ export const NotificationsPage: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
                 <BellIcon className="h-8 w-8 mr-3 text-primary-600" />
-                通知中心
+                {t('notificationsPage.title')}
               </h1>
               <p className="mt-2 text-gray-600 dark:text-gray-400">
-                管理您的所有通知和提醒
+                {t('notificationsPage.subtitle')}
               </p>
             </div>
             
@@ -180,14 +182,14 @@ export const NotificationsPage: React.FC = () => {
                   className="btn btn-secondary transition-all hover:scale-105 inline-flex items-center space-x-1"
                 >
                   <EyeIcon className="h-4 w-4 mr-2" />
-                  全部已读
+                  {t('notificationsPage.markAllRead')}
                 </button>
                 <button
                   onClick={clearAllNotifications}
                   className="btn btn-danger transition-all hover:scale-105 inline-flex items-center space-x-1"
                 >
                   <TrashIcon className="h-4 w-4 mr-2" />
-                  清空通知
+                  {t('notificationsPage.clearAll')}
                 </button>
               </div>
             )}
@@ -200,7 +202,7 @@ export const NotificationsPage: React.FC = () => {
             <div className="card dark:bg-gray-900 dark:border-gray-800 fade-in">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                 <FunnelIcon className="h-5 w-5 mr-2" />
-                筛选
+                {t('notificationsPage.filters.title')}
               </h3>
               
               <div className="space-y-2">
@@ -234,7 +236,7 @@ export const NotificationsPage: React.FC = () => {
                   <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="搜索通知..."
+                    placeholder={t('notificationsPage.search.placeholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="input pl-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
@@ -245,14 +247,14 @@ export const NotificationsPage: React.FC = () => {
                 {selectedNotifications.size > 0 && (
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      已选择 {selectedNotifications.size} 项
+                      {t('notificationsPage.actions.selected', { count: selectedNotifications.size })}
                     </span>
                     <button
                       onClick={deleteSelected}
                       className="btn btn-danger btn-sm transition-all hover:scale-105"
                     >
                       <TrashIcon className="h-4 w-4 mr-1" />
-                      删除
+                      {t('notificationsPage.actions.deleteSelected')}
                     </button>
                   </div>
                 )}
@@ -265,10 +267,10 @@ export const NotificationsPage: React.FC = () => {
                 <div className="card dark:bg-gray-900 dark:border-gray-800 text-center py-12 fade-in">
                   <BellIcon className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    {searchQuery ? '未找到匹配的通知' : '暂无通知'}
+                    {searchQuery ? '未找到匹配的通知' : t('notificationsPage.empty.title')}
                   </h3>
                   <p className="text-gray-500 dark:text-gray-400">
-                    {searchQuery ? '尝试使用不同的关键词搜索' : '当有新的活动时，您会在这里看到通知'}
+                    {searchQuery ? '尝试使用不同的关键词搜索' : t('notificationsPage.empty.description')}
                   </p>
                 </div>
               ) : (
@@ -289,7 +291,7 @@ export const NotificationsPage: React.FC = () => {
                       </label>
                       
                       <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                        <span>显示 {filteredNotifications.length} / {notifications.length} 条通知</span>
+                        <span>{t('notifications.showing', { filtered: filteredNotifications.length, total: notifications.length })}</span>
                       </div>
                     </div>
                   </div>
@@ -368,14 +370,14 @@ export const NotificationsPage: React.FC = () => {
                                       ? 'text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/20'
                                       : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                   }`}
-                                  title={isUnread ? '标记为已读' : '标记为未读'}
+                                  title={isUnread ? t('notificationsPage.actions.markAsRead') : t('notificationsPage.actions.markAsUnread')}
                                 >
                                   {isUnread ? <EyeIcon className="h-4 w-4" /> : <EyeSlashIcon className="h-4 w-4" />}
                                 </button>
                                 <button
                                   onClick={() => removeNotification(originalIndex)}
                                   className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                  title="删除通知"
+                                  title={t('notificationsPage.actions.delete')}
                                 >
                                   <TrashIcon className="h-4 w-4" />
                                 </button>

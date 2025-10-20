@@ -15,12 +15,15 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { useUISettings } from '../hooks/useUISettings';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { NotificationDropdown } from './NotificationDropdown';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, setTheme, density, setDensity } = useUISettings();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     logout();
@@ -44,7 +47,7 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <CodeBracketIcon className="h-8 w-8 text-primary-600" />
-              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">AI Reviewer</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('brand')}</span>
             </Link>
           </div>
 
@@ -55,26 +58,26 @@ export const Navbar: React.FC = () => {
                 to="/dashboard" 
                 className="text-gray-700 dark:text-gray-200 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
               >
-                仪表盘
+                {t('nav.dashboard')}
               </Link>
               <Link 
                 to="/projects" 
                 className="text-gray-700 dark:text-gray-200 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
               >
-                项目
+                {t('nav.projects')}
               </Link>
               <Link 
                 to="/reviews" 
                 className="text-gray-700 dark:text-gray-200 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
               >
-                代码评审
+                {t('nav.reviews')}
               </Link>
               <Link 
                 to="/projects/new" 
                 className="btn btn-primary inline-flex items-center space-x-1"
               >
                 <PlusIcon className="h-4 w-4" />
-                <span>新建项目</span>
+                <span>{t('nav.newProject')}</span>
               </Link>
             </div>
           )}
@@ -105,7 +108,7 @@ export const Navbar: React.FC = () => {
                     </span>
                     <span className="hidden md:flex md:flex-col md:items-start">
                       <span className="text-sm font-medium leading-4">{displayName}</span>
-                      <span className="text-[11px] text-gray-500 leading-3">账号</span>
+                      <span className="text-[11px] text-gray-500 leading-3">{t('user.account')}</span>
                     </span>
                     <ChevronDownIcon className="h-4 w-4 text-gray-400 hidden md:block" />
                   </Menu.Button>
@@ -145,7 +148,7 @@ export const Navbar: React.FC = () => {
                               className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} flex items-center gap-2 px-4 py-2 text-sm transition-colors`}
                             >
                               <UserIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                              <span>个人资料</span>
+                              <span>{t('user.profile')}</span>
                             </Link>
                           )}
                         </Menu.Item>
@@ -156,7 +159,7 @@ export const Navbar: React.FC = () => {
                               className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} flex items-center gap-2 px-4 py-2 text-sm transition-colors`}
                             >
                               <Cog6ToothIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                              <span>评审设置</span>
+                              <span>{t('user.reviewSettings')}</span>
                             </Link>
                           )}
                         </Menu.Item>
@@ -167,7 +170,7 @@ export const Navbar: React.FC = () => {
                               className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} flex items-center gap-2 px-4 py-2 text-sm transition-colors`}
                             >
                               <CpuChipIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                              <span>LLM配置</span>
+                              <span>{t('user.llmConfig')}</span>
                             </Link>
                           )}
                         </Menu.Item>
@@ -178,7 +181,7 @@ export const Navbar: React.FC = () => {
                               className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} flex items-center gap-2 px-4 py-2 text-sm transition-colors`}
                             >
                               <DocumentTextIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                              <span>Prompt 模板</span>
+                              <span>{t('user.promptTemplates')}</span>
                             </Link>
                           )}
                         </Menu.Item>
@@ -189,23 +192,27 @@ export const Navbar: React.FC = () => {
                               className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} flex items-center gap-2 px-4 py-2 text-sm transition-colors`}
                             >
                               <ChartBarIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                              <span>Token 使用</span>
+                              <span>{t('user.tokenUsage')}</span>
                             </Link>
                           )}
                         </Menu.Item>
                         <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
-                          <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">主题</div>
+                          <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">{t('ui.theme')}</div>
                           <div className="flex items-center gap-2">
                             {(['system','light','dark'] as const).map(m => (
-                              <button key={m} onClick={() => setTheme(m)} className={`px-2 py-1 rounded text-xs border transition-colors ${theme===m ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-800' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>{m==='system'?'跟随系统':m==='light'?'浅色':'深色'}</button>
+                              <button key={m} onClick={() => setTheme(m)} className={`px-2 py-1 rounded text-xs border transition-colors ${theme===m ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-800' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                                {m==='system'? t('ui.theme_system') : m==='light'? t('ui.theme_light') : t('ui.theme_dark')}
+                              </button>
                             ))}
                           </div>
                         </div>
                         <div className="px-4 py-2">
-                          <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">布局密度</div>
+                          <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">{t('ui.density')}</div>
                           <div className="flex items-center gap-2">
                             {(['compact','comfortable','full'] as const).map(d => (
-                              <button key={d} onClick={() => setDensity(d)} className={`px-2 py-1 rounded text-xs border transition-colors ${density===d ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-800' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>{d==='compact'?'紧凑':d==='comfortable'?'舒展':'全宽'}</button>
+                              <button key={d} onClick={() => setDensity(d)} className={`px-2 py-1 rounded text-xs border transition-colors ${density===d ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-800' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                                {d==='compact'? t('ui.density_compact') : d==='comfortable'? t('ui.density_comfortable') : t('ui.density_full')}
+                              </button>
                             ))}
                           </div>
                         </div>
@@ -217,7 +224,7 @@ export const Navbar: React.FC = () => {
                               className={`${active ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'} w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors`}
                             >
                               <ArrowRightOnRectangleIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                              <span>退出登录</span>
+                              <span>{t('user.logout')}</span>
                             </button>
                           )}
                         </Menu.Item>
@@ -232,17 +239,18 @@ export const Navbar: React.FC = () => {
                   to="/login"
                   className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  登录
+                  {t('nav.login')}
                 </Link>
                 <Link
                   to="/register"
                   className="btn btn-primary"
                 >
-                  注册
+                  {t('nav.register')}
                 </Link>
               </div>
             )}
 
+            <LanguageSwitcher />
             {/* Mobile menu button */}
             <button className="md:hidden text-gray-400 hover:text-gray-500 p-2">
               <Bars3Icon className="h-6 w-6" />

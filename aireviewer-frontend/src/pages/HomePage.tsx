@@ -17,24 +17,26 @@ import { ReviewState } from '../types/review';
 import type { PagedResult, Review } from '../types/review';
 import type { Project } from '../types/project';
 import { CountUp } from '../components/CountUp';
+import { useTranslation } from 'react-i18next';
 
 export const HomePage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
+  const { t, i18n } = useTranslation();
 
   // 辅助：状态样式与文本
   const getStatusText = (status: string) => {
     switch (status) {
       case 'Approved':
-        return '已通过';
+        return t('status.Approved');
       case 'Rejected':
-        return '需修改';
+        return t('status.Rejected');
       case 'AIReviewing':
-        return 'AI评审中';
+        return t('status.AIReviewing');
       case 'HumanReview':
-        return '人工评审';
+        return t('status.HumanReview');
       case 'Pending':
       default:
-        return '待处理';
+        return t('status.Pending');
     }
   };
 
@@ -60,7 +62,7 @@ export const HomePage: React.FC = () => {
       const now = new Date();
       const diffMs = date.getTime() - now.getTime();
       const absMs = Math.abs(diffMs);
-      const rtf = new Intl.RelativeTimeFormat('zh-CN', { numeric: 'auto' });
+  const rtf = new Intl.RelativeTimeFormat(i18n.resolvedLanguage || i18n.language || 'en', { numeric: 'auto' });
       const minutes = Math.round(absMs / (60 * 1000));
       if (minutes < 60) return rtf.format(Math.sign(diffMs) * -minutes, 'minute');
       const hours = Math.round(minutes / 60);
@@ -68,7 +70,7 @@ export const HomePage: React.FC = () => {
       const days = Math.round(hours / 24);
       return rtf.format(Math.sign(diffMs) * -days, 'day');
     } catch {
-      return new Date(iso).toLocaleString('zh-CN');
+  return new Date(iso).toLocaleString(i18n.resolvedLanguage || i18n.language || 'en');
     }
   };
 
@@ -122,33 +124,33 @@ export const HomePage: React.FC = () => {
   const features = [
     {
       icon: CpuChipIcon,
-      title: 'AI智能评审',
-      description: '基于先进的AI技术，自动分析代码质量、安全性和性能问题'
+      title: t('features.ai.title'),
+      description: t('features.ai.desc')
     },
     {
       icon: ShieldCheckIcon,
-      title: '安全检测',
-      description: '全面检测代码中的安全漏洞和潜在风险'
+      title: t('features.security.title'),
+      description: t('features.security.desc')
     },
     {
       icon: ClockIcon,
-      title: '快速响应',
-      description: '几分钟内完成代码评审，大幅提升开发效率'
+      title: t('features.fast.title'),
+      description: t('features.fast.desc')
     },
     {
       icon: UsersIcon,
-      title: '团队协作',
-      description: '支持团队成员协作评审，统一代码质量标准'
+      title: t('features.collab.title'),
+      description: t('features.collab.desc')
     },
     {
       icon: ChartBarIcon,
-      title: '质量报告',
-      description: '详细的质量分析报告，帮助团队持续改进'
+      title: t('features.report.title'),
+      description: t('features.report.desc')
     },
     {
       icon: CodeBracketIcon,
-      title: '多语言支持',
-      description: '支持主流编程语言的代码评审和分析'
+      title: t('features.multilang.title'),
+      description: t('features.multilang.desc')
     }
   ];
 
@@ -162,21 +164,21 @@ export const HomePage: React.FC = () => {
         {/* Welcome Section */}
   <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200/70 dark:border-gray-800 shadow-sm transition hover:shadow-md">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            欢迎回来，{user?.displayName || user?.userName}！
+            {t('home.welcome', { name: user?.displayName || user?.userName })}
           </h1>
           <p className="text-gray-600 mb-6">
-            开始使用AI评审平台来提升您的代码质量
+            {t('home.start')}
           </p>
           
           <div className="flex flex-wrap gap-4">
             <Link to="/projects/new" className="btn btn-primary">
-              创建新项目
+              {t('home.createProject')}
             </Link>
             <Link to="/projects" className="btn btn-secondary">
-              查看项目
+              {t('home.viewProjects')}
             </Link>
             <Link to="/reviews" className="btn btn-secondary">
-              代码评审
+              {t('home.goReviews')}
             </Link>
           </div>
         </div>
@@ -189,7 +191,7 @@ export const HomePage: React.FC = () => {
                 <CodeBracketIcon className="h-6 w-6 text-primary-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">我的项目</p>
+                <p className="text-sm font-medium text-gray-500">{t('home.myProjects')}</p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
                   {fetchingProjects ? '…' : <CountUp to={projectsCount} />}
                 </p>
@@ -203,7 +205,7 @@ export const HomePage: React.FC = () => {
                 <ShieldCheckIcon className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">已完成评审</p>
+                <p className="text-sm font-medium text-gray-500">{t('home.completedReviews')}</p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
                   {fetchingApproved ? '…' : <CountUp to={approvedCount} />}
                 </p>
@@ -217,7 +219,7 @@ export const HomePage: React.FC = () => {
                 <ClockIcon className="h-6 w-6 text-orange-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">待处理评审</p>
+                <p className="text-sm font-medium text-gray-500">{t('home.pendingReviews')}</p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
                   {fetchingPending ? '…' : <CountUp to={pendingCount} />}
                 </p>
@@ -229,7 +231,7 @@ export const HomePage: React.FC = () => {
         {/* Recent Activity */}
   <div className="card dark:bg-gray-900 dark:border-gray-800 transition hover:shadow-md">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">最近活动</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('home.recentActivity')}</h2>
             <div className="flex items-center gap-2">
               {fetchingRecent && (
                 <svg className="animate-spin h-4 w-4 text-primary-600" viewBox="0 0 24 24">
@@ -240,12 +242,12 @@ export const HomePage: React.FC = () => {
               <button
                 onClick={() => refetchRecent()}
                 className="inline-flex items-center px-2 py-1 text-sm text-gray-600 hover:text-primary-700 hover:bg-primary-50 rounded"
-                title="刷新"
+                title={t('home.refresh')}
               >
-                <ArrowPathIcon className="h-4 w-4 mr-1" /> 刷新
+                <ArrowPathIcon className="h-4 w-4 mr-1" /> {t('home.refresh')}
               </button>
               <Link to="/reviews" className="text-sm text-primary-600 hover:text-primary-700">
-                查看全部
+                {t('home.viewAll')}
               </Link>
             </div>
           </div>
@@ -270,8 +272,8 @@ export const HomePage: React.FC = () => {
                       {r.title}
                     </Link>
                     <div className="text-xs text-gray-500 mt-1">
-                      <span className="mr-2">项目：{r.projectName}</span>
-                      <span title={new Date(r.createdAt).toLocaleString('zh-CN')}>时间：{formatRelativeTime(r.createdAt)}</span>
+                      <span className="mr-2">{t('labels.project')}：{r.projectName}</span>
+                      <span title={new Date(r.createdAt).toLocaleString(i18n.resolvedLanguage || i18n.language || 'en')}>{t('labels.time')}：{formatRelativeTime(r.createdAt)}</span>
                     </div>
                   </div>
                   <span className={`text-xs px-2.5 py-0.5 rounded-full ${getStatusColor(r.status)}`}>
@@ -283,8 +285,8 @@ export const HomePage: React.FC = () => {
           ) : (
             <div className="text-center py-8">
               <CodeBracketIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">暂无活动记录</p>
-              <p className="text-sm text-gray-400 mt-1">创建您的第一个项目开始使用</p>
+              <p className="text-gray-500">{t('home.noActivity')}</p>
+              <p className="text-sm text-gray-400 mt-1">{t('home.createFirstProject')}</p>
             </div>
           )}
         </div>
@@ -303,20 +305,19 @@ export const HomePage: React.FC = () => {
         </div>
         
   <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-          AI 代码评审平台
+          {t('hero.title')}
         </h1>
         
   <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-          利用先进的人工智能技术，为您的代码提供智能、全面、快速的评审服务，
-          帮助团队提升代码质量，减少bug，提高开发效率。
+          {t('hero.subtitle')}
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link to="/register" className="btn btn-primary text-lg px-8 py-3">
-            免费开始使用
+            {t('hero.cta_free')}
           </Link>
           <Link to="/login" className="btn btn-secondary text-lg px-8 py-3">
-            登录账户
+            {t('hero.cta_login')}
           </Link>
         </div>
       </div>
@@ -324,7 +325,7 @@ export const HomePage: React.FC = () => {
       {/* Features Section */}
       <div>
   <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-12">
-          平台特色
+          {t('features.title')}
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -349,13 +350,13 @@ export const HomePage: React.FC = () => {
       {/* CTA Section */}
       <div className="bg-primary-50 dark:bg-primary-900/20 rounded-2xl p-8 text-center">
         <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          准备开始了吗？
+          {t('features.ready.title')}
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-          立即注册，体验AI驱动的代码评审服务，让您的代码质量更上一层楼。
+          {t('features.ready.desc')}
         </p>
         <Link to="/register" className="btn btn-primary text-lg px-8 py-3">
-          立即注册
+          {t('features.ready.cta')}
         </Link>
       </div>
     </div>

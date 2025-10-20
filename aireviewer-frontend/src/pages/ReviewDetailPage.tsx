@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { 
   ArrowLeftIcon,
   ChatBubbleLeftRightIcon,
@@ -35,6 +36,7 @@ export const ReviewDetailPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { joinGroup, leaveGroup, addNotification } = useNotifications();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'overview' | 'comments' | 'diff' | 'analysis'>('overview');
   const [showAddComment, setShowAddComment] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -89,13 +91,13 @@ export const ReviewDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
       addNotification({
         type: 'review_status',
-        message: '评审已通过',
+        message: t('reviewDetail.notifications.approved'),
         timestamp: new Date().toISOString(),
         reviewId: String(reviewId)
       });
     },
     onError: (error: unknown) => {
-      const msg = error instanceof Error ? error.message : '通过评审失败';
+      const msg = error instanceof Error ? error.message : t('reviewDetail.notifications.approve_failed');
       addNotification({
         type: 'review_status',
         message: msg,
@@ -150,13 +152,13 @@ export const ReviewDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
       addNotification({
         type: 'review_status',
-        message: 'AI 评审已启动',
+        message: t('reviewDetail.notifications.ai_started'),
         timestamp: new Date().toISOString(),
         reviewId: String(reviewId)
       });
     },
     onError: (error: unknown) => {
-      const msg = error instanceof Error ? error.message : '启动 AI 评审失败';
+      const msg = error instanceof Error ? error.message : t('reviewDetail.notifications.ai_failed');
       addNotification({
         type: 'review_status',
         message: msg,
@@ -198,13 +200,13 @@ export const ReviewDetailPage = () => {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 dark:text-red-400 mb-4">
-          <p>加载评审详情时出错</p>
+          <p>{t('reviewDetail.loading_error')}</p>
         </div>
         <button 
           onClick={() => navigate('/reviews')}
           className="btn btn-primary"
         >
-          返回评审列表
+          {t('reviewDetail.back_to_reviews')}
         </button>
       </div>
     );
@@ -228,25 +230,25 @@ export const ReviewDetailPage = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case ReviewState.Pending:
-        return '待处理';
+        return t('status.Pending');
       case ReviewState.AIReviewing:
-        return 'AI评审中';
+        return t('status.AIReviewing');
       case ReviewState.HumanReview:
-        return '人工评审';
+        return t('status.HumanReview');
       case ReviewState.Approved:
-        return '已通过';
+        return t('status.Approved');
       case ReviewState.Rejected:
-        return '需修改';
+        return t('status.Rejected');
       default:
         return status;
     }
   };
 
   const tabs = [
-    { id: 'overview', name: '概览', icon: EyeIcon },
-    { id: 'comments', name: '评论', icon: ChatBubbleLeftRightIcon, count: comments?.length || 0 },
-    { id: 'diff', name: '代码变更', icon: DocumentTextIcon },
-    { id: 'analysis', name: 'AI分析', icon: CpuChipIcon },
+    { id: 'overview', name: t('reviewDetail.tabs.overview'), icon: EyeIcon },
+    { id: 'comments', name: t('reviewDetail.tabs.comments'), icon: ChatBubbleLeftRightIcon, count: comments?.length || 0 },
+    { id: 'diff', name: t('reviewDetail.tabs.diff'), icon: DocumentTextIcon },
+    { id: 'analysis', name: t('reviewDetail.tabs.analysis'), icon: CpuChipIcon },
   ] as const;
 
   return (
@@ -256,16 +258,16 @@ export const ReviewDetailPage = () => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-gray-900/70 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
           <div className="relative p-6 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-900 dark:border-gray-700">
             <div className="mt-3">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">拒绝评审</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('reviewDetail.reject.title')}</h3>
               <div className="mb-4">
                 <label htmlFor="reject-reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  拒绝原因 (可选)
+                  {t('reviewDetail.reject.reason_label')}
                 </label>
                 <textarea
                   id="reject-reason"
                   rows={4}
                   className="w-full px-3 py-2 text-gray-700 dark:text-gray-200 border dark:border-gray-600 rounded-lg focus:outline-none focus:border-primary-500 bg-white dark:bg-gray-800"
-                  placeholder="请说明拒绝的原因..."
+                  placeholder={t('reviewDetail.reject.reason_placeholder')}
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                 />
@@ -280,7 +282,7 @@ export const ReviewDetailPage = () => {
                   }}
                   disabled={rejectReviewMutation.isPending}
                 >
-                  取消
+                  {t('reviewDetail.reject.cancel')}
                 </button>
                 <button
                   type="button"
@@ -288,7 +290,7 @@ export const ReviewDetailPage = () => {
                   onClick={handleConfirmReject}
                   disabled={rejectReviewMutation.isPending}
                 >
-                  {rejectReviewMutation.isPending ? '处理中...' : '确认拒绝'}
+                  {rejectReviewMutation.isPending ? t('reviewDetail.reject.processing') : t('reviewDetail.reject.confirm')}
                 </button>
               </div>
             </div>
@@ -319,9 +321,9 @@ export const ReviewDetailPage = () => {
               <p className="text-gray-500 dark:text-gray-400 mt-1">{review.description}</p>
             )}
             <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>项目: {review.projectName}</span>
-              <span>分支: {review.branch}</span>
-              <span>作者: {review.authorName}</span>
+              <span>{t('reviewDetail.overview.labels.project')}: {review.projectName}</span>
+              <span>{t('reviewDetail.overview.labels.branch')}: {review.branch}</span>
+              <span>{t('reviewDetail.overview.labels.author')}: {review.authorName}</span>
               {review.pullRequestNumber && (
                 <span>PR #{review.pullRequestNumber}</span>
               )}

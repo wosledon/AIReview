@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { 
   PlusIcon, 
   MagnifyingGlassIcon,
@@ -15,6 +16,7 @@ import type { Project } from '../types/project';
 import type { PagedResult } from '../types/review';
 
 export const ProjectsPage = () => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
@@ -62,13 +64,13 @@ export const ProjectsPage = () => {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">
-          <p>加载项目时出错</p>
+          <p>{t('projects.loading_error')}</p>
         </div>
         <button 
           onClick={() => refetch()}
           className="btn btn-primary"
         >
-          重新加载
+          {t('projects.reload')}
         </button>
       </div>
     );
@@ -79,15 +81,15 @@ export const ProjectsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 text-left">项目管理</h1>
+          <h1 className="text-2xl font-bold text-gray-900 text-left">{t('projects.title')}</h1>
           <p className="mt-1 text-gray-500 mt-2">
-            管理您的代码项目，配置AI评审规则
+            {t('projects.subtitle')}
           </p>
         </div>
         <div className="mt-4 sm:mt-0">
           <Link to="/projects/new" className="btn btn-primary inline-flex items-center space-x-1">
             <PlusIcon className="h-5 w-5 mr-2" />
-            创建项目
+            {t('projects.create')}
           </Link>
         </div>
       </div>
@@ -100,7 +102,7 @@ export const ProjectsPage = () => {
               <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="搜索项目..."
+                placeholder={t('projects.search_placeholder')}
                 className="input pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -116,7 +118,7 @@ export const ProjectsPage = () => {
               onChange={(e) => setShowArchived(e.target.checked)}
             />
             <label htmlFor="show-archived" className="ml-2 text-sm text-gray-700">
-              显示已归档项目
+              {t('projects.show_archived')}
             </label>
           </div>
           {isFetching && projectsData && (
@@ -125,7 +127,7 @@ export const ProjectsPage = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
               </svg>
-              更新中...
+              {t('projects.updating')}
             </div>
           )}
         </div>
@@ -136,25 +138,25 @@ export const ProjectsPage = () => {
         <div className="text-center py-12">
           <FolderIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {searchTerm ? '未找到匹配的项目' : '还没有项目'}
+            {searchTerm ? t('projects.no_match') : t('projects.no_projects')}
           </h3>
           <p className="text-gray-500 mb-6">
             {searchTerm 
-              ? '尝试调整搜索条件或创建新项目'
-              : '创建您的第一个项目开始使用AI代码评审'
+              ? t('projects.try_adjust')
+              : t('projects.no_projects_desc')
             }
           </p>
           {!searchTerm && (
             <Link to="/projects/new" className="btn btn-primary inline-flex items-center space-x-1">
               <PlusIcon className="h-5 w-5" />
-              创建项目
+              {t('projects.create')}
             </Link>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {projects.map((project: Project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard key={project.id} project={project} t={t} />
           ))}
         </div>
       )}
@@ -164,7 +166,7 @@ export const ProjectsPage = () => {
         <div className="flex items-center justify-center space-x-2">
           {/* Add pagination controls here */}
           <p className="text-sm text-gray-500">
-            显示 {projects.length} 个项目，共 {projectsData.totalCount} 个
+            {t('projects.showing', { count: projects.length, total: projectsData.totalCount })}
           </p>
         </div>
       )}
@@ -174,9 +176,10 @@ export const ProjectsPage = () => {
 
 interface ProjectCardProps {
   project: Project;
+  t: (key: string) => string;
 }
 
-const ProjectCard = ({ project }: ProjectCardProps) => {
+const ProjectCard = ({ project, t }: ProjectCardProps) => {
   return (
   <div className="card hover:shadow-lg transition-shadow h-full flex flex-col dark:bg-gray-900 dark:border-gray-800">
       {/* Header with icon, title and menu */}
@@ -229,7 +232,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
         <div className="flex items-center flex-shrink-0">
           <UserGroupIcon className="h-4 w-4 mr-1" />
           <span>
-            {project.memberCount || 0} 人
+            {project.memberCount || 0} {t('projects.members')}
           </span>
         </div>
       </div>
@@ -242,7 +245,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
               ? 'bg-green-100 text-green-800' 
               : 'bg-gray-100 text-gray-800'
           }`}>
-            {project.isActive !== false ? '活跃' : '已归档'}
+            {project.isActive !== false ? t('projects.active') : t('projects.archived')}
           </span>
 
           <Link
@@ -250,7 +253,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
             className="text-primary-600 hover:text-primary-700 text-sm font-medium px-2 py-1 rounded hover:bg-primary-50 transition-colors flex items-center"
           >
             <Cog6ToothIcon className="h-4 w-4 mr-1" />
-            项目设置
+            {t('projects.project_settings')}
           </Link>
         </div>
       </div>
