@@ -125,9 +125,12 @@ public class ReviewService : IReviewService
         if (review == null)
             throw new ArgumentException($"Review with id {id} not found");
 
-        review.Status = status;
-        _unitOfWork.ReviewRequests.Update(review);
-        await _unitOfWork.SaveChangesAsync();
+        if (review.Status != status)
+        {
+            review.Status = status;
+            _unitOfWork.ReviewRequests.Update(review);
+            await _unitOfWork.SaveChangesAsync();
+        }
 
         _logger.LogInformation("Review status updated: {ReviewId} to {Status}", id, status);
     }

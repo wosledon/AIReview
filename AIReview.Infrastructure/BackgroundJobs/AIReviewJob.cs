@@ -153,7 +153,9 @@ namespace AIReview.Infrastructure.BackgroundJobs
 
                 var baseContext = new Core.Interfaces.ReviewContext
                 {
-                    Language = detectedLanguage
+                    Language = detectedLanguage,
+                    UserId = reviewDto.AuthorId,
+                    ProjectId = reviewDto.ProjectId
                 };
                 var context = await _contextBuilder.BuildContextAsync(diff, baseContext);
 
@@ -208,7 +210,10 @@ namespace AIReview.Infrastructure.BackgroundJobs
                 try
                 {
                     var reviewDto = await _reviewService.GetReviewAsync(reviewRequestId);
-                    await _reviewService.UpdateReviewStatusAsync(reviewRequestId, ReviewState.Rejected);
+                    if (reviewDto != null)
+                    {
+                        await _reviewService.UpdateReviewStatusAsync(reviewRequestId, ReviewState.Rejected);
+                    }
                     
                     // 发送失败通知
                     if (reviewDto != null)

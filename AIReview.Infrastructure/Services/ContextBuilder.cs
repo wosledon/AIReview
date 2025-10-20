@@ -77,7 +77,9 @@ public class ContextBuilder : IContextBuilder
             {
                 Language = language,
                 ProjectType = DetermineProjectType(diff, language),
-                CodingStandards = GetCodingStandards(language)
+                CodingStandards = GetCodingStandards(language),
+                UserId = baseContext.UserId,
+                ProjectId = baseContext.ProjectId
             };
 
             _logger.LogDebug("Context built: Language={Language}, ProjectType={ProjectType}", 
