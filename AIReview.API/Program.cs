@@ -315,6 +315,7 @@ builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
 builder.Services.AddScoped<ILLMConfigurationService, LLMConfigurationService>();
 builder.Services.AddScoped<IMultiLLMService, MultiLLMService>();
 builder.Services.AddScoped<IContextBuilder, ContextBuilder>();
+builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<ChunkedReviewService>(); // 分块评审服务
 builder.Services.AddScoped<IAIReviewer, AIReviewer>();
 builder.Services.AddScoped<IPromptService, PromptService>();
@@ -389,6 +390,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<ChatHub>("/hubs/chat");
 app.MapMetrics(); // Prometheus指标端点
 app.MapHealthChecks("/health");
 
