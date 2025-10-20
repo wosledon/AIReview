@@ -129,10 +129,10 @@ const PromptsPage: React.FC = () => {
   };
 
   const effCards = [
-    { title: t('prompts.effective.review'), eff: effReview },
-    { title: t('prompts.effective.riskAnalysis'), eff: effRisk },
-    { title: t('prompts.effective.pullRequestSummary'), eff: effPRSummary },
-    { title: t('prompts.effective.improvementSuggestions'), eff: effImprovements },
+    { title: t('prompts.effective.reviewTemplate'), eff: effReview },
+    { title: t('prompts.effective.riskTemplate'), eff: effRisk },
+    { title: t('prompts.effective.prSummaryTemplate'), eff: effPRSummary },
+    { title: t('prompts.effective.improvementsTemplate'), eff: effImprovements },
   ];
 
   return (

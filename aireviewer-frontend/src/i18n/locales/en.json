@@ -724,7 +724,29 @@
       "riskTemplate": "Risk Analysis Template",
       "prSummaryTemplate": "PR Summary Template",
       "improvementsTemplate": "Improvement Suggestions Template"
-    }
+    },
+    "actions": {
+      "create": "Create Template",
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "copy": "Copy",
+      "close": "Close"
+    },
+    "messages": {
+      "copied": "Copied!"
+    },
+    "table": {
+      "name": "Name",
+      "type": "Type",
+      "scope": "Scope",
+      "updatedAt": "Updated At",
+      "actions": "Actions"
+    },
+    "loading": "Loading...",
+    "empty": "No templates found"
   },
   "llmConfig": {
     "title": "LLM Configuration Management",
