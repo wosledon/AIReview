@@ -120,5 +120,5 @@ public class TokenUsageRecord
     public virtual ApplicationUser User { get; set; } = null!;
     public virtual Project? Project { get; set; }
     public virtual ReviewRequest? ReviewRequest { get; set; }
-    public virtual LLMConfiguration LLMConfiguration { get; set; } = null!;
+    public virtual LLMConfiguration? LLMConfiguration { get; set; }
 }

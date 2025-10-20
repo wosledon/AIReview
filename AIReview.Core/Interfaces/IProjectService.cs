@@ -16,6 +16,7 @@ public interface IProjectService
     
     Task<IEnumerable<ProjectMemberDto>> GetProjectMembersAsync(int projectId);
     Task AddProjectMemberAsync(int projectId, AddMemberRequest request);
+    Task<ProjectMemberDto> UpdateProjectMemberRoleAsync(int projectId, string userId, string role);
     Task RemoveProjectMemberAsync(int projectId, string userId);
     Task<bool> HasProjectAccessAsync(int projectId, string userId);
     Task<bool> IsProjectOwnerAsync(int projectId, string userId);

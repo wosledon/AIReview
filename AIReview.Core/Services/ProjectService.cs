@@ -318,6 +318,41 @@ public class ProjectService : IProjectService
         _logger.LogInformation("Member removed from project: {UserId} from {ProjectId}", userId, projectId);
     }
 
+    public async Task<ProjectMemberDto> UpdateProjectMemberRoleAsync(int projectId, string userId, string role)
+    {
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId);
+        if (project == null)
+            throw new ArgumentException($"Project with id {projectId} not found");
+
+        // 不允许修改所有者角色（所有者不在 Members 表）
+        if (project.OwnerId == userId)
+            throw new InvalidOperationException("Cannot change role for project owner");
+
+        var member = await _unitOfWork.ProjectMembers.SingleOrDefaultAsync(
+            m => m.ProjectId == projectId && m.UserId == userId);
+
+        if (member == null)
+            throw new ArgumentException("User is not a member of this project");
+
+        if (!Enum.TryParse<ProjectMemberRole>(role, true, out var newRole))
+            throw new ArgumentException("Invalid role specified");
+
+    member.Role = newRole;
+        _unitOfWork.ProjectMembers.Update(member);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new ProjectMemberDto
+        {
+            Id = member.Id,
+            ProjectId = projectId,
+            UserId = member.UserId,
+            UserName = member.User?.DisplayName ?? member.User?.UserName ?? string.Empty,
+            UserEmail = member.User?.Email ?? string.Empty,
+            Role = member.Role.ToString(),
+            JoinedAt = member.JoinedAt
+        };
+    }
+
     public async Task<bool> HasProjectAccessAsync(int projectId, string userId)
     {
         var isOwner = await _unitOfWork.Projects.IsUserProjectOwnerAsync(projectId, userId);

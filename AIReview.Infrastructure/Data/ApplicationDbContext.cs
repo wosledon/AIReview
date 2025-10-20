@@ -337,6 +337,36 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey<PullRequestChangeSummary>(e => e.ReviewRequestId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // 配置 TokenUsageRecord 实体与外键的删除行为
+        builder.Entity<TokenUsageRecord>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            // 必填外键：User -> 删除用户时一并删除其用量记录
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 可选外键：Project -> 删除项目时置空，避免因历史数据导致外键失败
+            entity.HasOne(e => e.Project)
+                .WithMany()
+                .HasForeignKey(e => e.ProjectId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // 可选外键：ReviewRequest -> 删除评审时置空，避免外键失败
+            entity.HasOne(e => e.ReviewRequest)
+                .WithMany()
+                .HasForeignKey(e => e.ReviewRequestId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // 可选外键：LLMConfiguration -> 删除配置时置空
+            entity.HasOne(e => e.LLMConfiguration)
+                .WithMany()
+                .HasForeignKey(e => e.LLMConfigurationId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
     }
 
     public override int SaveChanges()

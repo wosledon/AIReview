@@ -65,3 +65,9 @@ public class AddMemberRequest
     [Required]
     public string Role { get; set; } = "Developer";
 }
+
+public class UpdateProjectMemberRoleRequest
+{
+    [Required]
+    public string Role { get; set; } = string.Empty;
+}
