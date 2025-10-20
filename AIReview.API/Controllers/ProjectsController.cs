@@ -436,6 +436,66 @@ public class ProjectsController : ControllerBase
         }
     }
 
+    [HttpPut("{id}/members/{userId}")]
+    public async Task<ActionResult<ApiResponse<ProjectMemberDto>>> UpdateProjectMemberRole(
+        int id, string userId, [FromBody] UpdateProjectMemberRoleRequest request)
+    {
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+            var isOwner = await _projectService.IsProjectOwnerAsync(id, currentUserId);
+
+            if (!isOwner)
+            {
+                return Forbid();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponse<ProjectMemberDto>
+                {
+                    Success = false,
+                    Message = "请求数据无效",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            var updated = await _projectService.UpdateProjectMemberRoleAsync(id, userId, request.Role);
+
+            return Ok(new ApiResponse<ProjectMemberDto>
+            {
+                Success = true,
+                Data = updated
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ApiResponse<ProjectMemberDto>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new ApiResponse<ProjectMemberDto>
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating project member role for {ProjectId}", id);
+            return StatusCode(500, new ApiResponse<ProjectMemberDto>
+            {
+                Success = false,
+                Message = "更新成员角色失败",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
     private string GetCurrentUserId()
     {
         return User.FindFirst(ClaimTypes.NameIdentifier)?.Value 

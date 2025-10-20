@@ -22,6 +22,7 @@ import { ReviewState } from '../types/review';
 import type { Project, ProjectMember } from '../types/project';
 import type { Review } from '../types/review';
 import PromptsPage from './admin/PromptsPage';
+import { useAuth } from '../contexts/AuthContext';
 
 export const ProjectDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -184,7 +185,7 @@ export const ProjectDetailPage = () => {
             onSwitchToSettings={() => setActiveTab('settings')}
           />
         )}
-        {activeTab === 'members' && <MembersTab members={members || []} isLoading={isMembersLoading} />}
+  {activeTab === 'members' && <MembersTab projectId={projectId} members={members || []} isLoading={isMembersLoading} />}
         {activeTab === 'reviews' && <ReviewsTab projectId={projectId} />}
         {activeTab === 'prompts' && <PromptsPage />}
         {activeTab === 'settings' && (
@@ -445,7 +446,49 @@ interface MembersTabProps {
   isLoading: boolean;
 }
 
-const MembersTab = ({ members, isLoading }: Omit<MembersTabProps, 'projectId'>) => {
+const roleOptions = [
+  { label: 'Owner', value: 'Owner' },
+  { label: 'Admin', value: 'Admin' },
+  { label: 'Developer', value: 'Developer' },
+  { label: 'Viewer', value: 'Viewer' },
+];
+
+const roleOptionsForAdd = roleOptions.filter(r => r.value !== 'Owner');
+
+const MembersTab = ({ projectId, members, isLoading }: MembersTabProps) => {
+  const queryClient = useQueryClient();
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('Developer');
+  const { user } = useAuth();
+
+  const isCurrentUserOwner = !!members.find(m => m.role === 'Owner' && m.userId === user?.id);
+
+  const addMemberMutation = useMutation({
+    mutationFn: () => projectService.addProjectMember(projectId, { email, role }),
+    onSuccess: () => {
+      setEmail('');
+      setRole('Developer');
+      queryClient.invalidateQueries({ queryKey: ['project-members', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+    }
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: (userId: string) => projectService.removeProjectMember(projectId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-members', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+    }
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ userId, newRole }: { userId: string; newRole: string }) =>
+      projectService.updateProjectMemberRole(projectId, userId, newRole),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-members', projectId] });
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
@@ -454,23 +497,52 @@ const MembersTab = ({ members, isLoading }: Omit<MembersTabProps, 'projectId'>) 
     );
   }
 
+  const handleAddMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    addMemberMutation.mutate();
+  };
+
+  const confirmRemove = (userId: string, userName: string) => {
+    if (window.confirm(`确定要移除成员 “${userName}” 吗？`)) {
+      removeMemberMutation.mutate(userId);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">项目成员</h3>
-        <button className="btn btn-primary inline-flex items-center space-x-1">
-          <UserPlusIcon className="h-5 w-5 mr-2" />
-          邀请成员
-        </button>
-      </div>
+      {isCurrentUserOwner && (
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">邀请成员</h3>
+          <form className="grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={handleAddMember}>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="成员邮箱"
+              className="input"
+            />
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="input"
+            >
+              {roleOptionsForAdd.map(r => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+            <button type="submit" className="btn btn-primary" disabled={addMemberMutation.isPending}>
+              {addMemberMutation.isPending ? '邀请中...' : '发送邀请'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {members.length === 0 ? (
         <div className="card text-center py-8">
           <UserPlusIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500">还没有项目成员</p>
-          <button className="btn btn-primary mt-4">
-            邀请第一位成员
-          </button>
         </div>
       ) : (
         <div className="card">
@@ -494,12 +566,12 @@ const MembersTab = ({ members, isLoading }: Omit<MembersTabProps, 'projectId'>) 
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {members.map((member) => (
-                  <tr key={member.id}>
+                  <tr key={`${member.userId}-${member.id}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
                           <span className="text-primary-600 font-medium text-sm">
-                            {member.userName.charAt(0).toUpperCase()}
+                            {member.userName?.charAt(0)?.toUpperCase()}
                           </span>
                         </div>
                         <div className="ml-4">
@@ -513,15 +585,34 @@ const MembersTab = ({ members, isLoading }: Omit<MembersTabProps, 'projectId'>) 
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
-                      {member.role}
+                      {member.role === 'Owner' ? (
+                        <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">Owner</span>
+                      ) : (
+                        <select
+                          className="input"
+                          value={member.role}
+                          disabled={!isCurrentUserOwner}
+                          onChange={(e) => updateRoleMutation.mutate({ userId: member.userId, newRole: e.target.value })}
+                        >
+                          {roleOptions.filter(r => r.value !== 'Owner').map(r => (
+                            <option key={r.value} value={r.value}>{r.label}</option>
+                          ))}
+                        </select>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                       {new Date(member.joinedAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button className="text-red-600 hover:text-red-700">
-                        移除
-                      </button>
+                      {isCurrentUserOwner && member.role !== 'Owner' && (
+                        <button
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => confirmRemove(member.userId, member.userName)}
+                          disabled={removeMemberMutation.isPending}
+                        >
+                          移除
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

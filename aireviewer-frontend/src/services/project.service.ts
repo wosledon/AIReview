@@ -67,9 +67,9 @@ export class ProjectService {
     return response.data;
   }
 
-  async addProjectMember(projectId: number, request: AddMemberRequest): Promise<ProjectMember> {
-    const response = await apiClient.post<{ success: boolean; data: ProjectMember }>(`/projects/${projectId}/members`, request);
-    return response.data;
+  async addProjectMember(projectId: number, request: AddMemberRequest): Promise<void> {
+    // 后端返回的是仅包含消息的 ApiResponse<object>，无 Data 字段
+    await apiClient.post<{ success: boolean; message?: string }>(`/projects/${projectId}/members`, request);
   }
 
   async removeProjectMember(projectId: number, memberId: string): Promise<void> {
