@@ -1,5 +1,6 @@
 // 测试分析功能组件
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnalysisCard, MetricGrid, Tag, ListItem } from '../components/common/AnalysisCard';
 import { RiskDonutChart, ImpactBarChart, FileHeatmap, TrendLine } from '../components/common/Charts';
 import { LoadingSpinner, LoadingCard, EmptyState, ErrorState } from '../components/common/LoadingStates';
@@ -106,13 +107,14 @@ const mockAnalysisData: AnalysisData = {
 };
 
 const AnalysisTestPage: React.FC = () => {
+  const { t } = useTranslation();
   const [currentTest, setCurrentTest] = React.useState<string>('dashboard');
 
   const testComponents = [
-    { id: 'dashboard', name: '分析仪表板', component: <AnalysisDashboard analysisData={mockAnalysisData} /> },
-    { id: 'charts', name: '图表组件', component: <ChartsTest /> },
-    { id: 'loading', name: '加载状态', component: <LoadingStatesTest /> },
-    { id: 'cards', name: '卡片组件', component: <CardsTest /> }
+    { id: 'dashboard', name: t('analysis.test.dashboard'), component: <AnalysisDashboard analysisData={mockAnalysisData} /> },
+    { id: 'charts', name: t('analysis.test.charts'), component: <ChartsTest /> },
+    { id: 'loading', name: t('analysis.test.loading'), component: <LoadingStatesTest /> },
+    { id: 'cards', name: t('analysis.test.cards'), component: <CardsTest /> }
   ];
 
   return (
@@ -120,7 +122,7 @@ const AnalysisTestPage: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            AI 分析功能组件测试
+            {t('analysis.test.title')}
           </h1>
           
           {/* 测试导航 */}
@@ -152,6 +154,7 @@ const AnalysisTestPage: React.FC = () => {
 
 // 图表测试组件
 const ChartsTest: React.FC = () => {
+  const { t } = useTranslation();
   const riskData = [
     { level: 'high' as const, count: 3, percentage: 30 },
     { level: 'medium' as const, count: 5, percentage: 50 },
@@ -159,9 +162,9 @@ const ChartsTest: React.FC = () => {
   ];
 
   const impactData = [
-    { category: '核心功能', impact: 85, files: 12 },
-    { category: '测试覆盖', impact: 70, files: 8 },
-    { category: '配置文件', impact: 30, files: 3 }
+    { category: t('analysis.test.core_function'), impact: 85, files: 12 },
+    { category: t('analysis.test.test_coverage'), impact: 70, files: 8 },
+    { category: t('analysis.test.config_files'), impact: 30, files: 3 }
   ];
 
   const fileHeatmapData = [
@@ -179,23 +182,23 @@ const ChartsTest: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">图表组件测试</h2>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('analysis.test.charts_title')}</h2>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AnalysisCard title="风险分布图">
+        <AnalysisCard title={t('analysis.test.risk_distribution')}>
           <RiskDonutChart data={riskData} />
         </AnalysisCard>
 
-        <AnalysisCard title="影响分析图">
+        <AnalysisCard title={t('analysis.test.impact_analysis')}>
           <ImpactBarChart data={impactData} />
         </AnalysisCard>
 
-        <AnalysisCard title="文件热力图">
+        <AnalysisCard title={t('analysis.test.file_heatmap')}>
           <FileHeatmap data={fileHeatmapData} />
         </AnalysisCard>
 
-        <AnalysisCard title="风险趋势">
-          <TrendLine data={trendData} title="风险变化趋势" />
+        <AnalysisCard title={t('analysis.test.risk_trend')}>
+          <TrendLine data={trendData} title={t('analysis.test.risk_trend')} />
         </AnalysisCard>
       </div>
     </div>
@@ -248,6 +251,7 @@ const LoadingStatesTest: React.FC = () => {
 
 // 卡片组件测试
 const CardsTest: React.FC = () => {
+  const { t } = useTranslation();
   const metrics = [
     { label: '风险评分', value: 78, color: 'orange' as const },
     { label: '改进建议', value: 12, color: 'blue' as const },
@@ -256,14 +260,14 @@ const CardsTest: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">卡片组件测试</h2>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('analysis.test.cards_title')}</h2>
       
       <div className="space-y-6">
-        <AnalysisCard title="指标网格">
+        <AnalysisCard title={t('analysis.test.metrics_grid')}>
           <MetricGrid metrics={metrics} />
         </AnalysisCard>
 
-        <AnalysisCard title="标签示例" collapsible defaultExpanded={true}>
+        <AnalysisCard title={t('analysis.test.tags_example')} collapsible defaultExpanded={true}>
           <div className="flex flex-wrap gap-2">
             <Tag variant="primary">主要</Tag>
             <Tag variant="secondary">次要</Tag>
@@ -274,7 +278,7 @@ const CardsTest: React.FC = () => {
           </div>
         </AnalysisCard>
 
-        <AnalysisCard title="列表项示例" collapsible defaultExpanded={false}>
+        <AnalysisCard title={t('analysis.test.list_example')} collapsible defaultExpanded={false}>
           <ul className="space-y-2">
             <ListItem>这是一个基础列表项</ListItem>
             <ListItem>这是另一个列表项</ListItem>
@@ -282,14 +286,14 @@ const CardsTest: React.FC = () => {
           </ul>
         </AnalysisCard>
 
-        <AnalysisCard title="进度条示例">
+        <AnalysisCard title={t('analysis.test.progress_example')}>
           <div className="space-y-4">
             <div>
-              <div className="mb-2">基础进度条 (75%)</div>
+              <div className="mb-2">{t('analysis.test.basic_progress')} (75%)</div>
               <ProgressBar value={75} max={100} />
             </div>
             <div>
-              <div className="mb-2">风险等级指示器</div>
+              <div className="mb-2">{t('analysis.test.risk_indicator')}</div>
               <RiskLevelIndicator level="High" />
             </div>
           </div>

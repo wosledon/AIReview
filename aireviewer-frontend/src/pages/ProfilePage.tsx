@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { 
   UserIcon, 
   CameraIcon, 
@@ -39,6 +40,7 @@ interface PasswordChangeForm {
 export const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const { addNotification } = useNotifications();
+  const { t } = useTranslation();
   
   // State management
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -78,18 +80,18 @@ export const ProfilePage: React.FC = () => {
     onSuccess: () => {
       addNotification({
         type: 'profile_update',
-        message: '个人资料已更新',
+        message: t('profile.notifications.profile_updated'),
         timestamp: new Date().toISOString(),
-        content: '您的个人资料信息已成功保存'
+        content: t('profile.notifications.profile_update_success')
       });
       setIsEditingProfile(false);
     },
     onError: () => {
       addNotification({
         type: 'profile_update',
-        message: '更新失败',
+        message: t('profile.notifications.profile_update_failed'),
         timestamp: new Date().toISOString(),
-        content: '更新个人资料时发生错误，请重试'
+        content: t('profile.notifications.profile_update_error')
       });
     }
   });
@@ -99,16 +101,16 @@ export const ProfilePage: React.FC = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       if (data.newPassword !== data.confirmPassword) {
-        throw new Error('密码确认不匹配');
+        throw new Error(t('profile.notifications.password_mismatch'));
       }
       return data;
     },
     onSuccess: () => {
       addNotification({
         type: 'security_update',
-        message: '密码已更新',
+        message: t('profile.notifications.password_changed'),
         timestamp: new Date().toISOString(),
-        content: '您的密码已成功更改'
+        content: t('profile.notifications.password_change_success')
       });
       setIsChangingPassword(false);
       setPasswordForm({
@@ -120,9 +122,9 @@ export const ProfilePage: React.FC = () => {
     onError: (error) => {
       addNotification({
         type: 'security_update',
-        message: '密码更新失败',
+        message: t('profile.notifications.password_change_failed'),
         timestamp: new Date().toISOString(),
-        content: error instanceof Error ? error.message : '更改密码时发生错误'
+        content: error instanceof Error ? error.message : t('profile.notifications.avatar_upload_error')
       });
     }
   });
@@ -137,17 +139,17 @@ export const ProfilePage: React.FC = () => {
       setProfileForm(prev => ({ ...prev, avatar: avatarUrl }));
       addNotification({
         type: 'profile_update',
-        message: '头像已更新',
+        message: t('profile.notifications.profile_updated'),
         timestamp: new Date().toISOString(),
-        content: '您的头像已成功上传'
+        content: t('profile.notifications.profile_update_success')
       });
     },
     onError: () => {
       addNotification({
         type: 'profile_update',
-        message: '头像上传失败',
+        message: t('profile.notifications.avatarUploadError'),
         timestamp: new Date().toISOString(),
-        content: '上传头像时发生错误，请重试'
+        content: t('profile.notifications.avatarUploadErrorContent')
       });
     }
   });
@@ -158,9 +160,9 @@ export const ProfilePage: React.FC = () => {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
         addNotification({
           type: 'profile_update',
-          message: '文件过大',
+          message: t('profile.notifications.fileTooLarge'),
           timestamp: new Date().toISOString(),
-          content: '头像文件不能超过5MB'
+          content: t('profile.notifications.fileTooLargeContent')
         });
         return;
       }
@@ -178,9 +180,9 @@ export const ProfilePage: React.FC = () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       addNotification({
         type: 'security_update',
-        message: '密码确认不匹配',
+        message: t('profile.notifications.passwordMismatch'),
         timestamp: new Date().toISOString(),
-        content: '请确保新密码和确认密码一致'
+        content: t('profile.notifications.passwordMismatchContent')
       });
       return;
     }
@@ -201,8 +203,8 @@ export const ProfilePage: React.FC = () => {
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 fade-in">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">个人资料</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">管理您的账户信息和偏好设置</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('profile.title')}</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">{t('profile.subtitle')}</p>
         </div>
 
         <div className="space-y-8">
@@ -211,7 +213,7 @@ export const ProfilePage: React.FC = () => {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-2">
                 <UserIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">基本信息</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('profile.sections.basicInfo')}</h2>
               </div>
               <button
                 onClick={() => setIsEditingProfile(!isEditingProfile)}
@@ -219,7 +221,7 @@ export const ProfilePage: React.FC = () => {
                 disabled={updateProfileMutation.isPending}
               >
                 <PencilIcon className="h-4 w-4 mr-2" />
-                {isEditingProfile ? '取消编辑' : '编辑资料'}
+                {isEditingProfile ? t('profile.buttons.cancelEdit') : t('profile.buttons.editProfile')}
               </button>
             </div>
 
@@ -263,7 +265,7 @@ export const ProfilePage: React.FC = () => {
                   <p className="text-gray-600 dark:text-gray-400">{user?.email}</p>
                   {isEditingProfile && (
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      点击相机图标更换头像（最大5MB）
+                      {t('profile.buttons.changeAvatar')}
                     </p>
                   )}
                 </div>
@@ -273,7 +275,7 @@ export const ProfilePage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    显示名称
+                    {t('profile.fields.displayName')}
                   </label>
                   <input
                     type="text"
@@ -281,13 +283,13 @@ export const ProfilePage: React.FC = () => {
                     value={profileForm.displayName}
                     onChange={(e) => setProfileForm(prev => ({ ...prev, displayName: e.target.value }))}
                     disabled={!isEditingProfile || updateProfileMutation.isPending}
-                    placeholder="请输入显示名称"
+                    placeholder={t('profile.placeholders.displayName')}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    GitHub用户名
+                    {t('profile.fields.githubUsername')}
                   </label>
                   <input
                     type="text"
@@ -295,13 +297,13 @@ export const ProfilePage: React.FC = () => {
                     value={profileForm.githubUsername}
                     onChange={(e) => setProfileForm(prev => ({ ...prev, githubUsername: e.target.value }))}
                     disabled={!isEditingProfile || updateProfileMutation.isPending}
-                    placeholder="请输入GitHub用户名"
+                    placeholder={t('profile.placeholders.githubUsername')}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    所在地
+                    {t('profile.fields.location')}
                   </label>
                   <input
                     type="text"
@@ -309,13 +311,13 @@ export const ProfilePage: React.FC = () => {
                     value={profileForm.location}
                     onChange={(e) => setProfileForm(prev => ({ ...prev, location: e.target.value }))}
                     disabled={!isEditingProfile || updateProfileMutation.isPending}
-                    placeholder="请输入所在地"
+                    placeholder={t('profile.placeholders.location')}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    个人网站
+                    {t('profile.fields.website')}
                   </label>
                   <input
                     type="url"
@@ -323,14 +325,14 @@ export const ProfilePage: React.FC = () => {
                     value={profileForm.website}
                     onChange={(e) => setProfileForm(prev => ({ ...prev, website: e.target.value }))}
                     disabled={!isEditingProfile || updateProfileMutation.isPending}
-                    placeholder="https://example.com"
+                    placeholder={t('profile.placeholders.website')}
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  个人简介
+                  {t('profile.fields.bio')}
                 </label>
                 <textarea
                   rows={4}
@@ -338,7 +340,7 @@ export const ProfilePage: React.FC = () => {
                   value={profileForm.bio}
                   onChange={(e) => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
                   disabled={!isEditingProfile || updateProfileMutation.isPending}
-                  placeholder="请输入个人简介"
+                  placeholder={t('profile.placeholders.bio')}
                 />
               </div>
 
@@ -350,14 +352,14 @@ export const ProfilePage: React.FC = () => {
                     className="btn btn-secondary transition-all hover:scale-105"
                     disabled={updateProfileMutation.isPending}
                   >
-                    取消
+                    {t('profile.buttons.cancel')}
                   </button>
                   <button
                     type="submit"
                     className="btn btn-primary transition-all hover:scale-105"
                     disabled={updateProfileMutation.isPending}
                   >
-                    {updateProfileMutation.isPending ? '保存中...' : '保存更改'}
+                    {updateProfileMutation.isPending ? t('profile.buttons.updating') : t('profile.buttons.updateProfile')}
                   </button>
                 </div>
               )}
@@ -369,7 +371,7 @@ export const ProfilePage: React.FC = () => {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-2">
                 <ShieldCheckIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">安全设置</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('profile.sections.security')}</h2>
               </div>
               <button
                 onClick={() => setIsChangingPassword(!isChangingPassword)}
@@ -377,7 +379,7 @@ export const ProfilePage: React.FC = () => {
                 disabled={changePasswordMutation.isPending}
               >
                 <KeyIcon className="h-4 w-4 mr-2" />
-                {isChangingPassword ? '取消' : '更改密码'}
+                {isChangingPassword ? t('profile.buttons.cancel') : t('profile.buttons.changePassword')}
               </button>
             </div>
 
@@ -385,10 +387,10 @@ export const ProfilePage: React.FC = () => {
               <div className="text-center py-6 border-t border-gray-200 dark:border-gray-700">
                 <KeyIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  点击"更改密码"按钮来更新您的账户密码
+                  {t('profile.security.changePasswordPrompt')}
                 </p>
                 <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
-                  建议定期更换密码以保障账户安全
+                  {t('profile.security.passwordSecurityTip')}
                 </p>
               </div>
             )}
@@ -397,7 +399,7 @@ export const ProfilePage: React.FC = () => {
               <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-fade-in">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    当前密码
+                    {t('profile.fields.currentPassword')}
                   </label>
                   <div className="relative">
                     <input
@@ -424,7 +426,7 @@ export const ProfilePage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    新密码
+                    {t('profile.fields.newPassword')}
                   </label>
                   <div className="relative">
                     <input
@@ -451,7 +453,7 @@ export const ProfilePage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    确认新密码
+                    {t('profile.fields.confirmPassword')}
                   </label>
                   <div className="relative">
                     <input
@@ -483,14 +485,14 @@ export const ProfilePage: React.FC = () => {
                     className="btn btn-secondary transition-all hover:scale-105"
                     disabled={changePasswordMutation.isPending}
                   >
-                    取消
+                    {t('profile.buttons.cancel')}
                   </button>
                   <button
                     type="submit"
                     className="btn btn-primary transition-all hover:scale-105"
                     disabled={changePasswordMutation.isPending}
                   >
-                    {changePasswordMutation.isPending ? '更新中...' : '更新密码'}
+                    {changePasswordMutation.isPending ? t('profile.buttons.updating') : t('profile.buttons.updatePassword')}
                   </button>
                 </div>
               </form>
@@ -501,15 +503,15 @@ export const ProfilePage: React.FC = () => {
           <div className="card dark:bg-gray-900 dark:border-gray-800 fade-in">
             <div className="flex items-center space-x-2 mb-6">
               <BellIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">通知偏好</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('profile.preferences.title')}</h2>
             </div>
 
             <div className="space-y-4">
               {[
-                { key: 'emailNotifications', label: '邮件通知', description: '接收重要更新的邮件通知' },
-                { key: 'pushNotifications', label: '推送通知', description: '接收浏览器推送通知' },
-                { key: 'reviewReminders', label: '评审提醒', description: '当有待处理的代码评审时提醒我' },
-                { key: 'weeklyDigest', label: '周报摘要', description: '每周发送项目活动摘要' }
+                { key: 'emailNotifications', label: t('profile.preferences.emailNotifications'), description: t('profile.preferences.emailNotificationsDesc') },
+                { key: 'pushNotifications', label: t('profile.preferences.pushNotifications'), description: t('profile.preferences.pushNotificationsDesc') },
+                { key: 'reviewReminders', label: t('profile.preferences.reviewReminders'), description: t('profile.preferences.reviewRemindersDesc') },
+                { key: 'weeklyDigest', label: t('profile.preferences.weeklyDigest'), description: t('profile.preferences.weeklyDigestDesc') }
               ].map(({ key, label, description }) => (
                 <div key={key} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors">
                   <div>

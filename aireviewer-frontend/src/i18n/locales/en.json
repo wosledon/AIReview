@@ -1,0 +1,811 @@
+{
+  "brand": "AI Reviewer",
+  "nav": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "reviews": "Code Reviews",
+    "newProject": "New Project",
+    "login": "Login",
+    "register": "Sign Up"
+  },
+  "user": {
+    "account": "Account",
+    "profile": "Profile",
+    "reviewSettings": "Review Settings",
+    "llmConfig": "LLM Config",
+    "promptTemplates": "Prompt Templates",
+    "tokenUsage": "Token Usage",
+    "logout": "Log out"
+  },
+  "ui": {
+    "theme": "Theme",
+    "theme_system": "System",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "density": "Density",
+    "density_compact": "Compact",
+    "density_comfortable": "Comfortable",
+    "density_full": "Full width"
+  },
+  "home": {
+    "welcome": "Welcome back, {{name}}!",
+    "start": "Start using the AI review platform to improve your code quality.",
+    "createProject": "Create Project",
+    "viewProjects": "View Projects",
+    "goReviews": "Code Reviews",
+    "myProjects": "My Projects",
+    "completedReviews": "Completed Reviews",
+    "pendingReviews": "Pending Reviews",
+    "recentActivity": "Recent Activity",
+    "refresh": "Refresh",
+    "viewAll": "View all",
+    "noActivity": "No activities yet",
+    "createFirstProject": "Create your first project to get started"
+  },
+  "hero": {
+    "title": "AI Code Review Platform",
+    "subtitle": "Use cutting-edge AI to deliver intelligent, comprehensive and fast reviews that help your team improve quality, reduce bugs and ship faster.",
+    "cta_free": "Get Started Free",
+    "cta_login": "Login"
+  },
+  "features": {
+    "title": "Highlights",
+    "ai": {
+      "title": "AI-powered Reviews",
+      "desc": "Analyze code quality, security and performance with advanced AI"
+    },
+    "security": {
+      "title": "Security Checks",
+      "desc": "Detect vulnerabilities and potential risks"
+    },
+    "fast": {
+      "title": "Fast Feedback",
+      "desc": "Finish reviews in minutes, boosting developer efficiency"
+    },
+    "collab": {
+      "title": "Team Collaboration",
+      "desc": "Collaborate on reviews and align standards"
+    },
+    "report": {
+      "title": "Quality Reports",
+      "desc": "Detailed reports that drive continuous improvement"
+    },
+    "multilang": {
+      "title": "Multi-language",
+      "desc": "Support mainstream programming languages"
+    },
+    "ready": {
+      "title": "Ready to begin?",
+      "desc": "Sign up now and experience AI-driven reviews.",
+      "cta": "Sign Up"
+    }
+  },
+  "common": {
+    "language": "Language",
+    "lang_en": "English",
+    "lang_zh": "简体中文",
+    "active": "Active",
+    "archived": "Archived"
+  },
+  "labels": {
+    "project": "Project",
+    "time": "Time"
+  },
+  "status": {
+    "Approved": "Approved",
+    "Rejected": "Needs Changes",
+    "AIReviewing": "AI Reviewing",
+    "HumanReview": "Human Review",
+    "Pending": "Pending"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to your account",
+      "no_account": "Don't have an account?",
+      "register_now": "Create one",
+      "email": "Email",
+      "placeholder_email": "Enter your email",
+      "password": "Password",
+      "placeholder_password": "Enter your password",
+      "remember_me": "Remember me",
+      "forgot_password": "Forgot password?",
+      "submitting": "Signing in...",
+      "submit": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "subtitle": "Enter your email address and we'll send you a password reset link",
+      "emailLabel": "Email Address",
+      "emailPlaceholder": "Enter your email address",
+      "sendButton": "Send Reset Link",
+      "sending": "Sending...",
+      "backToLogin": "Back to Login",
+      "noAccount": "Don't have an account?",
+      "registerNow": "Register now",
+      "errors": {
+        "emailRequired": "Please enter your email address",
+        "invalidEmail": "Please enter a valid email address",
+        "sendFailed": "Failed to send reset email, please try again later",
+        "resendFailed": "Failed to resend, please try again later"
+      },
+      "success": {
+        "title": "Email Sent",
+        "message": "We've sent a password reset link to {{email}}.",
+        "instructions": "Please check your email, including your spam folder. The link will expire in 24 hours.",
+        "resendButton": "Resend Email",
+        "noEmailHelp": "Didn't receive the email? Check your spam folder or",
+        "resendLink": "resend"
+      }
+    },
+    "register": {
+      "title": "Create a new account",
+      "have_account": "Already have an account?",
+      "login_now": "Sign in",
+      "username": "Username",
+      "placeholder_username": "Enter username (letters, numbers, _ or -)",
+      "displayName": "Display name",
+      "placeholder_displayName": "Enter display name",
+      "email": "Email",
+      "placeholder_email": "Enter your email",
+      "password": "Password",
+      "placeholder_password": "Enter password (min 6 chars, letters and numbers)",
+      "confirmPassword": "Confirm password",
+      "placeholder_confirmPassword": "Re-enter your password",
+      "agree_prefix": "I agree to the ",
+      "terms": "Terms of Service",
+      "and": " and ",
+      "privacy": "Privacy Policy",
+      "submitting": "Creating account...",
+      "submit": "Create account",
+      "disclaimer": "By clicking \"Create account\" you agree to our Terms and Privacy Policy"
+    }
+  },
+  "errors": {
+    "email_required": "Please enter your email address",
+    "email_invalid": "Please enter a valid email address",
+    "password_required": "Please enter your password",
+    "password_length": "Password must be at least 6 characters",
+    "login_invalid_credentials": "Incorrect email or password, please try again",
+    "too_many_requests": "Too many attempts, please try again later",
+    "server_unavailable": "Server is temporarily unavailable, please try again later",
+    "account_disabled": "Your account has been disabled. Please contact the administrator",
+    "login_failed_generic": "Sign in failed. Check your network and try again",
+    "username_required": "Please enter a username",
+    "username_length": "Username must be at least 3 characters",
+    "username_charset": "Username can only contain letters, numbers, underscores and hyphens",
+    "displayName_required": "Please enter a display name",
+    "displayName_length": "Display name must be at least 2 characters",
+    "register_confirmpw_required": "Please confirm your password",
+    "register_confirmpw_mismatch": "Passwords do not match",
+    "register_conflict": "Email or username already in use, please try another",
+    "bad_request": "Please check your input",
+    "register_failed_generic": "Registration failed. Check your network and try again"
+  },
+  "projects": {
+    "title": "Project Management",
+    "subtitle": "Manage your code projects and configure AI review rules",
+    "create": "Create Project",
+    "search_placeholder": "Search projects...",
+    "show_archived": "Show archived projects",
+    "updating": "Updating...",
+    "no_projects": "No projects yet",
+    "no_match": "No matching projects",
+    "no_projects_desc": "Create your first project to start using AI code reviews",
+    "try_adjust": "Try adjusting your search criteria or create a new project",
+    "showing": "Showing {{count}} projects of {{total}}",
+    "loading_error": "Error loading projects",
+    "reload": "Reload",
+    "active": "Active",
+    "archived": "Archived",
+    "members": "members",
+    "project_settings": "Project Settings"
+  },
+  "reviews": {
+    "title": "Code Reviews",
+    "subtitle": "View and manage all code review records",
+    "create": "New Review",
+    "search_placeholder": "Search review title or project name...",
+    "filter_all": "All Status",
+    "filter_pending": "Pending",
+    "filter_ai_reviewing": "AI Reviewing",
+    "filter_human_review": "Human Review",
+    "filter_approved": "Approved",
+    "filter_rejected": "Needs Changes",
+    "updating": "Updating...",
+    "no_reviews": "No review records yet",
+    "no_match": "No matching reviews",
+    "no_reviews_desc": "Create your first review task to start using AI code reviews",
+    "try_adjust_filter": "Try adjusting search criteria or filters",
+    "table_info": "Review Info",
+    "table_project": "Project",
+    "table_status": "Status",
+    "table_created": "Created",
+    "table_actions": "Actions",
+    "branch": "Branch",
+    "by": "by",
+    "view_details": "View Details",
+    "showing": "Showing {{count}} records of {{total}}",
+    "page": "Page {{current}} of {{total}}",
+    "prev_page": "Previous",
+    "next_page": "Next",
+    "loading_error": "Error loading reviews"
+  },
+  "createProject": {
+    "title": "Create New Project",
+    "subtitle": "Set up project information to start using AI code reviews",
+    "name_label": "Project Name",
+    "name_required": "Project name is required",
+    "name_placeholder": "Enter project name",
+    "description_label": "Project Description",
+    "description_placeholder": "Briefly describe the project's features and characteristics (optional)",
+    "repository_label": "Repository URL",
+    "repository_placeholder": "https://github.com/username/repository",
+    "repository_invalid": "Please enter a valid repository URL",
+    "repository_hint": "Supports GitHub, GitLab, Bitbucket and other code hosting platforms",
+    "language_label": "Primary Programming Language",
+    "language_required": "Please select a programming language",
+    "language_placeholder": "Select programming language",
+    "language_other": "Other",
+    "error_create_failed": "Failed to create project, please try again later",
+    "cancel": "Cancel",
+    "submit": "Create Project",
+    "submitting": "Creating...",
+    "tips_title": "💡 Tips",
+    "tips_1": "After creating the project, you can invite team members to participate in code reviews",
+    "tips_2": "The AI review engine will optimize review rules based on the selected programming language",
+    "tips_3": "Supports configuring custom review rules and quality standards"
+  },
+  "createReview": {
+    "title": "Create Code Review",
+    "subtitle": "Create a new code review task and enable AI intelligent review",
+    "project_label": "Select Project",
+    "project_placeholder": "Please select a project",
+    "project_required": "Please select a project",
+    "title_label": "Review Title",
+    "title_placeholder": "e.g., Fix user login issue",
+    "title_required": "Please enter a review title",
+    "description_label": "Review Description",
+    "description_placeholder": "Describe the content and purpose of this code review in detail (optional)",
+    "branch_label": "Target Branch",
+    "branch_placeholder": "feature/user-login",
+    "branch_required": "Please enter a branch name",
+    "base_branch_label": "Base Branch",
+    "base_branch_placeholder": "main",
+    "pr_number_label": "Pull Request Number",
+    "pr_number_placeholder": "123",
+    "pr_number_hint": "If this review is associated with a specific Pull Request, please enter the PR number",
+    "info_title": "About AI Review",
+    "info_content": "After creating the review, the system will automatically start AI analysis to check code quality, security, and best practices. You can also add manual review comments.",
+    "cancel": "Cancel",
+    "submit": "Create Review",
+    "submitting": "Creating...",
+    "error_create_failed": "Failed to create review, please try again later"
+  },
+  "projectDetail": {
+    "loading_error": "Error loading project details",
+    "back_to_projects": "Back to Projects",
+    "tabs": {
+      "overview": "Overview",
+      "members": "Members",
+      "reviews": "Reviews",
+      "prompts": "Prompts",
+      "settings": "Settings"
+    },
+    "overview": {
+      "title": "Project Overview",
+      "description": "Description",
+      "repository": "Repository",
+      "language": "Language",
+      "created": "Created",
+      "members": "Members",
+      "total_reviews": "Total Reviews",
+      "active_reviews": "Active Reviews",
+      "completed_reviews": "Completed Reviews",
+      "no_description": "No description available",
+      "no_repository": "No repository set",
+      "no_members": "No members yet",
+      "view_all_members": "View all members",
+      "create_review": "Create Review",
+      "view_reviews": "View Reviews",
+      "recent_reviews": "Recent Reviews",
+      "quick_actions": "Quick Actions"
+    },
+    "members": {
+      "title": "Project Members",
+      "subtitle": "Manage project members and permissions",
+      "add_member": "Add Member",
+      "search_placeholder": "Search members...",
+      "role_owner": "Owner",
+      "role_admin": "Admin",
+      "role_member": "Member",
+      "remove_member": "Remove Member",
+      "confirm_remove": "Are you sure you want to remove this member?",
+      "no_members": "No members found",
+      "loading": "Loading..."
+    },
+    "reviews": {
+      "title": "Review History",
+      "subtitle": "Total {{count}} review records",
+      "create_review": "Create Review",
+      "no_reviews": "No reviews yet",
+      "table": {
+        "title": "Review Title",
+        "status": "Status",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "view_details": "View Details",
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "showing": "Showing {{start}} to {{end}} of {{total}} results"
+      }
+    },
+    "settings": {
+      "title": "Project Settings",
+      "subtitle": "Configure project information and review rules",
+      "general": "General",
+      "name_label": "Project Name",
+      "description_label": "Description",
+      "repository_label": "Repository",
+      "language_label": "Language",
+      "actions": "Actions",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "archive": "Archive Project",
+      "unarchive": "Unarchive Project",
+      "delete": "Delete Project",
+      "confirm_archive": "Are you sure you want to archive this project? Archived projects become read-only.",
+      "confirm_unarchive": "Are you sure you want to unarchive this project? Unarchived projects become active again.",
+      "archive_success": "Project archived successfully",
+      "unarchive_success": "Project unarchived successfully",
+      "delete_success": "Project deleted successfully",
+      "update_success": "Project information updated successfully",
+      "confirm_delete_title": "Confirm Delete Project",
+      "confirm_delete_message": "Are you sure you want to delete the project \"{{name}}\"? This will permanently delete all related data, including review records, member information, etc., and cannot be recovered.",
+      "confirm_delete_action": "Confirm Delete",
+      "deleting": "Deleting..."
+    }
+  },
+  "reviewDetail": {
+    "loading_error": "Error loading review details",
+    "back_to_reviews": "Back to Reviews",
+    "tabs": {
+      "overview": "Overview",
+      "comments": "Comments",
+      "diff": "Code Changes",
+      "analysis": "AI Analysis"
+    },
+    "reject": {
+      "title": "Reject Review",
+      "reason_label": "Rejection Reason (Optional)",
+      "reason_placeholder": "Please explain the reason for rejection...",
+      "cancel": "Cancel",
+      "confirm": "Confirm Reject",
+      "processing": "Processing..."
+    },
+    "notifications": {
+      "approved": "Review approved",
+      "ai_started": "AI review started",
+      "ai_failed": "Failed to start AI review",
+      "approve_failed": "Failed to approve review"
+    },
+    "overview": {
+      "title": "Review Overview",
+      "description": "Description",
+      "branch": "Branch",
+      "status": "Status",
+      "created": "Created",
+      "author": "Author",
+      "project": "Project",
+      "actions": "Actions",
+      "approve": "Approve Review",
+      "reject": "Reject Review",
+      "start_ai": "Start AI Review",
+      "approving": "Approving...",
+      "rejecting": "Rejecting...",
+      "starting_ai": "Starting...",
+      "labels": {
+        "project": "Project",
+        "branch": "Branch",
+        "author": "Author"
+      }
+    },
+    "comments": {
+      "title": "Review Comments",
+      "subtitle": "View and add review comments",
+      "add_comment": "Add Comment",
+      "no_comments": "No comments yet",
+      "comment_placeholder": "Enter your comment...",
+      "submit": "Submit",
+      "submitting": "Submitting...",
+      "severity": {
+        "Info": "Info",
+        "Warning": "Warning",
+        "Error": "Error"
+      },
+      "category": {
+        "General": "General",
+        "Security": "Security",
+        "Performance": "Performance",
+        "Maintainability": "Maintainability",
+        "Style": "Style"
+      }
+    },
+    "summary": {
+      "title": "AI Review Summary",
+      "manual": "Manual Review",
+      "no_reviews": "No review comments yet"
+    },
+    "info": {
+      "title": "Review Information",
+      "status": "Status",
+      "created": "Created",
+      "updated": "Updated",
+      "base_branch": "Base Branch"
+    },
+    "statistics": {
+      "title": "Statistics",
+      "total_comments": "Total Comments",
+      "ai_comments": "AI Comments",
+      "manual_comments": "Manual Comments",
+      "critical_issues": "Critical Issues"
+    },
+    "actions": {
+      "title": "Quick Actions",
+      "add_comment": "Add Review Comment"
+    },
+    "analysis": {
+      "title": "AI Analysis Results",
+      "loading": "Analyzing code...",
+      "no_analysis": "No analysis results available",
+      "risk_assessment": "Risk Assessment",
+      "improvement_suggestions": "Improvement Suggestions",
+      "change_summary": "Change Summary",
+      "metrics": "Code Metrics",
+      "files_analyzed": "Files Analyzed",
+      "total_lines": "Total Lines",
+      "changed_lines": "Changed Lines",
+      "complexity_score": "Complexity Score",
+      "test": {
+        "title": "AI Analysis Component Test",
+        "dashboard": "Analysis Dashboard",
+        "charts": "Chart Components",
+        "loading": "Loading States",
+        "cards": "Card Components",
+        "charts_title": "Chart Components Test",
+        "cards_title": "Card Components Test",
+        "risk_distribution": "Risk Distribution Chart",
+        "impact_analysis": "Impact Analysis Chart",
+        "file_heatmap": "File Heatmap",
+        "risk_trend": "Risk Trend",
+        "metrics_grid": "Metrics Grid",
+        "tags_example": "Tags Example",
+        "list_example": "List Items Example",
+        "progress_example": "Progress Bars Example",
+        "basic_progress": "Basic Progress Bar",
+        "risk_indicator": "Risk Level Indicator",
+        "core_function": "Core Function",
+        "test_coverage": "Test Coverage",
+        "config_files": "Configuration Files"
+      }
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your account information and preferences",
+    "sections": {
+      "basicInfo": "Basic Information",
+      "security": "Security Settings",
+      "notifications": "Notification Preferences"
+    },
+    "notifications": {
+      "profile_updated": "Profile Updated",
+      "profile_update_success": "Your profile information has been saved successfully",
+      "profile_update_failed": "Update Failed",
+      "profile_update_error": "An error occurred while updating your profile, please try again",
+      "password_changed": "Password Changed",
+      "password_change_success": "Your password has been changed successfully",
+      "password_change_failed": "Password Change Failed",
+      "passwordMismatch": "Password Confirmation Mismatch",
+      "passwordMismatchContent": "Please ensure the new password and confirmation password match",
+      "avatarUploadError": "Avatar Upload Failed",
+      "avatarUploadErrorContent": "An error occurred while uploading the avatar, please try again",
+      "fileTooLarge": "File Too Large",
+      "fileTooLargeContent": "Avatar file cannot exceed 5MB"
+    },
+    "fields": {
+      "displayName": "Display Name",
+      "githubUsername": "GitHub Username",
+      "location": "Location",
+      "website": "Website",
+      "bio": "Bio",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password"
+    },
+    "placeholders": {
+      "displayName": "Enter display name",
+      "githubUsername": "Enter GitHub username",
+      "location": "Enter your location",
+      "website": "https://example.com",
+      "bio": "Enter your bio"
+    },
+    "buttons": {
+      "editProfile": "Edit Profile",
+      "cancelEdit": "Cancel Edit",
+      "updateProfile": "Update Profile",
+      "cancel": "Cancel",
+      "updating": "Updating...",
+      "changePassword": "Change Password",
+      "updatePassword": "Update Password"
+    },
+    "security": {
+      "changePasswordPrompt": "Click the \"Change Password\" button to update your account password",
+      "passwordSecurityTip": "It is recommended to change your password regularly for account security"
+    },
+    "preferences": {
+      "title": "Notification Preferences",
+      "emailNotifications": "Email Notifications",
+      "emailNotificationsDesc": "Receive email notifications for important updates",
+      "pushNotifications": "Push Notifications",
+      "pushNotificationsDesc": "Receive browser push notifications",
+      "reviewReminders": "Review Reminders",
+      "reviewRemindersDesc": "Remind me when there are pending code reviews",
+      "weeklyDigest": "Weekly Digest",
+      "weeklyDigestDesc": "Send weekly project activity summary"
+    }
+  },
+  "notificationsPage": {
+    "title": "Notification Center",
+    "subtitle": "Manage all your notifications and alerts",
+    "markAllRead": "Mark All as Read",
+    "clearAll": "Clear All Notifications",
+    "filters": {
+      "title": "Filters",
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read",
+      "review": "Code Review",
+      "project": "Project",
+      "security": "Security"
+    },
+    "search": {
+      "placeholder": "Search notifications..."
+    },
+    "actions": {
+      "selected": "{{count}} items selected",
+      "deleteSelected": "Delete Selected",
+      "markAsRead": "Mark as Read",
+      "markAsUnread": "Mark as Unread",
+      "delete": "Delete Notification"
+    },
+    "empty": {
+      "title": "No notifications",
+      "description": "When you have new notifications, they will appear here"
+    },
+    "time": {
+      "unknown": "Time unknown"
+    }
+  },
+  "reviewSettings": {
+    "title": "Review Settings",
+    "subtitle": "Configure review rules and processes for {{projectName}}",
+    "tabs": {
+      "general": "General Settings",
+      "ai": "AI Review",
+      "notifications": "Notifications",
+      "protection": "Branch Protection"
+    },
+    "buttons": {
+      "save": "Save Settings",
+      "saving": "Saving..."
+    },
+    "messages": {
+      "saveSuccess": "Settings saved successfully",
+      "saveError": "Failed to save settings, please try again"
+    },
+    "sections": {
+      "general": {
+        "title": "General Review Settings",
+        "autoAssignReviewers": "Auto-assign Reviewers",
+        "autoAssignReviewersDesc": "Automatically assign reviewers to new review requests",
+        "requireMinReviewers": "Minimum Reviewers Required",
+        "requireMinReviewersDesc": "Minimum number of reviewers required per review request",
+        "reviewerOptions": {
+          "1": "1 person",
+          "2": "2 people",
+          "3": "3 people",
+          "4": "4 people",
+          "5": "5 people"
+        },
+        "allowSelfApproval": "Allow Self-approval",
+        "allowSelfApprovalDesc": "Allow submitters to approve their own review requests",
+        "enforceStyleGuide": "Enforce Style Guide",
+        "enforceStyleGuideDesc": "Require code to comply with project style guidelines",
+        "autoMergeOnApproval": "Auto-merge on Approval",
+        "autoMergeOnApprovalDesc": "Automatically merge branches when all reviewers approve"
+      },
+      "ai": {
+        "title": "AI Review Configuration",
+        "aiReviewEnabled": "Enable AI Review",
+        "aiReviewEnabledDesc": "Use AI to automatically analyze code quality and potential issues",
+        "checkSecurity": "Security Checks",
+        "checkSecurityDesc": "Detect security vulnerabilities and potential risks",
+        "checkPerformance": "Performance Checks",
+        "checkPerformanceDesc": "Analyze code performance issues and optimization suggestions",
+        "checkCodeQuality": "Code Quality Checks",
+        "checkCodeQualityDesc": "Check code quality, complexity, and other quality metrics",
+        "checkDocumentation": "Documentation Checks",
+        "checkDocumentationDesc": "Verify completeness and accuracy of code documentation",
+        "strictnessLevel": "Strictness Level",
+        "strictnessLevelDesc": "Set the strictness level for AI reviews",
+        "strictnessLevels": {
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        }
+      },
+      "notifications": {
+        "title": "Notification Settings",
+        "emailNotifications": "Email Notifications",
+        "emailNotificationsDesc": "Send review-related notifications via email",
+        "slackNotifications": "Slack Notifications",
+        "slackNotificationsDesc": "Send review-related notifications via Slack",
+        "webhookUrl": "Webhook URL",
+        "webhookUrlDesc": "Webhook URL for sending custom notifications",
+        "webhookUrlPlaceholder": "https://your-webhook-url.com"
+      },
+      "protection": {
+        "title": "Branch Protection Rules",
+        "requireReviewBeforeMerge": "Require Review Before Merge",
+        "requireReviewBeforeMergeDesc": "Require all changes to be reviewed before merging",
+        "dismissStaleReviews": "Dismiss Stale Reviews",
+        "dismissStaleReviewsDesc": "Dismiss previous reviews when new commits are pushed",
+        "requireStatusChecks": "Require Status Checks",
+        "requireStatusChecksDesc": "Require all status checks to pass before merging",
+        "restrictPushes": "Restrict Pushes",
+        "restrictPushesDesc": "Only allow specific users or teams to push code"
+      }
+    }
+  },
+  "tokenUsage": {
+    "title": "Token Usage & Costs",
+    "subtitle": "Track your LLM calls, token consumption, and cost breakdown",
+    "stats": {
+      "totalRequests": "Total Requests",
+      "totalTokens": "Total Tokens",
+      "totalCost": "Total Cost",
+      "avgCostPerRequest": "Avg Cost/Request"
+    },
+    "charts": {
+      "byProvider": "By Provider/Model",
+      "byOperation": "By Operation Type",
+      "dailyTrend": "Daily Trend"
+    },
+    "table": {
+      "recentRecords": "Recent Records",
+      "headers": {
+        "time": "Time",
+        "provider": "Provider",
+        "model": "Model",
+        "operation": "Operation",
+        "tokens": "Tokens",
+        "cost": "Cost"
+      }
+    },
+    "noData": "No data available",
+    "empty": "No records found"
+  },
+  "prompts": {
+    "title": "Prompt Template Management",
+    "subtitle": "Manage configurable prompt templates for AI review/analysis, supporting placeholders and source fallback.",
+    "scopes": {
+      "project": "Project",
+      "user": "User",
+      "system": "System"
+    },
+    "buttons": {
+      "create": "Create Template"
+    },
+    "types": {
+      "Review": "Code Review",
+      "RiskAnalysis": "Risk Analysis",
+      "PullRequestSummary": "Change Summary",
+      "ImprovementSuggestions": "Improvement Suggestions"
+    },
+    "sources": {
+      "project": "Project Override",
+      "user": "User Default",
+      "built-in": "Built-in Template"
+    },
+    "effective": {
+      "reviewTemplate": "Code Review Template",
+      "riskTemplate": "Risk Analysis Template",
+      "prSummaryTemplate": "PR Summary Template",
+      "improvementsTemplate": "Improvement Suggestions Template"
+    },
+    "actions": {
+      "create": "Create Template",
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "copy": "Copy",
+      "close": "Close"
+    },
+    "messages": {
+      "copied": "Copied!"
+    },
+    "table": {
+      "name": "Name",
+      "type": "Type",
+      "scope": "Scope",
+      "updatedAt": "Updated At",
+      "actions": "Actions"
+    },
+    "loading": "Loading...",
+    "empty": "No templates found"
+  },
+  "llmConfig": {
+    "title": "LLM Configuration Management",
+    "subtitle": "Manage AI language model configurations, supporting OpenAI, DeepSeek and other providers",
+    "buttons": {
+      "add": "Add Configuration"
+    },
+    "table": {
+      "headers": {
+        "configInfo": "Configuration Info",
+        "provider": "Provider",
+        "model": "Model",
+        "status": "Status",
+        "actions": "Actions"
+      }
+    },
+    "empty": {
+      "title": "No LLM Configurations",
+      "description": "Start by creating your first LLM configuration"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "test": "Test"
+    }
+  },
+  "gitRepos": {
+    "title": "Git Repository Management",
+    "subtitle": "Manage configured Git repository connections and synchronization status",
+    "buttons": {
+      "add": "Add Repository"
+    },
+    "table": {
+      "headers": {
+        "name": "Repository Name",
+        "url": "Repository URL",
+        "status": "Status",
+        "lastSync": "Last Sync",
+        "actions": "Actions"
+      }
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "never": "Never synced"
+    },
+    "actions": {
+      "sync": "Sync Repository",
+      "clone": "Clone Repository",
+      "test": "Test Connection",
+      "edit": "Edit Repository",
+      "delete": "Delete Repository"
+    }
+  },
+  "notifications": {
+    "showing": "Showing {{filtered}} / {{total}} notifications"
+  }
+}

@@ -16,6 +16,7 @@ import {
   CpuChipIcon,
   DocumentTextIcon
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 import { projectService } from '../services/project.service';
 import { reviewService } from '../services/review.service';
 import { ReviewState } from '../types/review';
@@ -28,6 +29,7 @@ export const ProjectDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'reviews' | 'prompts' | 'settings'>('overview');
 
   const projectId = parseInt(id!, 10);
@@ -80,24 +82,24 @@ export const ProjectDetailPage = () => {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">
-          <p>加载项目详情时出错</p>
+          <p>{t('projectDetail.loading_error')}</p>
         </div>
         <button 
           onClick={() => navigate('/projects')}
           className="btn btn-primary"
         >
-          返回项目列表
+          {t('projectDetail.back_to_projects')}
         </button>
       </div>
     );
   }
 
   const tabs = [
-    { id: 'overview', name: '概览', icon: EyeIcon },
-    { id: 'members', name: '成员', icon: UserPlusIcon },
-    { id: 'reviews', name: '评审记录', icon: ClockIcon },
-    { id: 'prompts', name: 'Prompt模板', icon: DocumentTextIcon },
-    { id: 'settings', name: '设置', icon: CogIcon },
+    { id: 'overview', name: t('projectDetail.tabs.overview'), icon: EyeIcon },
+    { id: 'members', name: t('projectDetail.tabs.members'), icon: UserPlusIcon },
+    { id: 'reviews', name: t('projectDetail.tabs.reviews'), icon: ClockIcon },
+    { id: 'prompts', name: t('projectDetail.tabs.prompts'), icon: DocumentTextIcon },
+    { id: 'settings', name: t('projectDetail.tabs.settings'), icon: CogIcon },
   ] as const;
 
   return (
@@ -119,7 +121,7 @@ export const ProjectDetailPage = () => {
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-gray-100 text-gray-800'
               }`}>
-                {project.isActive ? '活跃' : '已归档'}
+                {project.isActive ? t('common.active') : t('common.archived')}
               </span>
             </div>
             {project.description && (
@@ -132,7 +134,7 @@ export const ProjectDetailPage = () => {
           <button
             onClick={() => setActiveTab('prompts')}
             className="btn btn-secondary inline-flex items-center space-x-1"
-            title="Prompt 模板"
+            title={t('projectDetail.tabs.prompts')}
           >
             <DocumentTextIcon className="h-5 w-5" />
           </button>
@@ -141,7 +143,7 @@ export const ProjectDetailPage = () => {
             className="btn btn-primary inline-flex items-center space-x-1"
           >
             <PlayIcon className="h-5 w-5 mr-2" />
-            开始评审
+            {t('projectDetail.overview.create_review')}
           </Link>
           <button
             onClick={() => navigate(`/projects/${projectId}/edit`)}
@@ -210,6 +212,7 @@ interface OverviewTabProps {
 }
 
 const OverviewTab = ({ project, onSwitchToReviews, onSwitchToMembers, onSwitchToSettings }: OverviewTabProps) => {
+  const { t } = useTranslation();
   // 获取最近的评审记录
   const {
     data: recentReviewsData,
@@ -238,15 +241,15 @@ const OverviewTab = ({ project, onSwitchToReviews, onSwitchToMembers, onSwitchTo
   const getStatusText = (status: string) => {
     switch (status) {
       case ReviewState.Pending:
-        return '待处理';
+        return t('status.Pending');
       case ReviewState.AIReviewing:
-        return 'AI评审中';
+        return t('status.AIReviewing');
       case ReviewState.HumanReview:
-        return '人工评审';
+        return t('status.HumanReview');
       case ReviewState.Approved:
-        return '已通过';
+        return t('status.Approved');
       case ReviewState.Rejected:
-        return '需修改';
+        return t('status.Rejected');
       default:
         return status;
     }
@@ -276,18 +279,18 @@ const OverviewTab = ({ project, onSwitchToReviews, onSwitchToMembers, onSwitchTo
       {/* Project Info */}
       <div className="lg:col-span-2 space-y-6">
         <div className="card dark:bg-gray-900 dark:border-gray-800">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">项目信息</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('projectDetail.overview.title')}</h3>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">项目名称</dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{project.name}</dd>
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('projectDetail.overview.description')}</dt>
+              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{project.description || t('projectDetail.overview.no_description')}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">编程语言</dt>
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('projectDetail.overview.language')}</dt>
               <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{project.language}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">仓库地址</dt>
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('projectDetail.overview.repository')}</dt>
               <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                 {project.repositoryUrl ? (
                   <a 
@@ -299,12 +302,12 @@ const OverviewTab = ({ project, onSwitchToReviews, onSwitchToMembers, onSwitchTo
                     {project.repositoryUrl}
                   </a>
                 ) : (
-                  <span className="text-gray-400 dark:text-gray-500">未设置</span>
+                  <span className="text-gray-400 dark:text-gray-500">{t('projectDetail.overview.no_repository')}</span>
                 )}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">创建时间</dt>
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('projectDetail.overview.created')}</dt>
               <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                 {new Date(project.createdAt).toLocaleDateString()}
               </dd>
@@ -315,12 +318,12 @@ const OverviewTab = ({ project, onSwitchToReviews, onSwitchToMembers, onSwitchTo
         {/* Recent Reviews */}
         <div className="card dark:bg-gray-900 dark:border-gray-800">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">最近评审</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('projectDetail.overview.recent_reviews')}</h3>
               <button
                 onClick={onSwitchToReviews}
               className="text-primary-600 hover:text-primary-700 text-sm font-medium"
             >
-              查看全部
+              {t('projectDetail.overview.view_reviews')}
               </button>
           </div>
 
@@ -331,12 +334,12 @@ const OverviewTab = ({ project, onSwitchToReviews, onSwitchToMembers, onSwitchTo
           ) : recentReviews.length === 0 ? (
             <div className="text-center py-8">
               <ClockIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">暂无评审记录</p>
+              <p className="text-gray-500 dark:text-gray-400">{t('projectDetail.reviews.no_reviews')}</p>
               <Link 
                 to={`/projects/${project.id}/reviews/new`}
                 className="btn btn-primary mt-4"
               >
-                开始第一次评审
+                {t('projectDetail.reviews.create_review')}
               </Link>
             </div>
           ) : (
@@ -379,59 +382,57 @@ const OverviewTab = ({ project, onSwitchToReviews, onSwitchToMembers, onSwitchTo
         </div>
       </div>
 
-      {/* Stats & Quick Actions */}
+        {/* Stats & Quick Actions */}
       <div className="space-y-6">
         {/* Stats */}
         <div className="card dark:bg-gray-900 dark:border-gray-800">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">统计数据</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('common.status')}</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500 dark:text-gray-400">总评审次数</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{t('projectDetail.overview.total_reviews')}</span>
               <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{reviewStats.total}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500 dark:text-gray-400">通过评审</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{t('projectDetail.overview.completed_reviews')}</span>
               <span className="text-sm font-semibold text-green-600">{reviewStats.approved}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500 dark:text-gray-400">需要修改</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{t('projectDetail.overview.active_reviews')}</span>
               <span className="text-sm font-semibold text-orange-600">{reviewStats.rejected}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500 dark:text-gray-400">进行中</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{t('projectDetail.overview.members')}</span>
               <span className="text-sm font-semibold text-blue-600">{reviewStats.pending}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500 dark:text-gray-400">项目成员</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{t('projectDetail.overview.members')}</span>
               <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{project.memberCount || 0}</span>
             </div>
           </div>
-        </div>
-
-        {/* Quick Actions */}
+        </div>        {/* Quick Actions */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('projectDetail.overview.quick_actions')}</h3>
           <div className="space-y-3">
             <Link
               to={`/projects/${project.id}/reviews/new`}
               className="btn btn-primary w-full inline-flex items-center space-x-1"
             >
               <PlayIcon className="h-5 w-5 mr-2" />
-              开始新评审
+              {t('projectDetail.overview.create_review')}
             </Link>
             <button
               onClick={onSwitchToMembers}
               className="btn btn-secondary w-full inline-flex items-center space-x-1"
             >
               <UserPlusIcon className="h-5 w-5 mr-2" />
-              管理成员
+              {t('projectDetail.overview.view_all_members')}
             </button>
             <button
               onClick={onSwitchToSettings}
               className="btn btn-secondary w-full inline-flex items-center space-x-1"
             >
               <CogIcon className="h-5 w-5 mr-2" />
-              项目设置
+              {t('projectDetail.tabs.settings')}
             </button>
           </div>
         </div>
@@ -460,6 +461,7 @@ const MembersTab = ({ projectId, members, isLoading }: MembersTabProps) => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('Developer');
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const isCurrentUserOwner = !!members.find(m => m.role === 'Owner' && m.userId === user?.id);
 
@@ -504,7 +506,7 @@ const MembersTab = ({ projectId, members, isLoading }: MembersTabProps) => {
   };
 
   const confirmRemove = (userId: string, userName: string) => {
-    if (window.confirm(`确定要移除成员 “${userName}” 吗？`)) {
+    if (window.confirm(t('projectDetail.members.confirm_remove', { userName }))) {
       removeMemberMutation.mutate(userId);
     }
   };
@@ -513,14 +515,14 @@ const MembersTab = ({ projectId, members, isLoading }: MembersTabProps) => {
     <div className="space-y-6">
       {isCurrentUserOwner && (
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">邀请成员</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('projectDetail.members.title')}</h3>
           <form className="grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={handleAddMember}>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="成员邮箱"
+              placeholder={t('projectDetail.members.search_placeholder')}
               className="input"
             />
             <select
@@ -533,7 +535,7 @@ const MembersTab = ({ projectId, members, isLoading }: MembersTabProps) => {
               ))}
             </select>
             <button type="submit" className="btn btn-primary" disabled={addMemberMutation.isPending}>
-              {addMemberMutation.isPending ? '邀请中...' : '发送邀请'}
+              {addMemberMutation.isPending ? t('common.loading') : t('projectDetail.members.add_member')}
             </button>
           </form>
         </div>
@@ -542,7 +544,7 @@ const MembersTab = ({ projectId, members, isLoading }: MembersTabProps) => {
       {members.length === 0 ? (
         <div className="card text-center py-8">
           <UserPlusIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">还没有项目成员</p>
+          <p className="text-gray-500">{t('projectDetail.members.no_members')}</p>
         </div>
       ) : (
         <div className="card">
@@ -551,16 +553,16 @@ const MembersTab = ({ projectId, members, isLoading }: MembersTabProps) => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    成员
+                    {t('common.name')}
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    角色
+                    {t('common.status')}
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    加入时间
+                    {t('common.created')}
                   </th>
                   <th className="relative px-6 py-3">
-                    <span className="sr-only">操作</span>
+                    <span className="sr-only">{t('common.actions')}</span>
                   </th>
                 </tr>
               </thead>
@@ -610,7 +612,7 @@ const MembersTab = ({ projectId, members, isLoading }: MembersTabProps) => {
                           onClick={() => confirmRemove(member.userId, member.userName)}
                           disabled={removeMemberMutation.isPending}
                         >
-                          移除
+                          {t('projectDetail.members.remove_member')}
                         </button>
                       )}
                     </td>
@@ -630,6 +632,7 @@ interface ReviewsTabProps {
 }
 
 const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
+  const { t } = useTranslation();
   const {
     data: reviewsData,
     isLoading: isReviewsLoading,
@@ -658,15 +661,15 @@ const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
   const getStatusText = (status: string) => {
     switch (status) {
       case ReviewState.Pending:
-        return '待处理';
+        return t('status.Pending');
       case ReviewState.AIReviewing:
-        return 'AI评审中';
+        return t('status.AIReviewing');
       case ReviewState.HumanReview:
-        return '人工评审';
+        return t('status.HumanReview');
       case ReviewState.Approved:
-        return '已通过';
+        return t('status.Approved');
       case ReviewState.Rejected:
-        return '需修改';
+        return t('status.Rejected');
       default:
         return status;
     }
@@ -699,7 +702,7 @@ const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
     return (
       <div className="card text-center py-8">
         <ExclamationTriangleIcon className="h-12 w-12 text-red-400 mx-auto mb-4" />
-        <p className="text-red-500">加载评审记录时出错</p>
+        <p className="text-red-500">{t('common.error')}</p>
       </div>
     );
   }
@@ -710,10 +713,10 @@ const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">评审记录</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('projectDetail.reviews.title')}</h3>
           {reviewsData && (
             <p className="text-sm text-gray-500 mt-1">
-              共 {reviewsData.totalCount} 条评审记录
+              {t('projectDetail.reviews.subtitle', { count: reviewsData.totalCount })}
             </p>
           )}
         </div>
@@ -722,19 +725,19 @@ const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
           className="btn btn-primary"
         >
           <PlayIcon className="h-5 w-5 mr-2 inline-flex items-center space-x-1" />
-          开始新评审
+          {t('projectDetail.reviews.create_review')}
         </Link>
       </div>
 
       {reviews.length === 0 ? (
         <div className="card text-center py-8">
           <ClockIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">还没有评审记录</p>
+          <p className="text-gray-500">{t('projectDetail.reviews.no_reviews')}</p>
           <Link 
             to={`/projects/${projectId}/reviews/new`}
             className="btn btn-primary mt-4"
           >
-            开始第一次评审
+            {t('projectDetail.reviews.create_review')}
           </Link>
         </div>
       ) : (
@@ -744,22 +747,19 @@ const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    评审标题
+                    {t('projectDetail.reviews.table.title')}
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    分支
+                    {t('common.status')}
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    状态
+                    {t('common.name')}
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    创建者
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    创建时间
+                    {t('projectDetail.reviews.table.created')}
                   </th>
                   <th className="relative px-6 py-3">
-                    <span className="sr-only">操作</span>
+                    <span className="sr-only">{t('projectDetail.reviews.table.actions')}</span>
                   </th>
                 </tr>
               </thead>
@@ -805,7 +805,7 @@ const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
                         className="btn btn-primary btn-sm inline-flex items-center space-x-1"
                       >
                         <EyeIcon className="h-4 w-4 mr-1" />
-                        查看详情
+                        {t('projectDetail.reviews.view_details')}
                       </Link>
                     </td>
                   </tr>
@@ -819,29 +819,29 @@ const ReviewsTab = ({ projectId }: ReviewsTabProps) => {
             <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                  上一页
+                  {t('projectDetail.reviews.pagination.previous')}
                 </button>
                 <button className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                  下一页
+                  {t('projectDetail.reviews.pagination.next')}
                 </button>
               </div>
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-gray-700">
-                    显示第 <span className="font-medium">{((reviewsData.page - 1) * reviewsData.pageSize) + 1}</span> 到{' '}
-                    <span className="font-medium">
-                      {Math.min(reviewsData.page * reviewsData.pageSize, reviewsData.totalCount)}
-                    </span>{' '}
-                    条，共 <span className="font-medium">{reviewsData.totalCount}</span> 条记录
+                    {t('projectDetail.reviews.pagination.showing', {
+                      start: ((reviewsData.page - 1) * reviewsData.pageSize) + 1,
+                      end: Math.min(reviewsData.page * reviewsData.pageSize, reviewsData.totalCount),
+                      total: reviewsData.totalCount
+                    })}
                   </p>
                 </div>
                 <div>
                   <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                     <button className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                      上一页
+                      {t('projectDetail.reviews.pagination.previous')}
                     </button>
                     <button className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                      下一页
+                      {t('projectDetail.reviews.pagination.next')}
                     </button>
                   </nav>
                 </div>
@@ -864,23 +864,23 @@ interface SettingsTabProps {
 
 const SettingsTab = ({ project, onArchive, onDelete, isArchiving, isDeleting }: SettingsTabProps) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="space-y-6">
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">项目设置</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('projectDetail.settings.title')}</h3>
         
         <div className="space-y-6">
-          {/* Archive/Unarchive */}
           <div className="flex items-center justify-between py-4 border-b border-gray-200">
             <div>
               <h4 className="text-sm font-medium text-gray-900 text-left">
-                {project.isActive ? '归档项目' : '取消归档'}
+                {project.isActive ? t('projectDetail.settings.archive') : t('projectDetail.settings.unarchive')}
               </h4>
               <p className="text-sm text-gray-500 text-left mt-1">
                 {project.isActive 
-                  ? '归档后项目将不再显示在活跃列表中，但数据仍会保留'
-                  : '取消归档后项目将重新显示在活跃列表中'
+                  ? t('projectDetail.settings.confirm_archive')
+                  : t('projectDetail.settings.confirm_unarchive')
                 }
               </p>
             </div>
@@ -890,16 +890,16 @@ const SettingsTab = ({ project, onArchive, onDelete, isArchiving, isDeleting }: 
               className="btn btn-secondary inline-flex items-center space-x-1"
             >
               <CogIcon className="h-5 w-5 mr-2" />
-              {isArchiving ? '处理中...' : (project.isActive ? '归档' : '取消归档')}
+              {isArchiving ? t('projectDetail.settings.saving') : (project.isActive ? t('projectDetail.settings.archive') : t('projectDetail.settings.unarchive'))}
             </button>
           </div>
 
           {/* Delete Project */}
           <div className="flex items-center justify-between py-4">
             <div>
-              <h4 className="text-sm font-medium text-red-900 text-left">删除项目</h4>
+              <h4 className="text-sm font-medium text-red-900 text-left">{t('projectDetail.settings.delete')}</h4>
               <p className="text-sm text-red-600 text-left mt-1">
-                删除项目将永久移除所有相关数据，此操作不可撤销
+                {t('projectDetail.settings.confirm_delete')}
               </p>
             </div>
             <button
@@ -908,7 +908,7 @@ const SettingsTab = ({ project, onArchive, onDelete, isArchiving, isDeleting }: 
               className="btn btn-danger inline-flex items-center space-x-1"
             >
               <TrashIcon className="h-5 w-5 mr-2" />
-              删除项目
+              {t('projectDetail.settings.delete')}
             </button>
           </div>
         </div>
@@ -920,10 +920,10 @@ const SettingsTab = ({ project, onArchive, onDelete, isArchiving, isDeleting }: 
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-center mb-4">
               <XCircleIcon className="h-6 w-6 text-red-600 mr-3" />
-              <h3 className="text-lg font-semibold text-gray-900">确认删除项目</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('projectDetail.settings.confirm_delete_title')}</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              您确定要删除项目 "{project.name}" 吗？此操作将永久删除所有相关数据，包括评审记录、成员信息等，且无法恢复。
+              {t('projectDetail.settings.confirm_delete_message', { name: project.name })}
             </p>
             <div className="flex items-center justify-end space-x-3">
               <button
@@ -931,7 +931,7 @@ const SettingsTab = ({ project, onArchive, onDelete, isArchiving, isDeleting }: 
                 className="btn btn-secondary"
                 disabled={isDeleting}
               >
-                取消
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => {
@@ -941,7 +941,7 @@ const SettingsTab = ({ project, onArchive, onDelete, isArchiving, isDeleting }: 
                 disabled={isDeleting}
                 className="btn btn-danger"
               >
-                {isDeleting ? '删除中...' : '确认删除'}
+                {isDeleting ? t('projectDetail.settings.deleting') : t('projectDetail.settings.confirm_delete_action')}
               </button>
             </div>
           </div>

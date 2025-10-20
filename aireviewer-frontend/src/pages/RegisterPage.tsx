@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon, CodeBracketIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import type { RegisterRequest } from '../types/auth';
+import { useTranslation } from 'react-i18next';
 
 interface FormErrors {
   email?: string;
@@ -21,6 +22,7 @@ export const RegisterPage: React.FC = () => {
     userName: '',
     displayName: '',
   });
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -34,41 +36,41 @@ export const RegisterPage: React.FC = () => {
 
     // Email validation
     if (!formData.email) {
-      newErrors.email = '请输入邮箱地址';
+      newErrors.email = t('errors.email_required');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = '请输入有效的邮箱地址';
+      newErrors.email = t('errors.email_invalid');
     }
 
     // Username validation
     if (!formData.userName) {
-      newErrors.userName = '请输入用户名';
+      newErrors.userName = t('errors.username_required');
     } else if (formData.userName.length < 3) {
-      newErrors.userName = '用户名至少需要3个字符';
+      newErrors.userName = t('errors.username_length');
     } else if (!/^[a-zA-Z0-9_-]+$/.test(formData.userName)) {
-      newErrors.userName = '用户名只能包含字母、数字、下划线和短横线';
+      newErrors.userName = t('errors.username_charset');
     }
 
     // Display name validation
     if (!formData.displayName) {
-      newErrors.displayName = '请输入显示名称';
+      newErrors.displayName = t('errors.displayName_required');
     } else if (formData.displayName.length < 2) {
-      newErrors.displayName = '显示名称至少需要2个字符';
+      newErrors.displayName = t('errors.displayName_length');
     }
 
     // Password validation
     if (!formData.password) {
-      newErrors.password = '请输入密码';
+      newErrors.password = t('errors.password_required');
     } else if (formData.password.length < 6) {
-      newErrors.password = '密码至少需要6个字符';
+      newErrors.password = t('errors.password_length');
     } else if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = '密码必须包含字母和数字';
+      newErrors.password = t('errors.password_charset');
     }
 
     // Confirm password validation
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = '请确认密码';
+      newErrors.confirmPassword = t('errors.register_confirmpw_required');
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = '两次输入的密码不一致';
+      newErrors.confirmPassword = t('errors.register_confirmpw_mismatch');
     }
 
     setErrors(newErrors);
@@ -118,17 +120,17 @@ export const RegisterPage: React.FC = () => {
       // Check for specific HTTP status codes
       const status = err?.response?.status;
       if (status === 409) {
-        return '邮箱或用户名已被使用，请尝试其他的';
+        return t('errors.register_conflict');
       }
       if (status === 400) {
-        return '请检查输入信息是否正确';
+        return t('errors.bad_request');
       }
       if (status && status >= 500) {
-        return '服务器暂时不可用，请稍后再试';
+        return t('errors.server_unavailable');
       }
     }
     
-    return '注册失败，请检查网络连接或稍后重试';
+    return t('errors.register_failed_generic');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -160,15 +162,15 @@ export const RegisterPage: React.FC = () => {
             <CodeBracketIcon className="h-12 w-12 text-primary-600" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-            创建新账户
+            {t('auth.register.title')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            已有账户？{' '}
+            {t('auth.register.have_account')}{' '}
             <Link
               to="/login"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              立即登录
+              {t('auth.register.login_now')}
             </Link>
           </p>
         </div>
@@ -184,7 +186,7 @@ export const RegisterPage: React.FC = () => {
           <div className="space-y-4">
             <div>
               <label htmlFor="userName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                用户名 *
+                {t('auth.register.username')} *
               </label>
               <input
                 id="userName"
@@ -192,7 +194,7 @@ export const RegisterPage: React.FC = () => {
                 type="text"
                 autoComplete="username"
                 className={`input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 ${errors.userName ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="请输入用户名（字母、数字、下划线）"
+                placeholder={t('auth.register.placeholder_username')}
                 value={formData.userName}
                 onChange={handleInputChange}
                 disabled={isLoading}
@@ -207,7 +209,7 @@ export const RegisterPage: React.FC = () => {
 
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                显示名称 *
+                {t('auth.register.displayName')} *
               </label>
               <input
                 id="displayName"
@@ -215,7 +217,7 @@ export const RegisterPage: React.FC = () => {
                 type="text"
                 autoComplete="name"
                 className={`input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 ${errors.displayName ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="请输入显示名称"
+                placeholder={t('auth.register.placeholder_displayName')}
                 value={formData.displayName}
                 onChange={handleInputChange}
                 disabled={isLoading}
@@ -230,7 +232,7 @@ export const RegisterPage: React.FC = () => {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                邮箱地址 *
+                {t('auth.register.email')} *
               </label>
               <input
                 id="email"
@@ -238,7 +240,7 @@ export const RegisterPage: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 className={`input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 ${errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="请输入邮箱地址"
+                placeholder={t('auth.register.placeholder_email')}
                 value={formData.email}
                 onChange={handleInputChange}
                 disabled={isLoading}
@@ -253,7 +255,7 @@ export const RegisterPage: React.FC = () => {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                密码 *
+                {t('auth.register.password')} *
               </label>
               <div className="relative">
                 <input
@@ -262,7 +264,7 @@ export const RegisterPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   className={`input pr-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 ${errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="请输入密码（至少6位，包含字母和数字）"
+                  placeholder={t('auth.register.placeholder_password')}
                   value={formData.password}
                   onChange={handleInputChange}
                   disabled={isLoading}
@@ -290,7 +292,7 @@ export const RegisterPage: React.FC = () => {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                确认密码 *
+                {t('auth.register.confirmPassword')} *
               </label>
               <div className="relative">
                 <input
@@ -299,7 +301,7 @@ export const RegisterPage: React.FC = () => {
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   className={`input pr-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 ${errors.confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="请再次输入密码"
+                  placeholder={t('auth.register.placeholder_confirmPassword')}
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   disabled={isLoading}
@@ -336,14 +338,10 @@ export const RegisterPage: React.FC = () => {
               disabled={isLoading}
             />
             <label htmlFor="terms" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              我同意{' '}
-              <Link to="/terms" className="text-primary-600 hover:text-primary-500">
-                服务条款
-              </Link>{' '}
-              和{' '}
-              <Link to="/privacy" className="text-primary-600 hover:text-primary-500">
-                隐私政策
-              </Link>
+              {t('auth.register.agree_prefix')}
+              <Link to="/terms" className="text-primary-600 hover:text-primary-500">{t('auth.register.terms')}</Link>
+              {t('auth.register.and')}
+              <Link to="/privacy" className="text-primary-600 hover:text-primary-500">{t('auth.register.privacy')}</Link>
             </label>
           </div>
 
@@ -359,17 +357,17 @@ export const RegisterPage: React.FC = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  注册中...
+                  {t('auth.register.submitting')}
                 </>
               ) : (
-                '创建账户'
+                t('auth.register.submit')
               )}
             </button>
           </div>
 
           <div className="text-center">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              点击"创建账户"即表示您同意我们的服务条款和隐私政策
+              {t('auth.register.disclaimer')}
             </p>
           </div>
         </form>

@@ -14,8 +14,10 @@ import {
 } from '../../services/llm-configuration.service';
 import LLMConfigForm from '../../components/admin/LLMConfigForm';
 import DeleteConfirmModal from '../../components/admin/DeleteConfirmModal';
+import { useTranslation } from 'react-i18next';
 
 const LLMConfigurationPage: React.FC = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   
   // 状态管理
@@ -169,9 +171,9 @@ const LLMConfigurationPage: React.FC = () => {
       {/* 页面标题 */}
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-2xl font-semibold text-gray-900">LLM配置管理</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('llmConfig.title')}</h1>
           <p className="mt-2 text-sm text-gray-700">
-            管理AI大语言模型配置，支持OpenAI、DeepSeek等多种提供商
+            {t('llmConfig.subtitle')}
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
@@ -181,7 +183,7 @@ const LLMConfigurationPage: React.FC = () => {
             className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
           >
             <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
-            添加配置
+            {t('llmConfig.actions.add')}
           </button>
         </div>
       </div>
@@ -195,19 +197,19 @@ const LLMConfigurationPage: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      配置信息
+                      {t('llmConfig.table.configInfo')}
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      提供商
+                      {t('llmConfig.table.provider')}
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      模型参数
+                      {t('llmConfig.table.modelParams')}
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      状态
+                      {t('llmConfig.table.status')}
                     </th>
                     <th scope="col" className="relative px-6 py-3">
-                      <span className="sr-only">操作</span>
+                      <span className="sr-only">{t('llmConfig.table.actions')}</span>
                     </th>
                   </tr>
                 </thead>
@@ -226,7 +228,7 @@ const LLMConfigurationPage: React.FC = () => {
                               </div>
                               {config.isDefault && (
                                 <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                                  默认
+                                  {t('llmConfig.status.default')}
                                 </span>
                               )}
                             </div>
@@ -242,10 +244,10 @@ const LLMConfigurationPage: React.FC = () => {
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          最大令牌: {config.maxTokens}
+                          {t('llmConfig.params.maxTokens')}: {config.maxTokens}
                         </div>
                         <div className="text-sm text-gray-500">
-                          温度: {config.temperature}
+                          {t('llmConfig.params.temperature')}: {config.temperature}
                         </div>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
@@ -254,7 +256,7 @@ const LLMConfigurationPage: React.FC = () => {
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {config.isActive ? '活动' : '停用'}
+                          {config.isActive ? t('llmConfig.status.active') : t('llmConfig.status.inactive')}
                         </span>
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
@@ -263,7 +265,7 @@ const LLMConfigurationPage: React.FC = () => {
                           <button
                             onClick={() => handleEdit(config)}
                             className="text-blue-600 hover:text-blue-900"
-                            title="编辑配置"
+                            title={t('llmConfig.actions.edit')}
                           >
                             <PencilIcon className="h-5 w-5" />
                           </button>
@@ -273,7 +275,7 @@ const LLMConfigurationPage: React.FC = () => {
                             onClick={() => handleTestConnection(config)}
                             disabled={!config.isActive || testConnectionMutation.isPending}
                             className="text-blue-600 hover:text-blue-900 disabled:text-gray-400"
-                            title="测试连接"
+                            title={t('llmConfig.actions.testConnection')}
                           >
                             <CogIcon className="h-5 w-5" />
                           </button>
@@ -284,7 +286,7 @@ const LLMConfigurationPage: React.FC = () => {
                               onClick={() => handleSetDefault(config)}
                               disabled={setDefaultMutation.isPending}
                               className="text-green-600 hover:text-green-900"
-                              title="设为默认"
+                              title={t('llmConfig.actions.setDefault')}
                             >
                               <CheckCircleIcon className="h-5 w-5" />
                             </button>
@@ -295,7 +297,7 @@ const LLMConfigurationPage: React.FC = () => {
                             onClick={() => handleDelete(config)}
                             disabled={config.isDefault}
                             className="text-red-600 hover:text-red-900 disabled:text-gray-400"
-                            title={config.isDefault ? "默认配置不能删除" : "删除配置"}
+                            title={config.isDefault ? t('llmConfig.messages.cannotDeleteDefault') : t('llmConfig.actions.delete')}
                           >
                             <TrashIcon className="h-5 w-5" />
                           </button>
@@ -309,9 +311,9 @@ const LLMConfigurationPage: React.FC = () => {
               {configurations.length === 0 && (
                 <div className="text-center py-12">
                   <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">暂无LLM配置</h3>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">{t('llmConfig.empty.title')}</h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    开始创建你的第一个LLM配置
+                    {t('llmConfig.empty.description')}
                   </p>
                   <div className="mt-6">
                     <button
@@ -320,7 +322,7 @@ const LLMConfigurationPage: React.FC = () => {
                       className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
                     >
                       <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
-                      添加配置
+                      {t('llmConfig.actions.add')}
                     </button>
                   </div>
                 </div>

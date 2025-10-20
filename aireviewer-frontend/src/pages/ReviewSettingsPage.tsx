@@ -9,6 +9,7 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 interface ReviewSettings {
   id: number;
@@ -41,6 +42,7 @@ interface ReviewSettings {
 }
 
 export const ReviewSettingsPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'general' | 'ai' | 'notifications' | 'protection'>('general');
   const [settings, setSettings] = useState<ReviewSettings>({
@@ -81,10 +83,10 @@ export const ReviewSettingsPage = () => {
     try {
       // 模拟API调用
       await new Promise(resolve => setTimeout(resolve, 1000));
-      setSaveMessage({ type: 'success', text: '设置已保存' });
+      setSaveMessage({ type: 'success', text: t('reviewSettings.messages.saveSuccess') });
       setTimeout(() => setSaveMessage(null), 3000);
     } catch {
-      setSaveMessage({ type: 'error', text: '保存失败，请重试' });
+      setSaveMessage({ type: 'error', text: t('reviewSettings.messages.saveError') });
       setTimeout(() => setSaveMessage(null), 3000);
     } finally {
       setIsSaving(false);
@@ -92,10 +94,10 @@ export const ReviewSettingsPage = () => {
   };
 
   const tabs = [
-    { id: 'general', name: '常规设置', icon: CogIcon },
-    { id: 'ai', name: 'AI评审', icon: CpuChipIcon },
-    { id: 'notifications', name: '通知设置', icon: BellIcon },
-    { id: 'protection', name: '分支保护', icon: ShieldCheckIcon },
+    { id: 'general', name: t('reviewSettings.tabs.general'), icon: CogIcon },
+    { id: 'ai', name: t('reviewSettings.tabs.ai'), icon: CpuChipIcon },
+    { id: 'notifications', name: t('reviewSettings.tabs.notifications'), icon: BellIcon },
+    { id: 'protection', name: t('reviewSettings.tabs.protection'), icon: ShieldCheckIcon },
   ] as const;
 
   return (
@@ -110,8 +112,8 @@ export const ReviewSettingsPage = () => {
             <ArrowLeftIcon className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">评审设置</h1>
-            <p className="text-gray-500 mt-1">配置 {settings.projectName} 的评审规则和流程</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t('reviewSettings.title')}</h1>
+            <p className="text-gray-500 mt-1">{t('reviewSettings.subtitle', { projectName: settings.projectName })}</p>
           </div>
         </div>
 
@@ -135,7 +137,7 @@ export const ReviewSettingsPage = () => {
             disabled={isSaving}
             className="btn btn-primary"
           >
-            {isSaving ? '保存中...' : '保存设置'}
+            {isSaving ? t('reviewSettings.buttons.saving') : t('reviewSettings.buttons.save')}
           </button>
         </div>
       </div>
@@ -200,6 +202,7 @@ interface SettingsTabProps {
 }
 
 const GeneralSettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
+  const { t } = useTranslation();
   const updateSettings = (updates: Partial<ReviewSettings>) => {
     onSettingsChange({ ...settings, ...updates });
   };
@@ -207,13 +210,13 @@ const GeneralSettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
   return (
     <div className="space-y-6">
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">评审流程设置</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">{t('reviewSettings.sections.general.title')}</h3>
         
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">自动分配评审者</h4>
-              <p className="text-sm text-gray-500">当创建新的评审请求时自动分配评审者</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.general.autoAssignReviewers')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.general.autoAssignReviewersDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -228,26 +231,26 @@ const GeneralSettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">
-              最少评审者数量
+              {t('reviewSettings.sections.general.requireMinReviewers')}
             </label>
             <select
               className="input w-32"
               value={settings.requireMinReviewers}
               onChange={(e) => updateSettings({ requireMinReviewers: parseInt(e.target.value) })}
             >
-              <option value={1}>1 人</option>
-              <option value={2}>2 人</option>
-              <option value={3}>3 人</option>
-              <option value={4}>4 人</option>
-              <option value={5}>5 人</option>
+              <option value={1}>{t('reviewSettings.sections.general.reviewerOptions.1')}</option>
+              <option value={2}>{t('reviewSettings.sections.general.reviewerOptions.2')}</option>
+              <option value={3}>{t('reviewSettings.sections.general.reviewerOptions.3')}</option>
+              <option value={4}>{t('reviewSettings.sections.general.reviewerOptions.4')}</option>
+              <option value={5}>{t('reviewSettings.sections.general.reviewerOptions.5')}</option>
             </select>
-            <p className="text-sm text-gray-500 mt-1">评审通过前需要的最少审批人数</p>
+            <p className="text-sm text-gray-500 mt-1">{t('reviewSettings.sections.general.requireMinReviewersDesc')}</p>
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">允许自我审批</h4>
-              <p className="text-sm text-gray-500">允许提交者审批自己的代码</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.general.allowSelfApproval')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.general.allowSelfApprovalDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -262,8 +265,8 @@ const GeneralSettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
 
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">强制代码风格检查</h4>
-              <p className="text-sm text-gray-500">要求通过代码风格检查才能提交</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.general.enforceStyleGuide')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.general.enforceStyleGuideDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -278,8 +281,8 @@ const GeneralSettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
 
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">自动合并</h4>
-              <p className="text-sm text-gray-500">评审通过后自动合并到目标分支</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.general.autoMergeOnApproval')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.general.autoMergeOnApprovalDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -298,6 +301,7 @@ const GeneralSettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
 };
 
 const AISettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
+  const { t } = useTranslation();
   const updateAIRules = (updates: Partial<ReviewSettings['aiReviewRules']>) => {
     onSettingsChange({
       ...settings,
@@ -308,13 +312,13 @@ const AISettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
   return (
     <div className="space-y-6">
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">AI评审配置</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">{t('reviewSettings.sections.ai.title')}</h3>
         
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">启用AI评审</h4>
-              <p className="text-sm text-gray-500">使用AI自动分析代码质量和安全性</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.ai.aiReviewEnabled')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.ai.aiReviewEnabledDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -330,7 +334,7 @@ const AISettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
           {settings.aiReviewEnabled && (
             <>
               <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-4">检查项目</h4>
+                <h4 className="text-sm font-medium text-gray-900 mb-4">{t('reviewSettings.sections.ai.checkSecurity')}</h4>
                 <div className="space-y-3">
                   <label className="flex items-center">
                     <input
@@ -339,7 +343,7 @@ const AISettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
                       checked={settings.aiReviewRules.checkSecurity}
                       onChange={(e) => updateAIRules({ checkSecurity: e.target.checked })}
                     />
-                    <span className="ml-3 text-sm text-gray-700">安全性检查</span>
+                    <span className="ml-3 text-sm text-gray-700">{t('reviewSettings.sections.ai.checkSecurity')}</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -348,7 +352,7 @@ const AISettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
                       checked={settings.aiReviewRules.checkPerformance}
                       onChange={(e) => updateAIRules({ checkPerformance: e.target.checked })}
                     />
-                    <span className="ml-3 text-sm text-gray-700">性能优化建议</span>
+                    <span className="ml-3 text-sm text-gray-700">{t('reviewSettings.sections.ai.checkPerformance')}</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -357,7 +361,7 @@ const AISettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
                       checked={settings.aiReviewRules.checkCodeQuality}
                       onChange={(e) => updateAIRules({ checkCodeQuality: e.target.checked })}
                     />
-                    <span className="ml-3 text-sm text-gray-700">代码质量分析</span>
+                    <span className="ml-3 text-sm text-gray-700">{t('reviewSettings.sections.ai.checkCodeQuality')}</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -366,23 +370,23 @@ const AISettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
                       checked={settings.aiReviewRules.checkDocumentation}
                       onChange={(e) => updateAIRules({ checkDocumentation: e.target.checked })}
                     />
-                    <span className="ml-3 text-sm text-gray-700">文档完整性检查</span>
+                    <span className="ml-3 text-sm text-gray-700">{t('reviewSettings.sections.ai.checkDocumentation')}</span>
                   </label>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  严格程度
+                  {t('reviewSettings.sections.ai.strictnessLevel')}
                 </label>
                 <select
                   className="input w-40"
                   value={settings.aiReviewRules.strictnessLevel}
                   onChange={(e) => updateAIRules({ strictnessLevel: e.target.value as 'low' | 'medium' | 'high' })}
                 >
-                  <option value="low">宽松</option>
-                  <option value="medium">中等</option>
-                  <option value="high">严格</option>
+                  <option value="low">{t('reviewSettings.sections.ai.strictnessLevels.low')}</option>
+                  <option value="medium">{t('reviewSettings.sections.ai.strictnessLevels.medium')}</option>
+                  <option value="high">{t('reviewSettings.sections.ai.strictnessLevels.high')}</option>
                 </select>
                 <p className="text-sm text-gray-500 mt-1">
                   {settings.aiReviewRules.strictnessLevel === 'low' && '只检查严重问题'}
@@ -399,6 +403,7 @@ const AISettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
 };
 
 const NotificationSettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
+  const { t } = useTranslation();
   const updateNotifications = (updates: Partial<ReviewSettings['notificationSettings']>) => {
     onSettingsChange({
       ...settings,
@@ -409,13 +414,13 @@ const NotificationSettings = ({ settings, onSettingsChange }: SettingsTabProps) 
   return (
     <div className="space-y-6">
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">通知设置</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">{t('reviewSettings.sections.notifications.title')}</h3>
         
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">邮件通知</h4>
-              <p className="text-sm text-gray-500">通过邮件接收评审状态更新</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.notifications.emailNotifications')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.notifications.emailNotificationsDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -430,8 +435,8 @@ const NotificationSettings = ({ settings, onSettingsChange }: SettingsTabProps) 
 
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">Slack通知</h4>
-              <p className="text-sm text-gray-500">通过Slack接收评审状态更新</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.notifications.slackNotifications')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.notifications.slackNotificationsDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -446,16 +451,16 @@ const NotificationSettings = ({ settings, onSettingsChange }: SettingsTabProps) 
 
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">
-              Webhook URL
+              {t('reviewSettings.sections.notifications.webhookUrl')}
             </label>
             <input
               type="url"
               className="input"
-              placeholder="https://hooks.slack.com/services/..."
+              placeholder={t('reviewSettings.sections.notifications.webhookUrlPlaceholder')}
               value={settings.notificationSettings.webhookUrl || ''}
               onChange={(e) => updateNotifications({ webhookUrl: e.target.value })}
             />
-            <p className="text-sm text-gray-500 mt-1">用于接收通知的Webhook地址</p>
+            <p className="text-sm text-gray-500 mt-1">{t('reviewSettings.sections.notifications.webhookUrlDesc')}</p>
           </div>
         </div>
       </div>
@@ -464,6 +469,7 @@ const NotificationSettings = ({ settings, onSettingsChange }: SettingsTabProps) 
 };
 
 const ProtectionSettings = ({ settings, onSettingsChange }: SettingsTabProps) => {
+  const { t } = useTranslation();
   const updateProtection = (updates: Partial<ReviewSettings['branchProtectionRules']>) => {
     onSettingsChange({
       ...settings,
@@ -474,13 +480,13 @@ const ProtectionSettings = ({ settings, onSettingsChange }: SettingsTabProps) =>
   return (
     <div className="space-y-6">
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">分支保护规则</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">{t('reviewSettings.sections.protection.title')}</h3>
         
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">合并前需要评审</h4>
-              <p className="text-sm text-gray-500">所有合并请求必须经过评审才能合并</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.protection.requireReviewBeforeMerge')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.protection.requireReviewBeforeMergeDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -495,8 +501,8 @@ const ProtectionSettings = ({ settings, onSettingsChange }: SettingsTabProps) =>
 
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">撤销过时评审</h4>
-              <p className="text-sm text-gray-500">当有新提交时自动撤销之前的评审</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.protection.dismissStaleReviews')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.protection.dismissStaleReviewsDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -511,8 +517,8 @@ const ProtectionSettings = ({ settings, onSettingsChange }: SettingsTabProps) =>
 
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">要求状态检查</h4>
-              <p className="text-sm text-gray-500">合并前必须通过所有CI/CD检查</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.protection.requireStatusChecks')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.protection.requireStatusChecksDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -527,8 +533,8 @@ const ProtectionSettings = ({ settings, onSettingsChange }: SettingsTabProps) =>
 
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">限制直接推送</h4>
-              <p className="text-sm text-gray-500">防止直接推送到受保护分支</p>
+              <h4 className="text-sm font-medium text-gray-900">{t('reviewSettings.sections.protection.restrictPushes')}</h4>
+              <p className="text-sm text-gray-500">{t('reviewSettings.sections.protection.restrictPushesDesc')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input

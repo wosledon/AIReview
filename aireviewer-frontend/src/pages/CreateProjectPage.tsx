@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { 
   ArrowLeftIcon,
   FolderIcon,
@@ -10,24 +11,25 @@ import {
 import { projectService } from '../services/project.service';
 import type { CreateProjectRequest } from '../types/project';
 
-const PROGRAMMING_LANGUAGES = [
-  { value: 'javascript', label: 'JavaScript' },
-  { value: 'typescript', label: 'TypeScript' },
-  { value: 'python', label: 'Python' },
-  { value: 'java', label: 'Java' },
-  { value: 'csharp', label: 'C#' },
-  { value: 'cpp', label: 'C++' },
-  { value: 'go', label: 'Go' },
-  { value: 'rust', label: 'Rust' },
-  { value: 'php', label: 'PHP' },
-  { value: 'ruby', label: 'Ruby' },
-  { value: 'swift', label: 'Swift' },
-  { value: 'kotlin', label: 'Kotlin' },
-  { value: 'other', label: '其他' }
-];
-
 export const CreateProjectPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const PROGRAMMING_LANGUAGES = [
+    { value: 'javascript', label: 'JavaScript' },
+    { value: 'typescript', label: 'TypeScript' },
+    { value: 'python', label: 'Python' },
+    { value: 'java', label: 'Java' },
+    { value: 'csharp', label: 'C#' },
+    { value: 'cpp', label: 'C++' },
+    { value: 'go', label: 'Go' },
+    { value: 'rust', label: 'Rust' },
+    { value: 'php', label: 'PHP' },
+    { value: 'ruby', label: 'Ruby' },
+    { value: 'swift', label: 'Swift' },
+    { value: 'kotlin', label: 'Kotlin' },
+    { value: 'other', label: t('createProject.language_other') }
+  ];
   const [formData, setFormData] = useState<CreateProjectRequest>({
     name: '',
     description: '',
@@ -43,7 +45,7 @@ export const CreateProjectPage = () => {
     },
     onError: (error) => {
       console.error('Failed to create project:', error);
-      setErrors({ submit: '创建项目失败，请稍后重试' });
+      setErrors({ submit: t('createProject.error_create_failed') });
     }
   });
 
@@ -67,15 +69,15 @@ export const CreateProjectPage = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = '项目名称不能为空';
+      newErrors.name = t('createProject.name_required');
     }
 
     if (!formData.language) {
-      newErrors.language = '请选择编程语言';
+      newErrors.language = t('createProject.language_required');
     }
 
     if (formData.repositoryUrl && !isValidUrl(formData.repositoryUrl)) {
-      newErrors.repositoryUrl = '请输入有效的仓库URL';
+      newErrors.repositoryUrl = t('createProject.repository_invalid');
     }
 
     setErrors(newErrors);
@@ -112,8 +114,8 @@ export const CreateProjectPage = () => {
           <ArrowLeftIcon className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">创建新项目</h1>
-          <p className="text-gray-500">设置项目信息，开始使用AI代码评审</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('createProject.title')}</h1>
+          <p className="text-gray-500">{t('createProject.subtitle')}</p>
         </div>
       </div>
 
@@ -123,7 +125,7 @@ export const CreateProjectPage = () => {
           {/* Project Name */}
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              项目名称 *
+              {t('createProject.name_label')} *
             </label>
             <div className="relative">
               <FolderIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -133,7 +135,7 @@ export const CreateProjectPage = () => {
                 type="text"
                 required
                 className={`input pl-10 ${errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="输入项目名称"
+                placeholder={t('createProject.name_placeholder')}
                 value={formData.name}
                 onChange={handleInputChange}
                 disabled={createProjectMutation.isPending}
@@ -147,14 +149,14 @@ export const CreateProjectPage = () => {
           {/* Description */}
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              项目描述
+              {t('createProject.description_label')}
             </label>
             <textarea
               id="description"
               name="description"
               rows={3}
               className="input resize-none"
-              placeholder="简要描述项目的功能和特点（可选）"
+              placeholder={t('createProject.description_placeholder')}
               value={formData.description}
               onChange={handleInputChange}
               disabled={createProjectMutation.isPending}
@@ -164,7 +166,7 @@ export const CreateProjectPage = () => {
           {/* Repository URL */}
           <div>
             <label htmlFor="repositoryUrl" className="block text-sm font-medium text-gray-700 mb-2">
-              仓库地址
+              {t('createProject.repository_label')}
             </label>
             <div className="relative">
               <LinkIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -173,7 +175,7 @@ export const CreateProjectPage = () => {
                 name="repositoryUrl"
                 type="url"
                 className={`input pl-10 ${errors.repositoryUrl ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="https://github.com/username/repository"
+                placeholder={t('createProject.repository_placeholder')}
                 value={formData.repositoryUrl}
                 onChange={handleInputChange}
                 disabled={createProjectMutation.isPending}
@@ -183,14 +185,14 @@ export const CreateProjectPage = () => {
               <p className="mt-1 text-sm text-red-600">{errors.repositoryUrl}</p>
             )}
             <p className="mt-1 text-sm text-gray-500">
-              支持 GitHub、GitLab、Bitbucket 等代码托管平台
+              {t('createProject.repository_hint')}
             </p>
           </div>
 
           {/* Programming Language */}
           <div>
             <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
-              主要编程语言 *
+              {t('createProject.language_label')} *
             </label>
             <div className="relative">
               <CodeBracketIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -203,7 +205,7 @@ export const CreateProjectPage = () => {
                 onChange={handleInputChange}
                 disabled={createProjectMutation.isPending}
               >
-                <option value="">选择编程语言</option>
+                <option value="">{t('createProject.language_placeholder')}</option>
                 {PROGRAMMING_LANGUAGES.map((lang) => (
                   <option key={lang.value} value={lang.value}>
                     {lang.label}
@@ -231,14 +233,14 @@ export const CreateProjectPage = () => {
               className="btn btn-secondary"
               disabled={createProjectMutation.isPending}
             >
-              取消
+              {t('createProject.cancel')}
             </button>
             <button
               type="submit"
               className="btn btn-primary"
               disabled={createProjectMutation.isPending}
             >
-              {createProjectMutation.isPending ? '创建中...' : '创建项目'}
+              {createProjectMutation.isPending ? t('createProject.submitting') : t('createProject.submit')}
             </button>
           </div>
         </form>
@@ -246,11 +248,11 @@ export const CreateProjectPage = () => {
 
       {/* Tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-blue-900 mb-2">💡 提示</h3>
+        <h3 className="text-sm font-medium text-blue-900 mb-2">{t('createProject.tips_title')}</h3>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• 项目创建后，您可以邀请团队成员参与代码评审</li>
-          <li>• AI评审引擎会根据选择的编程语言优化评审规则</li>
-          <li>• 支持配置自定义评审规则和质量标准</li>
+          <li>• {t('createProject.tips_1')}</li>
+          <li>• {t('createProject.tips_2')}</li>
+          <li>• {t('createProject.tips_3')}</li>
         </ul>
       </div>
     </div>

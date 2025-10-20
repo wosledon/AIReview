@@ -5,30 +5,33 @@ import type { PromptDto, PromptType, EffectivePromptResponse, CreatePromptReques
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import PromptForm from '../../components/prompts/PromptForm';
 import { useParams } from 'react-router-dom';
-
-const typeLabels: Record<PromptType, string> = {
-  Review: '代码评审',
-  RiskAnalysis: '风险分析',
-  PullRequestSummary: '变更摘要',
-  ImprovementSuggestions: '改进建议',
-};
+import { useTranslation } from 'react-i18next';
 
 const SourceBadge: React.FC<{ source: EffectivePromptResponse['source'] }> = ({ source }) => {
+  const { t } = useTranslation();
   const map: Record<string, { text: string; cls: string }> = {
-    'project': { text: '项目覆盖', cls: 'bg-indigo-100 text-indigo-800' },
-    'user': { text: '用户默认', cls: 'bg-green-100 text-green-800' },
-    'built-in': { text: '内置模板', cls: 'bg-gray-100 text-gray-800' },
+    'project': { text: t('prompts.sources.project'), cls: 'bg-indigo-100 text-indigo-800' },
+    'user': { text: t('prompts.sources.user'), cls: 'bg-green-100 text-green-800' },
+    'built-in': { text: t('prompts.sources.built-in'), cls: 'bg-gray-100 text-gray-800' },
   };
   const v = map[source];
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${v.cls}`}>{v.text}</span>;
 };
 
 const PromptsPage: React.FC = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const params = useParams();
   const projectId = params.id ? Number(params.id) : undefined;
 
   const scope = useMemo(() => ({ projectId }), [projectId]);
+
+  const typeLabels: Record<PromptType, string> = {
+    Review: t('prompts.types.Review'),
+    RiskAnalysis: t('prompts.types.RiskAnalysis'),
+    PullRequestSummary: t('prompts.types.PullRequestSummary'),
+    ImprovementSuggestions: t('prompts.types.ImprovementSuggestions'),
+  };
 
   // 获取用户/项目模板
   const { data: userList = [], isLoading: isLoadingUser } = useQuery({
@@ -126,22 +129,22 @@ const PromptsPage: React.FC = () => {
   };
 
   const effCards = [
-    { title: '代码评审模板', eff: effReview },
-    { title: '风险分析模板', eff: effRisk },
-    { title: '变更摘要模板', eff: effPRSummary },
-    { title: '改进建议模板', eff: effImprovements },
+    { title: t('prompts.effective.reviewTemplate'), eff: effReview },
+    { title: t('prompts.effective.riskTemplate'), eff: effRisk },
+    { title: t('prompts.effective.prSummaryTemplate'), eff: effPRSummary },
+    { title: t('prompts.effective.improvementsTemplate'), eff: effImprovements },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-2xl font-semibold text-gray-900">Prompt 模板管理 {scope.projectId ? '（项目级）' : '（用户级）'}</h1>
-          <p className="mt-2 text-sm text-gray-700">为 AI 评审/分析管理可配置的 Prompt 模板，支持占位符和生效来源回退。</p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('prompts.title')} {scope.projectId ? t('prompts.scopes.project') : t('prompts.scopes.user')}</h1>
+          <p className="mt-2 text-sm text-gray-700">{t('prompts.subtitle')}</p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
           <button onClick={openCreate} className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
-            <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" /> 新建模板
+            <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" /> {t('prompts.actions.create')}
           </button>
         </div>
       </div>
@@ -160,7 +163,7 @@ const PromptsPage: React.FC = () => {
                 <button
                   onClick={() => toggleCard(idx)}
                   className="ml-4 p-1 text-gray-400 hover:text-gray-600 rounded"
-                  title={isExpanded ? '收起' : '展开'}
+                  title={isExpanded ? t('prompts.actions.collapse') : t('prompts.actions.expand')}
                 >
                   {isExpanded ? (
                     <ChevronUpIcon className="h-5 w-5" />
@@ -172,7 +175,7 @@ const PromptsPage: React.FC = () => {
               {isExpanded && (
                 <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
                   <pre className="text-xs font-mono whitespace-pre-wrap break-words max-h-64 overflow-y-auto text-gray-700">
-                    {c.eff?.content || '加载中...'}
+                    {c.eff?.content || t('prompts.loading')}
                   </pre>
                 </div>
               )}
@@ -189,18 +192,18 @@ const PromptsPage: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">名称</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">类型</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">作用域</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">更新时间</th>
-                    <th className="relative px-6 py-3"><span className="sr-only">操作</span></th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">{t('prompts.table.name')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">{t('prompts.table.type')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">{t('prompts.table.scope')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">{t('prompts.table.updatedAt')}</th>
+                    <th className="relative px-6 py-3"><span className="sr-only">{t('prompts.table.actions')}</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {isLoading ? (
-                    <tr><td className="px-6 py-4" colSpan={5}>加载中...</td></tr>
+                    <tr><td className="px-6 py-4" colSpan={5}>{t('prompts.loading')}</td></tr>
                   ) : list.length === 0 ? (
-                    <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={5}>暂无模板</td></tr>
+                    <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={5}>{t('prompts.empty')}</td></tr>
                   ) : (
                     list.map(p => {
                       const isBuiltIn = !p.userId && !p.projectId;
@@ -208,18 +211,18 @@ const PromptsPage: React.FC = () => {
                       <tr key={p.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">
                           {p.name}
-                          {isBuiltIn && <span className="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">内置</span>}
+                          {isBuiltIn && <span className="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{t('prompts.sources.built-in')}</span>}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-700">{typeLabels[p.type]}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{p.projectId ? '项目' : (p.userId ? '用户' : '系统')}</td>
+                        <td className="px-6 py-4 text-sm text-gray-700">{p.projectId ? t('prompts.scopes.project') : (p.userId ? t('prompts.scopes.user') : t('prompts.scopes.system'))}</td>
                         <td className="px-6 py-4 text-sm text-gray-500">{new Date(p.updatedAt).toLocaleString()}</td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end space-x-2">
-                            <button onClick={() => setPreviewing(p)} className="text-gray-600 hover:text-gray-900" title="查看"><EyeIcon className="h-5 w-5" /></button>
+                            <button onClick={() => setPreviewing(p)} className="text-gray-600 hover:text-gray-900" title={t('prompts.actions.view')}><EyeIcon className="h-5 w-5" /></button>
                             {!isBuiltIn && (
                               <>
-                                <button onClick={() => openEdit(p)} className="text-blue-600 hover:text-blue-900" title="编辑"><PencilIcon className="h-5 w-5" /></button>
-                                <button onClick={() => deleteMutation.mutate(p.id)} className="text-red-600 hover:text-red-900" title="删除"><TrashIcon className="h-5 w-5" /></button>
+                                <button onClick={() => openEdit(p)} className="text-blue-600 hover:text-blue-900" title={t('prompts.actions.edit')}><PencilIcon className="h-5 w-5" /></button>
+                                <button onClick={() => deleteMutation.mutate(p.id)} className="text-red-600 hover:text-red-900" title={t('prompts.actions.delete')}><TrashIcon className="h-5 w-5" /></button>
                               </>
                             )}
                           </div>
@@ -253,7 +256,7 @@ const PromptsPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{previewing.name}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{typeLabels[previewing.type]} · {previewing.projectId ? '项目级' : '用户级'}</p>
+                    <p className="mt-1 text-sm text-gray-500">{typeLabels[previewing.type]} · {previewing.projectId ? t('prompts.scopes.project') : (previewing.userId ? t('prompts.scopes.user') : t('prompts.scopes.system'))}</p>
                   </div>
                   <button onClick={() => setPreviewing(null)} className="text-gray-400 hover:text-gray-600">
                     <span className="text-2xl">×</span>
@@ -269,12 +272,12 @@ const PromptsPage: React.FC = () => {
               </div>
               <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
                 <button 
-                  onClick={() => navigator.clipboard.writeText(previewing.content).then(() => alert('已复制到剪贴板'))} 
+                  onClick={() => navigator.clipboard.writeText(previewing.content).then(() => alert(t('prompts.messages.copied')))} 
                   className="btn btn-secondary"
                 >
-                  复制内容
+                  {t('prompts.actions.copy')}
                 </button>
-                <button onClick={() => setPreviewing(null)} className="btn btn-primary">关闭</button>
+                <button onClick={() => setPreviewing(null)} className="btn btn-primary">{t('prompts.actions.close')}</button>
               </div>
             </div>
           </div>
