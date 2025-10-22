@@ -8,7 +8,7 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
     public ApplicationDbContext CreateDbContext(string[] args)
     {
         // 使用默认的 SQLite 连接字符串以便设计时创建迁移
-        var connectionString = "Data Source=aireview.db";
+        var connectionString = "Data Source=aireviewer.db";
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseSqlite(connectionString);

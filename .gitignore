@@ -487,3 +487,6 @@ $RECYCLE.BIN/
 AIReview.API/*.db
 AIReview.API/*.db-wal
 AIReview.API/*.db-shm
+AIReview.API/aireviewer.db
+AIReview.API/aireviewer.db-shm
+AIReview.API/aireviewer.db-wal
