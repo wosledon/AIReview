@@ -271,6 +271,8 @@
       "title": "项目概览",
       "description": "项目描述",
       "repository": "仓库地址",
+      "repository_status": "仓库状态",
+      "view_repository_status": "查看仓库状态",
       "language": "编程语言",
       "created": "创建时间",
       "members": "项目成员",

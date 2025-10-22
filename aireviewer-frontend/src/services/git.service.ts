@@ -76,6 +76,24 @@ export interface ApiResponse<T> {
   message: string;
 }
 
+export interface GitRepositoryStatus {
+  id: number;
+  projectId: number;
+  currentBranch?: string;
+  lastCommitHash?: string;
+  lastPullTime?: string;
+  status: string; // Never/Pulling/Success/Failed/PartialSuccess
+  errorMessage?: string;
+  localPath?: string;
+  totalFiles: number;
+  totalLines: number;
+  gitCredentialId?: number;
+  isPulling: boolean;
+  progress: number; // 0-100
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class GitService {
   // 仓库管理
   async getRepositories(projectId?: number): Promise<ApiResponse<GitRepository[]>> {
@@ -143,6 +161,11 @@ export class GitService {
 
   async getCommit(repositoryId: number, sha: string): Promise<ApiResponse<GitCommitDetail>> {
     return await apiClient.get<ApiResponse<GitCommitDetail>>(`/git/repositories/${repositoryId}/commits/${sha}`);
+  }
+
+  // 仓库状态
+  async getRepositoryStatus(repositoryId: number): Promise<ApiResponse<GitRepositoryStatus>> {
+    return await apiClient.get<ApiResponse<GitRepositoryStatus>>(`/git/repositories/${repositoryId}/status`);
   }
 }
 

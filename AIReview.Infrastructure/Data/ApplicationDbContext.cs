@@ -29,6 +29,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<GitBranch> GitBranches { get; set; }
     public DbSet<GitCommit> GitCommits { get; set; }
     public DbSet<GitFileChange> GitFileChanges { get; set; }
+    public DbSet<GitCredential> GitCredentials { get; set; }
     
     // Token使用追踪
     public DbSet<TokenUsageRecord> TokenUsageRecords { get; set; }
@@ -265,6 +266,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
 
+        // 配置Git凭证实体
+        builder.Entity<GitCredential>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Type).IsRequired();
+            entity.Property(e => e.Provider).HasMaxLength(50);
+            entity.Property(e => e.Username).HasMaxLength(255);
+            entity.Property(e => e.IsDefault).HasDefaultValue(false);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.IsVerified).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // 关系配置
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // 配置风险评估实体
         builder.Entity<RiskAssessment>(entity =>
         {
@@ -443,6 +465,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     gitBranch.CreatedAt = DateTime.UtcNow;
                     gitBranch.UpdatedAt = DateTime.UtcNow;
                 }
+                else if (entity.Entity is GitCredential gitCredential)
+                {
+                    gitCredential.CreatedAt = DateTime.UtcNow;
+                    gitCredential.UpdatedAt = DateTime.UtcNow;
+                }
                 else if (entity.Entity is GitCommit gitCommit)
                 {
                     gitCommit.CreatedAt = DateTime.UtcNow;
@@ -493,6 +520,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 else if (entity.Entity is GitBranch gitBranch)
                 {
                     gitBranch.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (entity.Entity is GitCredential gitCredential)
+                {
+                    gitCredential.UpdatedAt = DateTime.UtcNow;
                 }
             }
         }

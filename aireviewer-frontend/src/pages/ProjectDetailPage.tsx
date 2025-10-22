@@ -293,14 +293,24 @@ const OverviewTab = ({ project, onSwitchToReviews, onSwitchToMembers, onSwitchTo
               <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('projectDetail.overview.repository')}</dt>
               <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                 {project.repositoryUrl ? (
-                  <a 
-                    href={project.repositoryUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary-600 hover:text-primary-700"
-                  >
-                    {project.repositoryUrl}
-                  </a>
+                  <div className="flex items-center space-x-2">
+                    <a 
+                      href={project.repositoryUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary-600 hover:text-primary-700"
+                    >
+                      {project.repositoryUrl}
+                    </a>
+                    <Link
+                      to={`/repositories/${project.id}/status`}
+                      className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-700 bg-primary-100 hover:bg-primary-200 rounded-md transition-colors"
+                      title={t('projectDetail.overview.view_repository_status')}
+                    >
+                      <EyeIcon className="h-3 w-3 mr-1" />
+                      {t('projectDetail.overview.repository_status')}
+                    </Link>
+                  </div>
                 ) : (
                   <span className="text-gray-400 dark:text-gray-500">{t('projectDetail.overview.no_repository')}</span>
                 )}

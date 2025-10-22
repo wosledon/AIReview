@@ -22,6 +22,8 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import LLMConfigurationPage from './pages/admin/LLMConfigurationPage';
 import PromptsPage from './pages/admin/PromptsPage';
 import TokenUsagePage from './pages/TokenUsagePage';
+import GitCredentialsPage from './pages/GitCredentialsPage';
+import RepositoryStatusPage from './pages/RepositoryStatusPage';
 import './App.css';
 
 // Create a client with optimized settings
@@ -156,6 +158,22 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <TokenUsagePage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="settings/git-credentials" 
+                  element={
+                    <ProtectedRoute>
+                      <GitCredentialsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="repositories/:id/status" 
+                  element={
+                    <ProtectedRoute>
+                      <RepositoryStatusPage />
                     </ProtectedRoute>
                   } 
                 />

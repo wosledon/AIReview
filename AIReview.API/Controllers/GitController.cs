@@ -12,11 +12,13 @@ namespace AIReview.API.Controllers;
 public class GitController : ControllerBase
 {
     private readonly IGitService _gitService;
+    private readonly IGitRepositoryStatusService _statusService;
     private readonly ILogger<GitController> _logger;
 
-    public GitController(IGitService gitService, ILogger<GitController> logger)
+    public GitController(IGitService gitService, IGitRepositoryStatusService statusService, ILogger<GitController> logger)
     {
         _gitService = gitService;
+        _statusService = statusService;
         _logger = logger;
     }
 
@@ -212,7 +214,17 @@ public class GitController : ControllerBase
     {
         try
         {
+            await _statusService.SetPullingAsync(id);
             var success = await _gitService.CloneRepositoryAsync(id);
+            if (success)
+            {
+                var latest = await _gitService.GetLatestCommitShaAsync(id, null);
+                await _statusService.SetSuccessAsync(id, lastCommitSha: latest);
+            }
+            else
+            {
+                await _statusService.SetFailedAsync(id, "克隆失败");
+            }
             
             return Ok(new ApiResponse<object>
             {
@@ -223,6 +235,7 @@ public class GitController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error cloning repository {Id}", id);
+            await _statusService.SetFailedAsync(id, ex.Message);
             return StatusCode(500, new ApiResponse<object>
             {
                 Success = false,
@@ -239,7 +252,17 @@ public class GitController : ControllerBase
     {
         try
         {
+            await _statusService.SetPullingAsync(id);
             var success = await _gitService.PullRepositoryAsync(id, branch);
+            if (success)
+            {
+                var latest = await _gitService.GetLatestCommitShaAsync(id, branch);
+                await _statusService.SetSuccessAsync(id, branch, latest);
+            }
+            else
+            {
+                await _statusService.SetFailedAsync(id, "拉取失败");
+            }
             
             return Ok(new ApiResponse<object>
             {
@@ -250,6 +273,7 @@ public class GitController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error pulling repository {Id}", id);
+            await _statusService.SetFailedAsync(id, ex.Message);
             return StatusCode(500, new ApiResponse<object>
             {
                 Success = false,
@@ -266,7 +290,17 @@ public class GitController : ControllerBase
     {
         try
         {
+            await _statusService.SetPullingAsync(id);
             var success = await _gitService.SyncRepositoryAsync(id);
+            if (success)
+            {
+                var latest = await _gitService.GetLatestCommitShaAsync(id, null);
+                await _statusService.SetSuccessAsync(id, lastCommitSha: latest);
+            }
+            else
+            {
+                await _statusService.SetFailedAsync(id, "同步失败");
+            }
             
             return Ok(new ApiResponse<object>
             {
@@ -277,10 +311,38 @@ public class GitController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error syncing repository {Id}", id);
+            await _statusService.SetFailedAsync(id, ex.Message);
             return StatusCode(500, new ApiResponse<object>
             {
                 Success = false,
                 Message = "同步仓库失败"
+            });
+        }
+    }
+
+    /// <summary>
+    /// 获取仓库拉取/同步状态
+    /// </summary>
+    [HttpGet("repositories/{id}/status")]
+    public async Task<ActionResult<ApiResponse<GitRepositoryStatusDto>>> GetRepositoryStatus(int id)
+    {
+        try
+        {
+            var dto = await _statusService.GetAsync(id);
+            return Ok(new ApiResponse<GitRepositoryStatusDto>
+            {
+                Success = true,
+                Data = dto,
+                Message = "仓库状态获取成功"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting repository status {Id}", id);
+            return StatusCode(500, new ApiResponse<GitRepositoryStatusDto>
+            {
+                Success = false,
+                Message = "获取仓库状态失败"
             });
         }
     }
