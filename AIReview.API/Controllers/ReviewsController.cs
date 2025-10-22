@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using AIReview.Core.Interfaces;
 using AIReview.Shared.DTOs;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace AIReview.API.Controllers;
 
@@ -26,6 +27,7 @@ public class ReviewsController : ControllerBase
     }
 
     [HttpGet]
+    [OutputCache(Duration = 15, VaryByQueryKeys = new[] { "*" })]
     public async Task<ActionResult<ApiResponse<PagedResult<ReviewDto>>>> GetReviews([FromQuery] ReviewQueryParameters parameters)
     {
         try

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using AIReview.Core.Interfaces;
 using AIReview.Shared.DTOs;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace AIReview.API.Controllers;
 
@@ -21,6 +22,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet]
+    [OutputCache(Duration = 30, VaryByQueryKeys = new[] { "search", "isActive", "page", "pageSize" })]
     public async Task<ActionResult<ApiResponse<IEnumerable<ProjectDto>>>> GetProjects(
         [FromQuery] string? search = null,
         [FromQuery] bool? isActive = null,

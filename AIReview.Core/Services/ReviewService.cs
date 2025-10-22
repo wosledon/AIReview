@@ -52,7 +52,7 @@ public class ReviewService : IReviewService
 
         _logger.LogInformation("Review request created: {ReviewId} by {AuthorId}", review.Id, authorId);
 
-        return await MapToReviewDtoAsync(review);
+        return MapToReviewDto(review);
     }
 
     public async Task<ReviewDto?> GetReviewAsync(int id)
@@ -61,18 +61,14 @@ public class ReviewService : IReviewService
         if (review == null)
             return null;
 
-        return await MapToReviewDtoAsync(review);
+        return MapToReviewDto(review);
     }
 
     public async Task<PagedResult<ReviewDto>> GetReviewsAsync(ReviewQueryParameters parameters)
     {
         var pagedReviews = await _unitOfWork.ReviewRequests.GetPagedReviewsAsync(parameters);
-        
-        var reviewDtos = new List<ReviewDto>();
-        foreach (var review in pagedReviews.Items)
-        {
-            reviewDtos.Add(await MapToReviewDtoAsync(review));
-        }
+
+        var reviewDtos = pagedReviews.Items.Select(MapToReviewDto).ToList();
 
         return new PagedResult<ReviewDto>
         {
@@ -104,7 +100,7 @@ public class ReviewService : IReviewService
 
         _logger.LogInformation("Review updated: {ReviewId}", review.Id);
 
-        return await MapToReviewDtoAsync(review);
+        return MapToReviewDto(review);
     }
 
     public async Task DeleteReviewAsync(int id)
@@ -244,7 +240,7 @@ public class ReviewService : IReviewService
 
         _logger.LogInformation("Review approved: {ReviewId} by {UserId}", reviewId, userId);
 
-        return await MapToReviewDtoAsync(review);
+        return MapToReviewDto(review);
     }
 
     public async Task<ReviewDto> RejectReviewAsync(int reviewId, string userId, string? reason)
@@ -285,7 +281,7 @@ public class ReviewService : IReviewService
 
         _logger.LogInformation("Review rejected: {ReviewId} by {UserId}, reason: {Reason}", reviewId, userId, reason);
 
-        return await MapToReviewDtoAsync(review);
+        return MapToReviewDto(review);
     }
 
     public async Task<AIReviewResultDto?> GetAIReviewResultAsync(int reviewId)
@@ -590,9 +586,9 @@ public class ReviewService : IReviewService
         }
     }
 
-    private Task<ReviewDto> MapToReviewDtoAsync(ReviewRequest review)
+    private ReviewDto MapToReviewDto(ReviewRequest review)
     {
-        return Task.FromResult(new ReviewDto
+        return new ReviewDto
         {
             Id = review.Id,
             ProjectId = review.ProjectId,
@@ -607,7 +603,7 @@ public class ReviewService : IReviewService
             PullRequestNumber = review.PullRequestNumber,
             CreatedAt = review.CreatedAt,
             UpdatedAt = review.UpdatedAt
-        });
+        };
     }
 
     private ReviewCommentDto MapToCommentDto(ReviewComment comment)
