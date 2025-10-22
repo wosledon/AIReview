@@ -92,6 +92,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+            // 性能索引
+            entity.HasIndex(e => e.Status).HasDatabaseName("IX_ReviewRequests_Status");
+            entity.HasIndex(e => e.AuthorId).HasDatabaseName("IX_ReviewRequests_AuthorId");
+            entity.HasIndex(e => e.ProjectId).HasDatabaseName("IX_ReviewRequests_ProjectId");
+            entity.HasIndex(e => e.CreatedAt).HasDatabaseName("IX_ReviewRequests_CreatedAt");
+            entity.HasIndex(e => e.UpdatedAt).HasDatabaseName("IX_ReviewRequests_UpdatedAt");
+            // 复合索引用于常见查询组合
+            entity.HasIndex(e => new { e.ProjectId, e.Status }).HasDatabaseName("IX_ReviewRequests_ProjectId_Status");
+            entity.HasIndex(e => new { e.AuthorId, e.CreatedAt }).HasDatabaseName("IX_ReviewRequests_AuthorId_CreatedAt");
+
             // 关系配置
             entity.HasOne(e => e.Author)
                 .WithMany(u => u.AuthoredReviews)
@@ -114,6 +124,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(e => e.Category).HasDefaultValue(ReviewCommentCategory.Quality);
             entity.Property(e => e.IsAIGenerated).HasDefaultValue(false);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // 性能索引
+            entity.HasIndex(e => e.ReviewRequestId).HasDatabaseName("IX_ReviewComments_ReviewRequestId");
+            entity.HasIndex(e => e.AuthorId).HasDatabaseName("IX_ReviewComments_AuthorId");
+            entity.HasIndex(e => e.Severity).HasDatabaseName("IX_ReviewComments_Severity");
+            entity.HasIndex(e => e.IsAIGenerated).HasDatabaseName("IX_ReviewComments_IsAIGenerated");
+            entity.HasIndex(e => new { e.ReviewRequestId, e.CreatedAt }).HasDatabaseName("IX_ReviewComments_ReviewRequestId_CreatedAt");
 
             // 关系配置
             entity.HasOne(e => e.Author)

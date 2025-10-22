@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -56,16 +56,16 @@ export const ReviewsPage = () => {
 
   const reviews = reviewsData?.items || [];
 
-  const statusOptions = [
+  const statusOptions = useMemo(() => [
     { value: '', label: t('reviews.filter_all') },
     { value: ReviewState.Pending, label: t('reviews.filter_pending') },
     { value: ReviewState.AIReviewing, label: t('reviews.filter_ai_reviewing') },
     { value: ReviewState.HumanReview, label: t('reviews.filter_human_review') },
     { value: ReviewState.Approved, label: t('reviews.filter_approved') },
     { value: ReviewState.Rejected, label: t('reviews.filter_rejected') },
-  ];
+  ], [t]);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case ReviewState.Approved:
         return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
@@ -78,9 +78,9 @@ export const ReviewsPage = () => {
       default:
         return <ClockIcon className="h-5 w-5 text-gray-500" />;
     }
-  };
+  }, []);
 
-  const getStatusText = (status: string) => {
+  const getStatusText = useCallback((status: string) => {
     switch (status) {
       case ReviewState.Pending:
         return t('status.Pending');
@@ -95,9 +95,9 @@ export const ReviewsPage = () => {
       default:
         return status;
     }
-  };
+  }, [t]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case ReviewState.Approved:
         return 'bg-green-100 text-green-800';
@@ -110,7 +110,7 @@ export const ReviewsPage = () => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  };
+  }, []);
 
   // 仅在首次加载且没有任何数据时展示整页加载
   if (isLoading && !reviewsData) {
