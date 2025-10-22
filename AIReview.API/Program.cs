@@ -308,6 +308,8 @@ builder.Services.AddScoped<IPullRequestAnalysisService, PullRequestAnalysisServi
 
 // 注册Git服务
 builder.Services.AddScoped<IGitService, GitService>();
+builder.Services.AddScoped<IGitRepositoryStatusService, GitRepositoryStatusService>();
+builder.Services.AddScoped<IGitCredentialService, GitCredentialService>();
 
 // 注册AI服务
 builder.Services.AddHttpClient();

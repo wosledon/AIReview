@@ -295,6 +295,8 @@
       "title": "Project Overview",
       "description": "Description",
       "repository": "Repository",
+      "repository_status": "Repository Status",
+      "view_repository_status": "View repository status",
       "language": "Language",
       "created": "Created",
       "members": "Members",
