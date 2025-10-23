@@ -1,0 +1,18 @@
+{
+  "NotFound": "Resource not found",
+  "Forbidden": "Access forbidden",
+  "Unauthorized": "Unauthorized access",
+  "BadRequest": "Bad request",
+  "InternalServerError": "Internal server error",
+  "ValidationError": "Validation failed",
+  "ProjectNotFound": "Project not found",
+  "ReviewNotFound": "Review not found",
+  "UserNotFound": "User not found",
+  "RepositoryNotAccessible": "Repository not accessible",
+  "InvalidGitCredentials": "Invalid Git credentials",
+  "AnalysisInProgress": "Analysis is already in progress",
+  "LLMConfigurationNotFound": "LLM configuration not found",
+  "OperationSuccessful": "Operation completed successfully",
+  "ProjectCreated": "Project created successfully",
+  "ReviewStarted": "Review started successfully"
+}

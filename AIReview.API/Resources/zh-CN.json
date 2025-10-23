@@ -1,0 +1,18 @@
+{
+  "NotFound": "资源未找到",
+  "Forbidden": "访问被禁止",
+  "Unauthorized": "未经授权的访问",
+  "BadRequest": "错误的请求",
+  "InternalServerError": "内部服务器错误",
+  "ValidationError": "验证失败",
+  "ProjectNotFound": "项目未找到",
+  "ReviewNotFound": "评审未找到",
+  "UserNotFound": "用户未找到",
+  "RepositoryNotAccessible": "仓库无法访问",
+  "InvalidGitCredentials": "无效的Git凭据",
+  "AnalysisInProgress": "分析正在进行中",
+  "LLMConfigurationNotFound": "LLM配置未找到",
+  "OperationSuccessful": "操作成功完成",
+  "ProjectCreated": "项目创建成功",
+  "ReviewStarted": "评审启动成功"
+}

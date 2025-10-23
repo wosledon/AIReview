@@ -2,12 +2,14 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Localization;
 using System;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using AIReview.Core.Exceptions;
 using AIReview.Shared.DTOs;
+using AIReview.API.Resources;
 
 namespace AIReview.API.Middleware;
 
@@ -18,11 +20,13 @@ public class GlobalExceptionHandlerMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger;
+    private readonly IStringLocalizer _localizer;
 
-    public GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlerMiddleware> logger)
+    public GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlerMiddleware> logger, IStringLocalizerFactory localizerFactory)
     {
         _next = next;
         _logger = logger;
+        _localizer = localizerFactory.Create(typeof(SharedResource));
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -73,9 +77,9 @@ public class GlobalExceptionHandlerMiddleware
                 new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "未授权访问",
+                    Message = _localizer["Unauthorized"],
                     ErrorCode = "UNAUTHORIZED",
-                    Errors = new List<string> { "需要有效的身份验证" }
+                    Errors = new List<string> { _localizer["Unauthorized"] }
                 }
             ),
 
@@ -84,7 +88,7 @@ public class GlobalExceptionHandlerMiddleware
                 new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "操作无效",
+                    Message = _localizer["BadRequest"],
                     ErrorCode = "INVALID_OPERATION",
                     Errors = new List<string> { exception.Message }
                 }
@@ -95,7 +99,7 @@ public class GlobalExceptionHandlerMiddleware
                 new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "参数错误",
+                    Message = _localizer["BadRequest"],
                     ErrorCode = "INVALID_ARGUMENT",
                     Errors = new List<string> { exception.Message }
                 }
@@ -106,7 +110,7 @@ public class GlobalExceptionHandlerMiddleware
                 new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "请求超时",
+                    Message = _localizer["InternalServerError"],
                     ErrorCode = "TIMEOUT",
                     Errors = new List<string> { "操作超时，请稍后重试" }
                 }
@@ -117,7 +121,7 @@ public class GlobalExceptionHandlerMiddleware
                 new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "服务器内部错误",
+                    Message = _localizer["InternalServerError"],
                     ErrorCode = "INTERNAL_ERROR",
                     Errors = new List<string> { "系统繁忙，请稍后重试" }
                 }
