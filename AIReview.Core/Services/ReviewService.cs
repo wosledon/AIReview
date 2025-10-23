@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using AIReview.Core.Entities;
 using AIReview.Core.Interfaces;
+using AIReview.Core.Exceptions;
 using AIReview.Shared.DTOs;
 using AIReview.Shared.Enums;
 
@@ -33,7 +34,7 @@ public class ReviewService : IReviewService
         // 验证项目访问权限
         var hasAccess = await _projectService.HasProjectAccessAsync(request.ProjectId, authorId);
         if (!hasAccess)
-            throw new UnauthorizedAccessException("User does not have access to this project");
+            throw new ForbiddenException("您没有权限在此项目中创建评审");
 
         var review = new ReviewRequest
         {
@@ -59,7 +60,7 @@ public class ReviewService : IReviewService
     {
         var review = await _unitOfWork.ReviewRequests.GetReviewWithProjectAsync(id);
         if (review == null)
-            return null;
+            throw new NotFoundException("评审请求", id);
 
         return MapToReviewDto(review);
     }
@@ -84,7 +85,7 @@ public class ReviewService : IReviewService
     {
         var review = await _unitOfWork.ReviewRequests.GetByIdAsync(id);
         if (review == null)
-            throw new ArgumentException($"Review with id {id} not found");
+            throw new NotFoundException("评审请求", id);
 
         if (!string.IsNullOrEmpty(request.Title))
             review.Title = request.Title;
@@ -107,7 +108,7 @@ public class ReviewService : IReviewService
     {
         var review = await _unitOfWork.ReviewRequests.GetByIdAsync(id);
         if (review == null)
-            throw new ArgumentException($"Review with id {id} not found");
+            throw new NotFoundException("评审请求", id);
 
         _unitOfWork.ReviewRequests.Remove(review);
         await _unitOfWork.SaveChangesAsync();

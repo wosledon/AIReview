@@ -6,7 +6,7 @@ public interface IGitService
 {
     // 仓库管理
     Task<GitRepository> CreateRepositoryAsync(GitRepository repository);
-    Task<GitRepository?> GetRepositoryAsync(int id);
+    Task<GitRepository> GetRepositoryAsync(int id);
     Task<GitRepository?> GetRepositoryByUrlAsync(string url);
     Task<IEnumerable<GitRepository>> GetRepositoriesAsync(int? projectId = null);
     Task<GitRepository> UpdateRepositoryAsync(GitRepository repository);
