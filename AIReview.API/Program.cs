@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.Localization;
 using Serilog;
 using Serilog.Events;
 using System.Text;
@@ -45,24 +44,6 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     // 允许使用枚举名称进行序列化/反序列化（例如 "Info"、"Warning"）
     options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
-
-// 配置本地化 (使用JSON格式，类似ABP框架)
-builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
-
-builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
-builder.Services.Configure<RequestLocalizationOptions>(options =>
-{
-    var supportedCultures = new[]
-    {
-        new System.Globalization.CultureInfo("en-US"),
-        new System.Globalization.CultureInfo("zh-CN")
-    };
-
-    options.DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture("zh-CN");
-    options.SupportedCultures = supportedCultures;
-    options.SupportedUICultures = supportedCultures;
-});
-
 builder.Services.AddEndpointsApiExplorer();
 
 // 配置Swagger
@@ -401,9 +382,6 @@ app.UseHangfireDashboard("/hangfire");
 
 // CORS必须在其他中间件之前
 app.UseCors("AllowFrontend");
-
-// 配置请求本地化
-app.UseRequestLocalization();
 
 // app.UseHttpsRedirection();
 

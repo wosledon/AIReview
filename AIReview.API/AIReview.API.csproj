@@ -21,7 +21,6 @@
     <PackageReference Include="Hangfire.SQLite" Version="1.4.2" />
   <PackageReference Include="Hangfire.Redis.StackExchange" Version="1.10.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Localization" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
