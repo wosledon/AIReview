@@ -20,6 +20,7 @@ using AIReview.Infrastructure.Repositories;
 using AIReview.Infrastructure.BackgroundJobs;
 using AIReview.API.Hubs;
 using AIReview.API.Services;
+using AIReview.API.Middleware;
 using Microsoft.Extensions.Options;
 using AIReview.Shared.Enums;
 
@@ -386,6 +387,9 @@ app.UseCors("AllowFrontend");
 
 // 添加Prometheus监控中间件
 app.UseHttpMetrics();
+
+// 全局异常处理中间件（必须在其他中间件之前）
+app.UseGlobalExceptionHandler();
 
 app.UseAuthentication();
 app.UseAuthorization();

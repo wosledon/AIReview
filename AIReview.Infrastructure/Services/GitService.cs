@@ -1,5 +1,6 @@
 using AIReview.Core.Entities;
 using AIReview.Core.Interfaces;
+using AIReview.Core.Exceptions;
 using AIReview.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -28,12 +29,17 @@ public class GitService : IGitService
         return repository;
     }
 
-    public async Task<GitRepository?> GetRepositoryAsync(int id)
+    public async Task<GitRepository> GetRepositoryAsync(int id)
     {
-        return await _context.GitRepositories
+        var repository = await _context.GitRepositories
             .Include(r => r.Project)
             .Include(r => r.Branches)
             .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (repository == null)
+            throw new NotFoundException("Git仓库", id);
+
+        return repository;
     }
 
     public async Task<GitRepository?> GetRepositoryByUrlAsync(string url)
